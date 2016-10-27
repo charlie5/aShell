@@ -1,0 +1,11 @@
+project Ashell is
+
+   package Ide is
+      for Vcs_Kind use "Git";
+   end Ide;
+
+   for Object_Dir   use "build";
+   for Library_Name use "ashell";
+
+end Ashell;
+
