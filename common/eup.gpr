@@ -1,0 +1,9 @@
+--  O mighty Emacs, please use -*- Ada -*- mode in this lowly file.
+
+with "florist";
+project EUP is
+   for Source_Dirs use ("../common/");
+   for Object_Dir use "../common/";
+   for Main use ("eup", "eup-strings", "eup-text_io", "eup-text_io-integer_io");
+   package Linker renames Florist.Linker;
+end EUP;

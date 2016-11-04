@@ -1,11 +1,17 @@
+with
+     "florist";
+
+
 project Ashell is
+
+   for Object_Dir   use "build";
+   for Library_Name use "ashell";
 
    package Ide is
       for Vcs_Kind use "Git";
    end Ide;
 
-   for Object_Dir   use "build";
-   for Library_Name use "ashell";
+   for Source_Dirs use (".", "common");
 
 end Ashell;
 
