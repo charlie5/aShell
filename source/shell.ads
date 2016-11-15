@@ -3,7 +3,8 @@ with
 
 private
 with
-     POSIX.IO;
+     POSIX.IO,
+     POSIX.Process_Primitives;
 
 package Shell
 is
@@ -20,23 +21,25 @@ is
 
    type String_Array is array (Positive range <>) of Unbounded_String;
 
+   Nil_String : Unbounded_String
+                renames Ada.Strings.Unbounded.Null_Unbounded_String;
+
+
 
    -- Commands
    --
---     type Command (<>)  is private;
    type Command       is private;
    type Command_Array is array (Positive range <>) of Command;
 
-   function to_Command  (Name      : in    String;
-                         Arguments : in    String := "") return Command;
-
-   function to_Commands (Pipeline  : in    String) return Command_Array;     -- An example 'Pipeline' is "ps -A | grep bash | wc".
+   function to_Command  (Command_Line : in    String) return Command;           -- An example 'Command_Line' is "ps -A".
+   function to_Commands (Pipeline     : in    String) return Command_Array;     -- An example 'Pipeline'     is "ps -A | grep bash | wc".
 
 
    procedure Connect (From, To    : in out Command);     -- Connects 'From's standard output to 'To's standard input via a pipe.
    procedure Run     (The_Command : in     Command);
    procedure Run     (Commands    : in out Command_Array;
                       Piped       : in     Boolean      := True);
+
 
 
    -- Pipes
@@ -50,7 +53,7 @@ is
    -- Processes
    --
 --   type Process (<>)  is private;
-   type Process       is private;
+   type Process is private;
 
    function Start (Program   : in     String;
                    Arguments : in     String_Array;
@@ -62,6 +65,8 @@ is
 
 private
 
+   subtype Process_Template is POSIX.Process_Primitives.Process_Template;
+
    Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
    Max_Arguments            : constant := 32;     -- Arbitrary.
 
@@ -69,14 +74,15 @@ private
    subtype Argument_Id    is Argument_Range range 1 .. Argument_Range'Last;
 
 
-   type Command is -- (Argument_Count : Argument_Range) is
+   type Command is
       record
          Name      : Unbounded_String;
          Arguments : Unbounded_String;
-         --           Arguments : String_Array (1 .. Argument_Count);
 
          Input_Pipe,
-         Output_Pipe  : Pipe;
+         Output_Pipe : Pipe;
+
+         Template    : access Process_Template;
       end record;
 
 
@@ -94,5 +100,6 @@ private
       record
          null;
       end record;
+
 
 end Shell;

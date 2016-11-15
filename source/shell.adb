@@ -6,11 +6,17 @@ with
 
      Interfaces.C.Strings,
 
-     POSIX.IO,
-     POSIX.Process_Primitives,
+     GNAT.OS_Lib,
 
-     Fork,
-     Wait;
+     POSIX.IO;
+
+with POSIX.Process_Environment;
+with POSIX.Process_Identification,
+     POSIX.Unsafe_Process_Primitives,
+     posix.c,
+     Posix.Implementation;
+with ada.Unchecked_Conversion;
+with Ada.Exceptions; use Ada.Exceptions;
 
 
 package body Shell
@@ -24,38 +30,36 @@ is
    end log;
 
 
-
-   procedure Exec (Program : in String)
-   is
-      procedure Exec_No_Arguments (Command : in     Interfaces.C.Strings.chars_ptr;
-                                   Name    : in     Interfaces.C.Strings.chars_ptr;
-                                   The_End : in     Interfaces.C.Strings.chars_ptr);
-      pragma Import (C, Exec_No_Arguments, "execlp");
-
-      Command : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Program);
-   begin
-      Exec_No_Arguments (Command, Command, Interfaces.C.Strings.Null_Ptr);
-   end Exec;
-
-
-
    -- Commands
    --
 
-   function to_Command (Name      : in    String;
-                        Arguments : in    String := "") return Command
+   function to_Command (Command_Line : in    String) return Command
    is
-      Result : Command; -- (Argument_Count => 0);
+      use POSIX.Process_Primitives,
+          Ada.Strings.Fixed;
+
+      Result : Command;
+      I      : Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
+
    begin
-      Result.Name      := +Name;
-      Result.Arguments := +Arguments;
+      if I = 0
+      then
+         Result.Name      := +Command_Line;
+         Result.Arguments := Nil_String;
+      else
+         Result.Name      := +(Command_Line (Command_Line'First .. I - 1));
+         Result.Arguments := +(Command_Line (I + 1              .. Command_Line'Last));
+      end if;
+
+      Result.Template := new Process_Template;     -- TDOD: Plug this leak.
+      Open_Template (Result.Template.all);
 
       return Result;
    end to_Command;
 
 
 
-   function to_Commands (Pipeline  : in    String) return Command_Array
+   function To_Commands (Pipeline : in    String) return Command_Array
    is
       use Ada.Strings.Fixed;
 
@@ -77,33 +81,11 @@ is
          declare
             Full_Command  : String   := Trim (Pipeline (First .. Last),
                                               Ada.Strings.Both);
-            Space_Index   : Natural  := Index (Full_Command, " ");
-            Has_Arguments : Boolean  := Space_Index /= 0;
          begin
             log ("'" & Full_Command & "'");
 
-            if Has_Arguments
-            then
-               declare
-                  Name      : String := Full_Command (Full_Command'First .. Space_Index - 1);
-                  Arguments : String := Full_Command (Space_Index + 1    .. Full_Command'Last);
-               begin
-                  log ("'" & Name      & "'");
-                  log ("'" & Arguments & "'");
-
-                  Count          := Count + 1;
-                  Result (Count) := to_Command (Name, Arguments);
-               end;
-            else
-               declare
-                  Name : String := Full_Command;
-               begin
-                  log ("'" & Name & "'");
-
-                  Count          := Count + 1;
-                  Result (Count) := to_Command (Name);
-               end;
-            end if;
+            Count          := Count + 1;
+            Result (Count) := to_Command (Full_Command);
          end;
 
          exit when Last = Pipeline'Last;
@@ -128,8 +110,40 @@ is
 
    procedure Run (The_Command : in     Command)
    is
+      use POSIX,
+          POSIX.Process_Environment,
+          POSIX.Process_Primitives,
+          POSIX.Process_Identification;
+
+      Child : Process_Id;
+      Args  : POSIX_String_List;
+      Name  : POSIX_String := To_POSIX_String (+The_Command.Name);
+
+      use GNAT.OS_Lib,
+          Ada.Strings.Unbounded;
+
+      Arguments : Argument_List_Access := Argument_String_To_List (+(  The_Command.Name
+                                                                     & " "
+                                                                     & The_Command.Arguments));
    begin
-      Exec (+The_Command.Name);
+      log (To_String (Name));
+
+      for I in Arguments'Range
+      loop
+         log ("   Arg: '" & Arguments (I).all & "'");
+
+         Append (Args,
+                 To_POSIX_String (Arguments (I).all));
+      end loop;
+
+      Start_Process_Search (Child,
+                            Name,
+                            The_Command.Template.all,
+                            Args);
+      Close_Template (The_Command.Template.all);
+
+      Make_Empty (Args);
+      Free (Arguments);
    end Run;
 
 
@@ -175,40 +189,43 @@ is
 
          for I in Commands'Range
          loop
-            --  Parent
-            Process_ID := Fork;
+            log ("");
 
-            if Process_ID = -1 then
-               log ("Calling fork() failed.");
-               POSIX.Process_Primitives.Exit_Process (Status => 2);
-
-            elsif Process_ID = 0 then
-               --  Child
+            declare
+               use POSIX.Process_Primitives;
+               Command : Shell.Command renames Commands (I);
+            begin
+               if I /= Commands'Last
+               then
+                  Set_File_Action_To_Close     (Command.Template.all, Command.Output_Pipe.Read_End);
+                  Set_File_Action_To_Duplicate (Command.Template.all, POSIX.IO.Standard_Output,
+                                                                      Command.Output_Pipe.Write_End);
+                  Set_File_Action_To_Close     (Command.Template.all, Command.Output_Pipe.Write_End);
+               end if;
 
                if I /= Commands'First
                then
-                  POSIX.IO.Close (File => Commands (I).Input_Pipe.Write_End);
-                  New_File := POSIX.IO.Duplicate_And_Close (Commands (I).Input_Pipe.Read_End, POSIX.IO.Standard_Input);
-                  POSIX.IO.Close (File => Commands (I).Input_Pipe.Read_End);
-               end if;
-
-               if I /= Commands'Last
-               then
-                  POSIX.IO.Close (File => Commands (I).Output_Pipe.Read_End);
-                  New_File := POSIX.IO.Duplicate_And_Close (Commands (I).Output_Pipe.Write_End, POSIX.IO.Standard_Output);
-                  POSIX.IO.Close (File => Commands (I).Output_Pipe.Write_End);
+                  Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Write_End);
+                  Set_File_Action_To_Duplicate (Command.Template.all, POSIX.IO.Standard_Input,
+                                                                      Command.Input_Pipe.Read_End);
+                  Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Read_End);
                end if;
 
                Run (Commands (I));
-            end if;
 
-            if I /= Commands'First
-            then
-               close (Commands (I - 1).Output_Pipe);
-            end if;
+               if I /= Commands'First
+               then
+                  Close (Commands (I - 1).Output_Pipe);
+               end if;
+            end;
          end loop;
       end;
 
+   exception
+      when E : others =>
+         log ("Error in main process Run procedure");
+         log (Exception_Information (E));
+         raise;
    end Run;
 
 

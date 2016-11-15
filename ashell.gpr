@@ -11,7 +11,7 @@ project Ashell is
       for Vcs_Kind use "Git";
    end Ide;
 
-   for Source_Dirs use (".", "common");
+   for Source_Dirs use (".", "source");
 
 end Ashell;
 
