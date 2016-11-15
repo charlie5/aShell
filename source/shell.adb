@@ -108,6 +108,20 @@ is
 
 
 
+   procedure Connect (Commands : in out Command_Array)
+   is
+   begin
+      for I in Commands'Range
+      loop
+         exit when I + 1 > Commands'Last;
+
+         Connect (From => Commands (I),
+                  To   => Commands (I + 1));
+      end loop;
+   end Connect;
+
+
+
    procedure Run (The_Command : in     Command)
    is
       use POSIX,
@@ -163,22 +177,7 @@ is
          return;
       end if;
 
-
-      declare
-         From : Positive;
-         To   : Positive;
-      begin
-         log ("Connecting via pipes.");
-
-         for I in Commands'Range
-         loop
-            exit when I + 1 > Commands'Last;
-
-            Connect (From => Commands (I),
-                     To   => Commands (I + 1));
-         end loop;
-      end;
-
+      Connect (Commands);
 
       declare
          use type Interfaces.C.int;
