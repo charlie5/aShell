@@ -1,17 +1,20 @@
 with
-     "florist";
+     "florist",
+     "shared";
 
 
 project Ashell is
 
-   for Object_Dir   use "build";
    for Library_Name use "ashell";
+
+   for Object_Dir  use "build";
+   for Source_Dirs use (".", "source");
+
+   package Compiler renames Shared.Compiler;
 
    package Ide is
       for Vcs_Kind use "Git";
    end Ide;
-
-   for Source_Dirs use (".", "source");
 
 end Ashell;
 
