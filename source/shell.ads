@@ -4,6 +4,7 @@ with
 private
 with
      POSIX.IO,
+     Posix.Process_Identification,
      POSIX.Process_Primitives;
 
 package Shell
@@ -24,6 +25,25 @@ is
    Nil_String : Unbounded_String
                 renames Ada.Strings.Unbounded.Null_Unbounded_String;
 
+   -- Pipes
+   --
+   type Pipe is private;
+
+   function  to_Pipe return Pipe;
+   procedure Close (The_Pipe : in out Pipe);
+
+
+   -- Processes
+   --
+   type Process is private;
+
+   function Start (Program   : in     String;
+                   Arguments : in     String_Array;
+                   Input     : in     Pipe;                   --  We should probably distinguish
+                   Output    : in     Pipe;                   --  between the two ends of a pipe.
+                   Errors    : in     Pipe) return Process;
+
+   function Image (Process : in Shell.Process) return String;
 
 
    -- Commands
@@ -39,30 +59,10 @@ is
    procedure Connect (Commands : in out Command_Array);     -- Connects each command in a pipeline.
 
 
-   procedure Run     (The_Command : in     Command);
-   procedure Run     (Commands    : in out Command_Array;
-                      Piped       : in     Boolean      := True);
-
-
-
-   -- Pipes
-   --
-   type Pipe is private;
-
-   function  to_Pipe return Pipe;
-   procedure Close (The_Pipe : in out Pipe);
-
-
-   -- Processes
-   --
---   type Process (<>)  is private;
-   type Process is private;
-
-   function Start (Program   : in     String;
-                   Arguments : in     String_Array;
-                   Input     : in     Pipe;                   --  We should probably distinguish
-                   Output    : in     Pipe;                   --  between the two ends of a pipe.
-                   Errors    : in     Pipe) return Process;
+   function  Run (The_Command : in     Command) return Process;
+   procedure Run (The_Command : in     Command);
+   procedure Run (Commands    : in out Command_Array;
+                  Piped       : in     Boolean      := True);
 
 
 
@@ -98,10 +98,9 @@ private
       end record;
 
 
---     type Process (Valid : Boolean) is
    type Process is
       record
-         null;
+         Id : Posix.Process_Identification.Process_ID;
       end record;
 
 

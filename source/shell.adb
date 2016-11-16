@@ -122,7 +122,7 @@ is
 
 
 
-   procedure Run (The_Command : in     Command)
+   function  Run (The_Command : in     Command) return Process
    is
       use POSIX,
           POSIX.Process_Environment,
@@ -139,6 +139,7 @@ is
       Arguments : Argument_List_Access := Argument_String_To_List (+(  The_Command.Name
                                                                      & " "
                                                                      & The_Command.Arguments));
+      Result : Process;
    begin
       log (To_String (Name));
 
@@ -158,6 +159,19 @@ is
 
       Make_Empty (Args);
       Free (Arguments);
+
+      Result.Id := Child;
+      return Result;
+   end Run;
+
+
+
+   procedure Run (The_Command : in     Command)
+   is
+      Process : Shell.Process := Run (The_Command);     -- Work is done here.
+      pragma Unreferenced (Process);                    -- We don't care about the returned process.
+   begin
+      null;
    end Run;
 
 
@@ -269,6 +283,15 @@ is
    begin
       return The_Process;
    end Start;
+
+
+
+   function Image (Process : in Shell.Process) return String
+   is
+      use POSIX.Process_Identification;
+   begin
+      return Image (Process.Id);
+   end;
 
 
 end Shell;
