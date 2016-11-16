@@ -14,7 +14,7 @@ begin
    Test_1:
    declare
       use Shell;
-      The_Command : Command := To_Command ("ls -alh");
+      The_Command : constant Command := To_Command ("ls -alh");
    begin
       Run (The_Command);
       delay 1.0;
@@ -38,8 +38,8 @@ begin
    Test_3:
    declare
       use Shell;
-      The_Command : Command       := To_Command ("sleep 3");
-      The_Process : Shell.Process := Run (The_Command);
+      The_Command : constant Command       := To_Command ("sleep 3");
+      The_Process : constant Shell.Process := Run (The_Command);
    begin
       Put_Line ("Sleep process id: " & Image (The_Process));
    end Test_3;

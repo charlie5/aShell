@@ -1,23 +1,11 @@
 with
-     Ada.Strings.Fixed,
-     Ada.Strings.Maps,
-     Ada.Command_Line,
-     Ada.Text_IO,
-
-     Interfaces.C.Strings,
-
      GNAT.OS_Lib,
 
-     POSIX.IO;
-
-with POSIX.Process_Environment;
-with POSIX.Process_Identification,
-     POSIX.Unsafe_Process_Primitives,
-     posix.c,
-     Posix.Implementation;
-with ada.Unchecked_Conversion;
-with Ada.Exceptions; use Ada.Exceptions;
-
+     Ada.Strings.Fixed,
+     Ada.Strings.Maps,
+     Ada.Text_IO,
+     Ada.Unchecked_Conversion,
+     Ada.Exceptions;
 
 package body Shell
 is
@@ -38,8 +26,8 @@ is
       use POSIX.Process_Primitives,
           Ada.Strings.Fixed;
 
-      Result : Command;
-      I      : Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
+      Result :          Command;
+      I      : constant Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
 
    begin
       if I = 0
@@ -79,8 +67,8 @@ is
                      First  => First,
                      Last   => Last);
          declare
-            Full_Command  : String   := Trim (Pipeline (First .. Last),
-                                              Ada.Strings.Both);
+            Full_Command  : constant String   := Trim (Pipeline (First .. Last),
+                                                       Ada.Strings.Both);
          begin
             log ("'" & Full_Command & "'");
 
@@ -94,13 +82,13 @@ is
       end loop;
 
       return Result (1 .. Count);
-   end;
+   end To_Commands;
 
 
 
    procedure Connect (From, To : in out Command)
    is
-      Pipe : Shell.Pipe := to_Pipe;
+      Pipe : constant Shell.Pipe := to_Pipe;
    begin
       From.Output_Pipe := Pipe;
       To.Input_Pipe    := Pipe;
@@ -125,13 +113,12 @@ is
    function  Run (The_Command : in     Command) return Process
    is
       use POSIX,
-          POSIX.Process_Environment,
           POSIX.Process_Primitives,
           POSIX.Process_Identification;
 
       Child : Process_Id;
       Args  : POSIX_String_List;
-      Name  : POSIX_String := To_POSIX_String (+The_Command.Name);
+      Name  : constant POSIX_String := To_POSIX_String (+The_Command.Name);
 
       use GNAT.OS_Lib,
           Ada.Strings.Unbounded;
@@ -179,6 +166,7 @@ is
    procedure Run (Commands : in out Command_Array;
                   Piped    : in     Boolean      := True)
    is
+      use Ada.Exceptions;
    begin
       if not Piped
       then
@@ -193,46 +181,40 @@ is
 
       Connect (Commands);
 
-      declare
-         use type Interfaces.C.int;
-         Process_ID : Interfaces.C.int;
-         New_File   : POSIX.IO.File_Descriptor;
-      begin
-         log ("Spawning child processes.");
+      log ("Spawning child processes.");
 
-         for I in Commands'Range
-         loop
-            log ("");
+      for I in Commands'Range
+      loop
+         log ("");
 
-            declare
-               use POSIX.Process_Primitives;
-               Command : Shell.Command renames Commands (I);
-            begin
-               if I /= Commands'Last
-               then
-                  Set_File_Action_To_Close     (Command.Template.all, Command.Output_Pipe.Read_End);
-                  Set_File_Action_To_Duplicate (Command.Template.all, POSIX.IO.Standard_Output,
-                                                                      Command.Output_Pipe.Write_End);
-                  Set_File_Action_To_Close     (Command.Template.all, Command.Output_Pipe.Write_End);
-               end if;
+         declare
+            use POSIX.Process_Primitives;
+            Command : Shell.Command renames Commands (I);
+         begin
+            if I /= Commands'Last
+            then
+               Set_File_Action_To_Close     (Command.Template.all, Command.Output_Pipe.Read_End);
+               Set_File_Action_To_Duplicate (Command.Template.all, POSIX.IO.Standard_Output,
+                                                                   Command.Output_Pipe.Write_End);
+               Set_File_Action_To_Close     (Command.Template.all, Command.Output_Pipe.Write_End);
+            end if;
 
-               if I /= Commands'First
-               then
-                  Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Write_End);
-                  Set_File_Action_To_Duplicate (Command.Template.all, POSIX.IO.Standard_Input,
-                                                                      Command.Input_Pipe.Read_End);
-                  Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Read_End);
-               end if;
+            if I /= Commands'First
+            then
+               Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Write_End);
+               Set_File_Action_To_Duplicate (Command.Template.all, POSIX.IO.Standard_Input,
+                                                                   Command.Input_Pipe.Read_End);
+               Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Read_End);
+            end if;
 
-               Run (Commands (I));
+            Run (Commands (I));
 
-               if I /= Commands'First
-               then
-                  Close (Commands (I - 1).Output_Pipe);
-               end if;
-            end;
-         end loop;
-      end;
+            if I /= Commands'First
+            then
+               Close (Commands (I - 1).Output_Pipe);
+            end if;
+         end;
+      end loop;
 
    exception
       when E : others =>
@@ -265,7 +247,7 @@ is
 
       The_Pipe := (Null_File_Descriptor,
                    Null_File_Descriptor);
-   end;
+   end Close;
 
 
 
@@ -278,7 +260,6 @@ is
                    Output    : in     Pipe;
                    Errors    : in     Pipe) return Process
    is
---      The_Process : Process (Valid => True);
       The_Process : Process;
    begin
       return The_Process;
@@ -291,7 +272,7 @@ is
       use POSIX.Process_Identification;
    begin
       return Image (Process.Id);
-   end;
+   end Image;
 
 
 end Shell;
