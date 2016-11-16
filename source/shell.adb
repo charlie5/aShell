@@ -39,7 +39,7 @@ is
          Result.Arguments := +(Command_Line (I + 1              .. Command_Line'Last));
       end if;
 
-      Result.Template := new Process_Template;     -- TDOD: Plug this leak.
+      Result.Template := new Process_Template;     -- TODO: Plug this leak.
       Open_Template (Result.Template.all);
 
       return Result;
@@ -163,20 +163,20 @@ is
 
 
 
-   procedure Run (Commands : in out Command_Array;
-                  Piped    : in     Boolean      := True)
+   function Run (Commands : in out Command_Array;
+                 Piped    : in     Boolean      := True) return Process_Array
    is
-      use Ada.Exceptions;
+      Processes : Process_Array (Commands'Range);
    begin
       if not Piped
       then
          for I in Commands'Range
          loop
             log ("Running " & (+Commands (I).Name));
-            Run (Commands (I));
+            Processes (I) := Run (Commands (I));
          end loop;
 
-         return;
+         return Processes;
       end if;
 
       Connect (Commands);
@@ -207,7 +207,7 @@ is
                Set_File_Action_To_Close     (Command.Template.all, Command.Input_Pipe.Read_End);
             end if;
 
-            Run (Commands (I));
+            Processes (I) := Run (Commands (I));
 
             if I /= Commands'First
             then
@@ -216,11 +216,18 @@ is
          end;
       end loop;
 
-   exception
-      when E : others =>
-         log ("Error in main process Run procedure");
-         log (Exception_Information (E));
-         raise;
+      return Processes;
+   end Run;
+
+
+
+   procedure Run (Commands : in out Command_Array;
+                  Piped    : in     Boolean      := True)
+   is
+      Processes : Process_Array := Run (Commands, Piped);     -- Work is done here.
+      pragma Unreferenced (Processes);                        -- Not interested in Processes.
+   begin
+      null;
    end Run;
 
 

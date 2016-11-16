@@ -45,6 +45,21 @@ begin
    end Test_3;
 
 
+   new_Line (5);
+   Put_Line ("Test 4 ~ Check pid of running processes => 'sleep 3'");
+   Test_4:
+   declare
+      use Shell;
+      The_Commands  :          Command_Array       := To_Commands ("sleep 3 | sleep 3");
+      The_Processes : constant Shell.Process_Array := Run (The_Commands, Piped => False);
+   begin
+      for i in The_Processes'Range
+      loop
+         Put_Line ("Sleep command" & Positive'Image (i) & " ~ process id: " & Image (The_Processes (i)));
+      end loop;
+   end Test_4;
+
+
    New_Line (2);
    Put_Line ("End tests.");
 end Test_aShell;

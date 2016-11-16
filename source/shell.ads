@@ -35,7 +35,8 @@ is
 
    -- Processes
    --
-   type Process is private;
+   type Process       is private;
+   type Process_Array is array (Positive range <>) of Process;
 
    function Start (Program   : in     String;
                    Arguments : in     String_Array;
@@ -61,8 +62,11 @@ is
 
    function  Run (The_Command : in     Command) return Process;
    procedure Run (The_Command : in     Command);
+
    procedure Run (Commands    : in out Command_Array;
                   Piped       : in     Boolean      := True);
+   function  Run (Commands    : in out Command_Array;
+                  Piped       : in     Boolean      := True) return Process_Array;
 
 
 
