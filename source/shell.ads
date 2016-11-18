@@ -73,6 +73,7 @@ is
 private
 
    subtype Process_Template is POSIX.Process_Primitives.Process_Template;
+   subtype File_Descriptor  is POSIX.IO.File_Descriptor;
 
    Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
    Max_Arguments            : constant := 32;     -- Arbitrary.
@@ -93,12 +94,12 @@ private
       end record;
 
 
-   Null_File_Descriptor : constant POSIX.IO.File_Descriptor := POSIX.IO.File_Descriptor'Last;     -- TODO: How best to define a null file descriptor ?
+   Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;     -- TODO: How best to define a null file descriptor ?
 
    type Pipe is
       record
          Write_End,
-         Read_End : POSIX.IO.File_Descriptor := Null_File_Descriptor;
+         Read_End : File_Descriptor := Null_File_Descriptor;
       end record;
 
 
