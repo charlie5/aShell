@@ -25,12 +25,19 @@ is
    Nil_String : Unbounded_String
                 renames Ada.Strings.Unbounded.Null_Unbounded_String;
 
+   Nil_Strings : constant String_Array;
+
+
    -- Pipes
    --
    type Pipe is private;
 
    function  to_Pipe return Pipe;
-   procedure Close (The_Pipe : in out Pipe);
+   procedure Close (The_Pipe : in     Pipe);
+
+   Standard_Input  : constant Pipe;
+   Standard_Output : constant Pipe;
+   Standard_Error  : constant Pipe;
 
 
    -- Processes
@@ -39,17 +46,22 @@ is
    type Process_Array is array (Positive range <>) of Process;
 
    function Start (Program   : in     String;
-                   Arguments : in     String_Array;
-                   Input     : in     Pipe;                   --  We should probably distinguish
-                   Output    : in     Pipe;                   --  between the two ends of a pipe.
-                   Errors    : in     Pipe) return Process;
+                   Arguments : in     String_Array := Nil_Strings;
+                   Input     : in     Pipe         := Standard_Input;                 --  We should probably distinguish
+                   Output    : in     Pipe         := Standard_Output;                --  between the two ends of a pipe.
+                   Errors    : in     Pipe         := Standard_Error) return Process;
 
    function Image (Process : in Shell.Process) return String;
 
 
    -- Commands
    --
-   type Command       is private;
+   Max_Arguments : constant := 32;     -- Arbitrary.
+
+   subtype Argument_Range is Natural        range 0 .. Max_Arguments;
+   subtype Argument_Id    is Argument_Range range 1 .. Argument_Range'Last;
+
+   type Command (Argument_Count : Argument_Range := 0)  is private;
    type Command_Array is array (Positive range <>) of Command;
 
    function to_Command  (Command_Line : in    String) return Command;           -- An example 'Command_Line' is "ps -A".
@@ -74,27 +86,25 @@ private
 
    subtype Process_Template is POSIX.Process_Primitives.Process_Template;
    subtype File_Descriptor  is POSIX.IO.File_Descriptor;
+   subtype Process_ID       is Posix.Process_Identification.Process_ID;
+
+   Nil_Strings : constant String_Array := (1 .. 0 => <>);
 
    Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
-   Max_Arguments            : constant := 32;     -- Arbitrary.
-
-   subtype Argument_Range is Natural        range 0 .. Max_Arguments;
-   subtype Argument_Id    is Argument_Range range 1 .. Argument_Range'Last;
 
 
-   type Command is
+   type Command (Argument_Count : Argument_Range := 0) is
       record
-         Name      : Unbounded_String;
-         Arguments : Unbounded_String;
+         Name        : Unbounded_String;
+         Arguments   : String_Array (1 .. Argument_Count);
 
-         Input_Pipe,
-         Output_Pipe : Pipe;
-
-         Template    : access Process_Template;
+         Input_Pipe  : Pipe := Standard_Input;
+         Output_Pipe : Pipe := Standard_Output;
+         Error_Pipe  : Pipe := Standard_Error;
       end record;
 
 
-   Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;     -- TODO: How best to define a null file descriptor ?
+   Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;     -- TODO: Better way to define a null file descriptor ?
 
    type Pipe is
       record
@@ -102,6 +112,14 @@ private
          Read_End : File_Descriptor := Null_File_Descriptor;
       end record;
 
+   Standard_Input  : constant Pipe := (Write_End => Null_File_Descriptor,
+                                       Read_End  => POSIX.IO.Standard_Input);
+
+   Standard_Output : constant Pipe := (Write_End => POSIX.IO.Standard_Output,
+                                       Read_End  => Null_File_Descriptor);
+
+   Standard_Error  : constant Pipe := (Write_End => POSIX.IO.Standard_Error,
+                                       Read_End  => Null_File_Descriptor);
 
    type Process is
       record
