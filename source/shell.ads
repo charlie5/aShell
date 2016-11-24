@@ -123,7 +123,7 @@ private
 
    type Process is
       record
-         Id : Posix.Process_Identification.Process_ID;
+         Id : Process_ID;
       end record;
 
 
