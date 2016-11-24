@@ -3,7 +3,7 @@ with
      Ada.Text_IO;
 
 
-procedure Test_Piped_Commands
+procedure Test_Piped_Processes
 is
    use Ada.Text_IO;
 begin
@@ -36,4 +36,4 @@ begin
 
    New_Line (2);
    Put_Line ("End test.");
-end Test_Piped_Commands;
+end Test_Piped_Processes;
