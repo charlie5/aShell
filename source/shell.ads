@@ -1,5 +1,6 @@
 with
-     Ada.Strings.Unbounded;
+     Ada.Strings.Unbounded,
+     Ada.Streams;
 
 private
 with
@@ -39,6 +40,9 @@ is
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
    Standard_Error  : constant Pipe;
+
+
+   type Pipe_Stream is new Ada.Streams.Root_Stream_Type with private;
 
 
    -- Processes
@@ -122,6 +126,23 @@ private
 
    Standard_Error  : constant Pipe := (Write_End => POSIX.IO.Standard_Error,
                                        Read_End  => Null_File_Descriptor);
+
+
+   type Pipe_Stream is new Ada.Streams.Root_Stream_Type with
+      record
+         Pipe : Shell.Pipe;
+      end record;
+
+   use Ada.Streams;
+
+   overriding
+   procedure Read  (Stream : in out Pipe_Stream;
+                    Item   :    out Stream_Element_Array;
+                    Last   :    out Stream_Element_Offset);
+   overriding
+   procedure Write (Stream : in out Pipe_Stream;
+                    Item   : in     Stream_Element_Array);
+
 
    type Process is
       record

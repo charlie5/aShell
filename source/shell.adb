@@ -253,6 +253,36 @@ is
 
 
 
+   -- Pipe Streams
+   --
+
+   overriding
+   procedure Read  (Stream : in out Pipe_Stream;
+                    Item   :    out Stream_Element_Array;
+                    Last   :    out Stream_Element_Offset)
+   is
+   begin
+      POSIX.IO.Read (File   => Stream.Pipe.Read_End,
+                     Buffer => Item,
+                     Last   => Last);
+   end Read;
+
+
+
+   overriding
+   procedure Write (Stream : in out Pipe_Stream;
+                    Item   : in     Stream_Element_Array)
+   is
+      Last : Ada.Streams.Stream_Element_Offset;
+      pragma Unreferenced (Last);
+   begin
+      POSIX.IO.Write (File   => Stream.Pipe.Write_End,
+                      Buffer => Item,
+                      Last   => Last);
+   end Write;
+
+
+
    -- Processes
    --
 
