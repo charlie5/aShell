@@ -1,6 +1,6 @@
 with
-     "../ashell",
-     "../shared";
+     "../../ashell",
+     "../../shared";
 
 
 project Test_Piped_Processes is
