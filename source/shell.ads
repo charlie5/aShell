@@ -81,6 +81,7 @@ is
    function  Run (Commands    : in out Command_Array;
                   Piped       : in     Boolean      := True) return Process_Array;
 
+   function  Command_Output (The_Command : in     Command) return String;
 
 
 private
