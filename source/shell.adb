@@ -216,6 +216,19 @@ is
    end to_Pipe;
 
 
+   function  To_String (The_Pipe : in     Pipe) return String
+   is
+      Max_Process_Output : constant := 20 * 1024;
+      Buffer : POSIX.IO.IO_Buffer (1 .. Max_Process_Output);
+      Last   : POSIX.IO_Count;
+   begin
+      POSIX.IO.Read (File   => The_Pipe.Read_End,
+                     Buffer => Buffer,
+                     Last   => Last);
+      return POSIX.To_String (Buffer (1 .. Integer (Last)));
+   end To_String;
+
+
 
    procedure Close (The_Pipe : in     Pipe)
    is
