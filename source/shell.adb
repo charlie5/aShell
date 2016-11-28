@@ -292,8 +292,6 @@ is
                    Output    : in     Pipe         := Standard_Output;
                    Errors    : in     Pipe         := Standard_Error) return Process
    is
-      pragma Unreferenced (Errors);
-
       use POSIX,
           POSIX.Process_Primitives,
           Ada.Strings.Unbounded;
@@ -307,6 +305,14 @@ is
 
    begin
       Open_Template (The_Template);
+
+      if Errors /= Standard_Error
+      then
+         Set_File_Action_To_Close     (The_Template, Errors.Read_End);
+         Set_File_Action_To_Duplicate (The_Template, POSIX.IO.Standard_Error,
+                                                     Errors.Write_End);
+         Set_File_Action_To_Close     (The_Template, Errors.Write_End);
+      end if;
 
       if Output /= Standard_Output
       then
@@ -342,7 +348,17 @@ is
 
       if Input /= Standard_Input
       then
-         Close (Input);
+         POSIX.IO.Close (Input.Read_End);
+      end if;
+
+      if Output /= Standard_Output
+      then
+         POSIX.IO.Close (Output.Write_End);
+      end if;
+
+      if Errors /= Standard_Error
+      then
+         POSIX.IO.Close (Errors.Write_End);
       end if;
 
       The_Process.Id := The_Process_Id;
