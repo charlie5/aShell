@@ -286,6 +286,20 @@ is
    end Close;
 
 
+   procedure Close_Write_End (The_Pipe : in     Pipe)
+   is
+   begin
+      POSIX.IO.Close (The_Pipe.Write_End);
+   end Close_Write_End;
+
+
+   function  Close_Write_End (The_Pipe : in     Pipe) return Boolean
+   is
+   begin
+      Close_Write_End (The_Pipe);
+      return True;
+   end Close_Write_End;
+
 
    -- Pipe Streams
    --

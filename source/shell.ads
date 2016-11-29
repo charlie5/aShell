@@ -37,6 +37,9 @@ is
    function  To_String (The_Pipe : in     Pipe) return String;     -- Returns available output from the 'read end' as a string.
    procedure Close     (The_Pipe : in     Pipe);
 
+   procedure Close_Write_End (The_Pipe : in     Pipe);
+   function  Close_Write_End (The_Pipe : in     Pipe) return Boolean;
+
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
    Standard_Error  : constant Pipe;
