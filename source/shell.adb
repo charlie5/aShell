@@ -166,11 +166,11 @@ is
 
 
    function Run (Commands : in out Command_Array;
-                 Piped    : in     Boolean      := True) return Process_Array
+                 Pipeline : in     Boolean      := True) return Process_Array
    is
       Processes : Process_Array (Commands'Range);
    begin
-      if not Piped
+      if not Pipeline
       then
          for I in Commands'Range
          loop
@@ -184,7 +184,38 @@ is
 
       for I in Commands'Range
       loop
-         Processes (I) := Run (Commands (I));
+         declare
+            procedure Close_Pipe_Write_Ends (Command : in Shell.Command)
+            is
+            begin
+               if Command.Output_Pipe /= Standard_Output
+               then
+                  POSIX.IO.Close (Command.Output_Pipe.Write_End);
+               end if;
+
+               if Command.Error_Pipe /= Standard_Error
+               then
+                  POSIX.IO.Close (Command.Error_Pipe.Write_End);
+               end if;
+            end Close_Pipe_Write_Ends;
+
+         begin
+            Processes (I) := Run (Commands (I),
+                                  Pipeline => True);
+
+            -- Since we are making a pipeline, we need to close the write ends of
+            -- the Output & Errors pipes ourselves.
+            --
+            if I /= Commands'First
+            then
+               Close_Pipe_Write_Ends (Commands (I - 1));             -- Close ends for the prior command.
+            end if;
+
+            if I = Commands'Last
+            then
+               Close_Pipe_Write_Ends (Commands (Commands'Last));     -- Close ends for the final command.
+            end if;
+         end;
       end loop;
 
       return Processes;
@@ -193,10 +224,10 @@ is
 
 
    procedure Run (Commands : in out Command_Array;
-                  Piped    : in     Boolean      := True)
+                  Pipeline : in     Boolean      := True)
    is
-      Processes : Process_Array := Run (Commands, Piped);     -- Work is done here.
-      pragma Unreferenced (Processes);                        -- Not interested in Processes.
+      Processes : Process_Array := Run (Commands, Pipeline);     -- Work is done here.
+      pragma Unreferenced (Processes);                           -- Not interested in Processes.
    begin
       null;
    end Run;
@@ -290,7 +321,8 @@ is
                    Arguments : in     String_Array := Nil_Strings;
                    Input     : in     Pipe         := Standard_Input;
                    Output    : in     Pipe         := Standard_Output;
-                   Errors    : in     Pipe         := Standard_Error) return Process
+                   Errors    : in     Pipe         := Standard_Error;
+                   Pipeline  : in     Boolean      := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -351,14 +383,20 @@ is
          POSIX.IO.Close (Input.Read_End);
       end if;
 
-      if Output /= Standard_Output
+      -- When in a pipeline of processes, the write ends of The_Process's 'Output' & 'Errors' pipes must remain open, in
+      -- the main process, until the next process in the pipeline (which uses the pipe as 'Input') is started (spawned).
+      --
+      if not Pipeline
       then
-         POSIX.IO.Close (Output.Write_End);
-      end if;
+         if Output /= Standard_Output
+         then
+            POSIX.IO.Close (Output.Write_End);
+         end if;
 
-      if Errors /= Standard_Error
-      then
-         POSIX.IO.Close (Errors.Write_End);
+         if Errors /= Standard_Error
+         then
+            POSIX.IO.Close (Errors.Write_End);
+         end if;
       end if;
 
       The_Process.Id := The_Process_Id;

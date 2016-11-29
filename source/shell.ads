@@ -52,9 +52,12 @@ is
 
    function Start (Program   : in     String;
                    Arguments : in     String_Array := Nil_Strings;
-                   Input     : in     Pipe         := Standard_Input;                 --  We should probably distinguish
-                   Output    : in     Pipe         := Standard_Output;                --  between the two ends of a pipe.
-                   Errors    : in     Pipe         := Standard_Error) return Process;
+                   Input     : in     Pipe         := Standard_Input;
+                   Output    : in     Pipe         := Standard_Output;
+                   Errors    : in     Pipe         := Standard_Error;
+                   Pipeline  : in     Boolean      := False) return Process;
+   --
+   -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
    function Image (Process : in Shell.Process) return String;
 
@@ -81,9 +84,9 @@ is
    procedure Run (The_Command : in     Command);
 
    procedure Run (Commands    : in out Command_Array;
-                  Piped       : in     Boolean      := True);
+                  Pipeline    : in     Boolean      := True);
    function  Run (Commands    : in out Command_Array;
-                  Piped       : in     Boolean      := True) return Process_Array;
+                  Pipeline    : in     Boolean      := True) return Process_Array;
 
    function  Command_Output (The_Command : in     Command) return String;
 
