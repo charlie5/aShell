@@ -51,7 +51,7 @@ begin
    declare
       use Shell;
       The_Commands  :          Command_Array       := To_Commands ("sleep 3 | sleep 3");
-      The_Processes : constant Shell.Process_Array := Run (The_Commands, Piped => False);
+      The_Processes : constant Shell.Process_Array := Run (The_Commands, Pipeline => False);
    begin
       for i in The_Processes'Range
       loop
