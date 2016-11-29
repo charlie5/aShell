@@ -80,8 +80,10 @@ is
    procedure Connect (Commands : in out Command_Array);     -- Connects each command in a pipeline.
 
 
-   function  Run (The_Command : in     Command) return Process;
-   procedure Run (The_Command : in     Command);
+   function  Run (The_Command : in     Command;
+                  Pipeline    : in     Boolean := False) return Process;
+   procedure Run (The_Command : in     Command;
+                  Pipeline    : in     Boolean := False);
 
    procedure Run (Commands    : in out Command_Array;
                   Pipeline    : in     Boolean      := True);

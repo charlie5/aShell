@@ -134,7 +134,8 @@ is
 
 
 
-   function  Run (The_Command : in     Command) return Process
+   function  Run (The_Command : in     Command;
+                  Pipeline    : in     Boolean := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -149,16 +150,18 @@ is
                        Arguments =>  The_Command.Arguments,
                        Input     =>  The_Command.Input_Pipe,
                        Output    =>  The_Command.Output_Pipe,
-                       Errors    =>  The_Command.Error_Pipe);
+                       Errors    =>  The_Command.Error_Pipe,
+                       Pipeline  =>  Pipeline);
       return Result;
    end Run;
 
 
 
-   procedure Run (The_Command : in     Command)
+   procedure Run (The_Command : in     Command;
+                  Pipeline    : in     Boolean := False)
    is
-      Process : Shell.Process := Run (The_Command);     -- Work is done here.
-      pragma Unreferenced (Process);                    -- We don't care about the returned process.
+      Process : Shell.Process := Run (The_Command, Pipeline);     -- Work is done here.
+      pragma Unreferenced (Process);                              -- We don't care about the returned process.
    begin
       null;
    end Run;
