@@ -62,6 +62,8 @@ is
    --
    -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
+   procedure Wait_On (Process : in     Shell.Process);
+
    function Image (Process : in Shell.Process) return String;
 
 

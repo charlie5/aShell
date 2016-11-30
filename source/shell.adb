@@ -422,6 +422,18 @@ is
 
 
 
+   procedure Wait_On (Process : in     Shell.Process)
+   is
+      use POSIX.Process_Primitives;
+
+      Status : Termination_Status with Unreferenced;
+   begin
+      Wait_For_Child_Process (Status => Status,
+                              Child  => Process.Id);
+   end Wait_On;
+
+
+
    function Image (Process : in Shell.Process) return String
    is
       use POSIX.Process_Identification;
