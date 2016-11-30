@@ -2,6 +2,8 @@
 
 A component to aid in writing shell-like applications in Ada.
 
+Under an ISC license.
+
 ## Example
 
 A trivial shell script:
