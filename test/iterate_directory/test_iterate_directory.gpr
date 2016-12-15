@@ -1,0 +1,16 @@
+with
+     "../../ashell",
+     "../../shared";
+
+
+project Test_Iterate_Directory is
+
+   for Object_Dir use "build";
+   for   Exec_Dir use ".";
+
+   for Main use ("test_iterate_directory.adb");
+
+   package Compiler renames Shared.Compiler;
+
+end Test_Iterate_Directory;
+
