@@ -53,12 +53,13 @@ is
    type Process       is private;
    type Process_Array is array (Positive range <>) of Process;
 
-   function Start (Program   : in     String;
-                   Arguments : in     String_Array := Nil_Strings;
-                   Input     : in     Pipe         := Standard_Input;
-                   Output    : in     Pipe         := Standard_Output;
-                   Errors    : in     Pipe         := Standard_Error;
-                   Pipeline  : in     Boolean      := False) return Process;
+   function Start (Program           : in     String;
+                   Working_Directory : in     String := ".";
+                   Arguments         : in     String_Array := Nil_Strings;
+                   Input             : in     Pipe         := Standard_Input;
+                   Output            : in     Pipe         := Standard_Output;
+                   Errors            : in     Pipe         := Standard_Error;
+                   Pipeline          : in     Boolean      := False) return Process;
    --
    -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
