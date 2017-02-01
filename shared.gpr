@@ -11,10 +11,6 @@ project Shared is
       ("Windows_NT", "Linux", "MacOSX");
    Os : Os_Type := external ("OS");
 
-   type Restrictions is
-      ("xgc", "ravenscar");
-   Restrictions : Restrictions := external ("restrictions");
-
    type Build_Mode_Type is
       ("debug", "fast", "small");
    Build_Mode : Build_Mode_Type := external ("Build_Mode", "debug");
