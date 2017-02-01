@@ -1,3 +1,7 @@
+# Editor backup files
+*.bak
+*\~
+
 # Object file
 *.o
 
