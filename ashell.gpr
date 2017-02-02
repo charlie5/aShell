@@ -8,13 +8,13 @@ project Ashell is
    for Library_Name use "ashell";
 
    for Object_Dir  use "build";
-   for Source_Dirs use (".", "source");
+   for Source_Dirs use ("source");
 
    package Compiler renames Shared.Compiler;
 
-   package Ide is
-      for Vcs_Kind use "Git";
-   end Ide;
+   package IDE is
+      for VCS_Kind use "Git";
+   end IDE;
 
 end Ashell;
 
