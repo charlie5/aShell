@@ -1,6 +1,6 @@
 ISC License
 
-Copyright (c) [2016], [Rod Kay, Jacob Andersen]
+Copyright (c) [2016-2017], [Rod Kay, Jacob Andersen]
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -13,3 +13,8 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+Please notice that the POSIX child packages included in the repository
+are under a different license, as they are derived from the FLORIST
+project.

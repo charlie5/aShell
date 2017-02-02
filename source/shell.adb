@@ -3,8 +3,9 @@ with
 
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
-     Ada.Text_IO,
-     Ada.Unchecked_Conversion;
+     Ada.Text_IO;
+
+with POSIX.Process_Primitives.Extensions;
 
 package body Shell
 is
@@ -334,15 +335,17 @@ is
    -- Processes
    --
 
-   function Start (Program   : in     String;
-                   Arguments : in     String_Array := Nil_Strings;
-                   Input     : in     Pipe         := Standard_Input;
-                   Output    : in     Pipe         := Standard_Output;
-                   Errors    : in     Pipe         := Standard_Error;
-                   Pipeline  : in     Boolean      := False) return Process
+   function Start (Program           : in     String;
+                   Working_Directory : in     String := ".";
+                   Arguments         : in     String_Array := Nil_Strings;
+                   Input             : in     Pipe         := Standard_Input;
+                   Output            : in     Pipe         := Standard_Output;
+                   Errors            : in     Pipe         := Standard_Error;
+                   Pipeline          : in     Boolean      := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
+          POSIX.Process_Primitives.Extensions,
           Ada.Strings.Unbounded;
 
       The_Template   : Process_Template;
@@ -389,6 +392,7 @@ is
 
       Start_Process_Search (The_Process_Id,
                             Name,
+                            Working_Directory,
                             The_Template,
                             Args);
 
