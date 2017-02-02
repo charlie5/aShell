@@ -17,18 +17,18 @@ is
 
 
 
-   -- Tree
+   -- Directory
    --
 
-   function To_Tree (Path : in String) return Tree
+   function To_Directory (Path : in String) return Directory
    is
    begin
-      return Tree' (Path => +Path);
-   end To_Tree;
+      return Directory' (Path => +Path);
+   end To_Directory;
 
 
 
-   function Path (Container : in Tree) return String
+   function Path (Container : in Directory) return String
    is
    begin
       return +Container.Path;
@@ -36,11 +36,11 @@ is
 
 
 
-   function Iterate (Container : in Tree) return Tree_Iterators.Forward_Iterator'Class
+   function Iterate (Container : in Directory) return Directory_Iterators.Forward_Iterator'Class
    is
       use Ada.Directories,
           Ada.Finalization;
-      V  : constant Tree_Access := Container'Unrestricted_Access;
+      V  : constant Directory_Access := Container'Unrestricted_Access;
    begin
       return It : constant Iterator := (Controlled with
                                         Container => V,
@@ -55,7 +55,7 @@ is
 
 
 
-   function Element_Value (Container : in Tree;
+   function Element_Value (Container : in Directory;
                            Pos       : in Cursor) return Constant_Reference_Type
    is
       pragma Unreferenced (Container);
@@ -99,7 +99,7 @@ is
       if Position.Container /= Object.Container
       then
          raise Program_Error with
-           "Position cursor of Next designates wrong tree";
+           "Position cursor of Next designates wrong directory";
       end if;
 
       if More_Entries (Object.Search.all)
