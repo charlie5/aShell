@@ -1,7 +1,7 @@
+with Ada.Environment_Variables;
 with Ada.Text_IO;
 
 with Shell;
-with Shell.Environment;
 
 procedure Environment_Test_Runner
 is
@@ -23,8 +23,8 @@ begin
    begin
       Put_Line ("Test 1 ~ Run piped commands => »" & Commands & "«");
 
-      Shell.Environment.Set (Name  => Name,
-                             Value => Value);
+      Ada.Environment_Variables.Set (Name  => Name,
+                                     Value => Value);
       Put_Line ("Expected output:");
       Put_Line (Expected);
       Put_Line ("Actual output:");
@@ -47,8 +47,8 @@ begin
    begin
       Put_Line ("Test 2 ~ Run piped commands => »" & Commands & "«");
 
-      Shell.Environment.Set (Name  => Name,
-                             Value => Value);
+      Ada.Environment_Variables.Set (Name  => Name,
+                                     Value => Value);
       Put_Line ("Expected output:");
       Put_Line (Expected);
       Put_Line ("Actual output:");
