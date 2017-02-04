@@ -10,18 +10,54 @@ begin
    Put_Line ("Start tests.");
 
    New_Line (2);
-   Put_Line ("Test 1 ~ Run piped commands => 'env | grep aShell_Test_Variable'");
+
    Test_1:
    declare
+      Name     : constant String := "aShell_Test_Variable";
+      Value    : constant String := "Working";
+      Commands : constant String := "env | grep " & Name;
+      Expected : constant String := Name & "=" & Value;
+
       use Shell;
-      Piped_Commands : Command_Array := To_Commands ("env | grep aShell_Test_Variable");
+      Piped_Commands : Command_Array := To_Commands (Commands);
    begin
-      Shell.Environment.Set (Name  => "aShell_Test_Variable",
-                             Value => "Working!");
+      Put_Line ("Test 1 ~ Run piped commands => »" & Commands & "«");
+
+      Shell.Environment.Set (Name  => Name,
+                             Value => Value);
+      Put_Line ("Expected output:");
+      Put_Line (Expected);
+      Put_Line ("Actual output:");
       Run (Piped_Commands);
       delay 1.0;
+      Put_Line ("End test 1");
    end Test_1;
 
    New_Line (2);
+
+   Test_2:
+   declare
+      Name     : constant String := "aShell_Test_Variable";
+      Value    : constant String := "Changed";
+      Commands : constant String := "env | grep " & Name;
+      Expected : constant String := Name & "=" & Value;
+
+      use Shell;
+      Piped_Commands : Command_Array := To_Commands (Commands);
+   begin
+      Put_Line ("Test 2 ~ Run piped commands => »" & Commands & "«");
+
+      Shell.Environment.Set (Name  => Name,
+                             Value => Value);
+      Put_Line ("Expected output:");
+      Put_Line (Expected);
+      Put_Line ("Actual output:");
+      Run (Piped_Commands);
+      delay 1.0;
+      Put_Line ("End test 2");
+   end Test_2;
+
+   New_Line (2);
+
    Put_Line ("End tests.");
 end Environment_Test_Runner;
