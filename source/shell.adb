@@ -336,8 +336,8 @@ is
    --
 
    function Start (Program           : in     String;
-                   Working_Directory : in     String := ".";
                    Arguments         : in     String_Array := Nil_Strings;
+                   Working_Directory : in     String       := ".";
                    Input             : in     Pipe         := Standard_Input;
                    Output            : in     Pipe         := Standard_Output;
                    Errors            : in     Pipe         := Standard_Error;
@@ -424,6 +424,23 @@ is
       return The_Process;
    end Start;
 
+   function Start (Command           : in     String;
+                   Working_Directory : in     String       := ".";
+                   Input             : in     Pipe         := Standard_Input;
+                   Output            : in     Pipe         := Standard_Output;
+                   Errors            : in     Pipe         := Standard_Error;
+                   Pipeline          : in     Boolean      := False) return Process
+   is
+   begin
+      return Start (Program           => "/bin/sh",
+                    Arguments         => (+"-c",
+                                          +Command),
+                    Working_Directory => Working_Directory,
+                    Input             => Input,
+                    Output            => Output,
+                    Errors            => Errors,
+                    Pipeline          => Pipeline);
+   end Start;
 
 
    procedure Wait_On (Process : in     Shell.Process)
