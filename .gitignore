@@ -11,3 +11,4 @@
 # Build atifacts
 build
 test/test_ashell
+test/ashell/test_ashell
