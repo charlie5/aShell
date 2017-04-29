@@ -243,11 +243,13 @@ is
    is
       Command :          Shell.Command := The_Command;
       Pipe    : constant Shell.Pipe    := To_Pipe;
+      Process :          Shell.Process;
    begin
       Command.Output_Pipe := Pipe;
-      Run (Command);
 
-      -- TODO: Wait for command to complete.
+      Process := Run (Command);
+      Wait_On (Process);
+
       return To_String (Pipe);
    end Command_Output;
 
