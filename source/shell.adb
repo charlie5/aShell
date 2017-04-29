@@ -3,6 +3,7 @@ with
 
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
+     Ada.IO_Exceptions,
      Ada.Text_IO;
 
 with POSIX.Process_Primitives.Extensions;
@@ -275,6 +276,10 @@ is
                      Buffer => Buffer,
                      Last   => Last);
       return POSIX.To_String (Buffer (1 .. Integer (Last)));
+
+   exception
+      when Ada.IO_Exceptions.End_Error =>
+         return "";
    end To_String;
 
 
