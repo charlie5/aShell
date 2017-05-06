@@ -6,7 +6,8 @@ private
 with
      POSIX.IO,
      Posix.Process_Identification,
-     POSIX.Process_Primitives;
+     POSIX.Process_Primitives,
+     Ada.Finalization;
 
 package Shell
 is
@@ -105,7 +106,16 @@ is
    function  Run (Commands    : in out Command_Array;
                   Pipeline    : in     Boolean      := True) return Process_Array;
 
+
    function  Command_Output (The_Command : in     Command) return String;
+
+
+   type Command_Results is private;
+
+   function  Results_Of (The_Command : in     Command) return Command_Results;
+
+   function  Output_of  (The_Results : in     Command_Results) return String;
+   function  Errors_of  (The_Results : in     Command_Results) return String;
 
 
 private
@@ -169,5 +179,14 @@ private
          Id : Process_ID;
       end record;
 
+
+   type Command_Results is new Ada.Finalization.Controlled with
+      record
+         Output : access String;
+         Errors : access String;
+      end record;
+
+   overriding
+   procedure Finalize (Results : in out Command_Results);
 
 end Shell;

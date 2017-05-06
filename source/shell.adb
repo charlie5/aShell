@@ -4,6 +4,7 @@ with
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
      Ada.IO_Exceptions,
+     Ada.Unchecked_Deallocation,
      Ada.Text_IO;
 
 with POSIX.Process_Primitives.Extensions;
@@ -252,6 +253,63 @@ is
 
       return To_String (Pipe);
    end Command_Output;
+
+
+
+   -- Command Results
+   --
+
+   function  Results_Of (The_Command : in     Command) return Command_Results
+   is
+      Command     :          Shell.Command := The_Command;
+      Output_Pipe : constant Shell.Pipe    := To_Pipe;
+      Error_Pipe  : constant Shell.Pipe    := To_Pipe;
+      Process     :          Shell.Process;
+   begin
+      Command.Output_Pipe := Output_Pipe;
+      Command. Error_Pipe :=  Error_Pipe;
+
+      Process := Run (Command);
+      Wait_On (Process);
+
+      return (Ada.Finalization.Controlled with
+                Output => new String' (To_String (Output_Pipe)),
+                Errors => new String' (To_String (Error_Pipe)));
+   end Results_Of;
+
+
+
+   overriding
+   procedure Finalize (Results : in out Command_Results)
+   is
+      type String_Access is access all String;
+      procedure Deallocate is new Ada.Unchecked_Deallocation (String, String_Access);
+
+      Output_String : String_Access := Results.Output;
+      Errors_String : String_Access := Results.Errors;
+   begin
+      Deallocate (Output_String);
+      Deallocate (Errors_String);
+
+      Results := (Ada.Finalization.Controlled with
+                    Output => null,
+                    Errors => null);
+   end Finalize;
+
+
+
+   function Output_of (The_Results : in     Command_Results) return String
+   is
+   begin
+      return The_Results.Output.all;
+   end Output_of;
+
+
+   function Errors_of (The_Results : in     Command_Results) return String
+   is
+   begin
+      return The_Results.Errors.all;
+   end Errors_of;
 
 
 
