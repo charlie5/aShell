@@ -5,9 +5,9 @@ with
      Ada.Strings.Maps,
      Ada.IO_Exceptions,
      Ada.Unchecked_Deallocation,
-     Ada.Text_IO;
+     Ada.Text_IO,
 
-with POSIX.Process_Primitives.Extensions;
+     POSIX.Process_Primitives.Extensions;
 
 package body Shell
 is
@@ -272,7 +272,7 @@ is
       Process := Run (Command);
       Wait_On (Process);
 
-      return (Ada.Finalization.Controlled with
+      return (Ada.Finalization.Limited_Controlled with
                 Output => new String' (To_String (Output_Pipe)),
                 Errors => new String' (To_String (Error_Pipe)));
    end Results_Of;
@@ -282,18 +282,10 @@ is
    overriding
    procedure Finalize (Results : in out Command_Results)
    is
-      type String_Access is access all String;
       procedure Deallocate is new Ada.Unchecked_Deallocation (String, String_Access);
-
-      Output_String : String_Access := Results.Output;
-      Errors_String : String_Access := Results.Errors;
    begin
-      Deallocate (Output_String);
-      Deallocate (Errors_String);
-
-      Results := (Ada.Finalization.Controlled with
-                    Output => null,
-                    Errors => null);
+      Deallocate (Results.Output);
+      Deallocate (Results.Errors);
    end Finalize;
 
 

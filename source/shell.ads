@@ -110,7 +110,7 @@ is
    function  Command_Output (The_Command : in     Command) return String;
 
 
-   type Command_Results is private;
+   type Command_Results is limited private;
 
    function  Results_Of (The_Command : in     Command) return Command_Results;
 
@@ -180,10 +180,12 @@ private
       end record;
 
 
-   type Command_Results is new Ada.Finalization.Controlled with
+   type String_Access is access all String;
+
+   type Command_Results is new Ada.Finalization.Limited_Controlled with
       record
-         Output : access String;
-         Errors : access String;
+         Output : String_Access;
+         Errors : String_Access;
       end record;
 
    overriding
