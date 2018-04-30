@@ -4,6 +4,9 @@ with
 
 
 procedure Test_Pipe_Output_To_String
+--
+-- Starts a long process (ls -alhR /) and periodically reads/prints the processes output.
+--
 is
    use Ada.Text_IO;
 begin
@@ -14,11 +17,15 @@ begin
       use Shell;
       ls_Pipe : constant Shell.Pipe := To_Pipe;
       ls      : Shell.Process       := Start (Program   => "ls",
-                                              Arguments => (1 => +"-alh"),
+                                              Arguments => (1 => +"-alhR",
+                                                            2 => +"/"),
                                               Output    => ls_Pipe);
    begin
-      delay 1.0;
-      Put_Line ("'" & To_String (ls_Pipe) & "'");
+      for i in 1 .. 10
+      loop
+         delay 1.0;
+         Put_Line ("'" & To_String (ls_Pipe) & "'");   -- The 'To_String' function reads any output from the pipe as a String.
+      end loop;
    end;
 
    New_Line (2);
