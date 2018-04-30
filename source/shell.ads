@@ -14,19 +14,14 @@ is
 
    -- Strings
    --
-   subtype Unbounded_String is Ada.Strings.Unbounded.Unbounded_String;
+   type Unbounded_String is new Ada.Strings.Unbounded.Unbounded_String;
 
-   function "+" (Item : in String) return Unbounded_String
-                 renames Ada.Strings.Unbounded.To_Unbounded_String;
-
-   function "+" (Item : in Unbounded_String) return String
-                 renames Ada.Strings.Unbounded.To_String;
+   function "+" (Item : in String) return Unbounded_String;
+   function "+" (Item : in Unbounded_String) return String;
 
    type String_Array is array (Positive range <>) of Unbounded_String;
 
-   Nil_String : Unbounded_String
-                renames Ada.Strings.Unbounded.Null_Unbounded_String;
-
+   Nil_String  : constant Unbounded_String;
    Nil_Strings : constant String_Array;
 
 
@@ -124,7 +119,8 @@ private
    subtype File_Descriptor  is POSIX.IO.File_Descriptor;
    subtype Process_ID       is Posix.Process_Identification.Process_ID;
 
-   Nil_Strings : constant String_Array := (1 .. 0 => <>);
+   Nil_String  : constant Unbounded_String := Unbounded_String (Ada.Strings.Unbounded.Null_Unbounded_String);
+   Nil_Strings : constant String_Array     := (1 .. 0 => <>);
 
    Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
 

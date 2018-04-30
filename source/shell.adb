@@ -20,6 +20,23 @@ is
    end log;
 
 
+   -- Strings
+   --
+
+   function "+" (Item : in String) return Unbounded_String
+   is
+   begin
+      return To_Unbounded_String (Item);
+   end "+";
+
+
+   function "+" (Item : in Unbounded_String) return String
+   is
+   begin
+      return To_String (Item);
+   end "+";
+
+
    -- Commands
    --
 
