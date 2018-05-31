@@ -60,7 +60,7 @@ is
    end To_Arguments;
 
 
-   function to_Command (Command_Line : in    String) return Command
+   function To_Command (Command_Line : in    String) return Command
    is
       use POSIX.Process_Primitives,
           Ada.Strings.Fixed;
@@ -307,32 +307,32 @@ is
 
 
 
-   function Output_of (The_Results : in     Command_Results) return String
+   function Output_Of (The_Results : in     Command_Results) return String
    is
    begin
       return The_Results.Output.all;
-   end Output_of;
+   end Output_Of;
 
 
-   function Errors_of (The_Results : in     Command_Results) return String
+   function Errors_Of (The_Results : in     Command_Results) return String
    is
    begin
       return The_Results.Errors.all;
-   end Errors_of;
+   end Errors_Of;
 
 
 
    -- Pipes
    --
 
-   function to_Pipe return Pipe
+   function To_Pipe return Pipe
    is
       The_Pipe : Pipe;
    begin
       POSIX.IO.Create_Pipe (Read_End  => The_Pipe.Read_End,
                             Write_End => The_Pipe.Write_End);
       return The_Pipe;
-   end to_Pipe;
+   end To_Pipe;
 
 
    function  To_String (The_Pipe : in     Pipe) return String
@@ -350,7 +350,6 @@ is
       when Ada.IO_Exceptions.End_Error =>
          return "";
    end To_String;
-
 
 
    procedure Close (The_Pipe : in     Pipe)
@@ -497,6 +496,7 @@ is
       The_Process.Id := The_Process_Id;
       return The_Process;
    end Start;
+
 
    function Start (Command           : in     String;
                    Working_Directory : in     String       := ".";

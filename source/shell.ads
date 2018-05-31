@@ -5,7 +5,7 @@ with
 private
 with
      POSIX.IO,
-     Posix.Process_Identification,
+     POSIX.Process_Identification,
      POSIX.Process_Primitives,
      Ada.Finalization;
 
@@ -29,7 +29,7 @@ is
    --
    type Pipe is private;
 
-   function  to_Pipe return Pipe;
+   function  To_Pipe return Pipe;
    function  To_String (The_Pipe : in     Pipe) return String;     -- Returns available output from the 'read end' as a string.
    procedure Close     (The_Pipe : in     Pipe);
 
@@ -87,8 +87,8 @@ is
    type Command (Argument_Count : Argument_Range := 0)  is private;
    type Command_Array is array (Positive range <>) of Command;
 
-   function to_Command  (Command_Line : in    String) return Command;           -- An example 'Command_Line' is "ps -A".
-   function to_Commands (Pipeline     : in    String) return Command_Array;     -- An example 'Pipeline'     is "ps -A | grep bash | wc".
+   function To_Command  (Command_Line : in    String) return Command;           -- An example 'Command_Line' is "ps -A".
+   function To_Commands (Pipeline     : in    String) return Command_Array;     -- An example 'Pipeline'     is "ps -A | grep bash | wc".
 
 
    procedure Connect (From, To : in out Command);           -- Connects 'From's standard output to 'To's standard input via a pipe.
@@ -113,15 +113,15 @@ is
 
    function  Results_Of (The_Command : in     Command) return Command_Results;
 
-   function  Output_of  (The_Results : in     Command_Results) return String;
-   function  Errors_of  (The_Results : in     Command_Results) return String;
+   function  Output_Of  (The_Results : in     Command_Results) return String;
+   function  Errors_Of  (The_Results : in     Command_Results) return String;
 
 
 private
 
    subtype Process_Template is POSIX.Process_Primitives.Process_Template;
    subtype File_Descriptor  is POSIX.IO.File_Descriptor;
-   subtype Process_ID       is Posix.Process_Identification.Process_ID;
+   subtype Process_ID       is POSIX.Process_Identification.Process_ID;
 
    Nil_String  : constant Unbounded_String := Unbounded_String (Ada.Strings.Unbounded.Null_Unbounded_String);
    Nil_Strings : constant String_Array     := (1 .. 0 => <>);
