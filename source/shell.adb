@@ -529,6 +529,42 @@ is
 
 
 
+   function  Has_Terminated (Process : in     Shell.Process) return Boolean
+   is
+      use POSIX.Process_Primitives;
+
+      Status : Termination_Status;
+   begin
+      Wait_For_Child_Process (Status => Status,
+                              Child  => Process.Id,
+                              Block  => False);
+
+      return Status_Available (Status);
+   end Has_Terminated;
+
+
+   function  Normal_Exit (Process : in     Shell.Process) return Boolean
+   is
+      use POSIX.Process_Primitives;
+
+      Status : Termination_Status;
+   begin
+      Wait_For_Child_Process (Status => Status,
+                              Child  => Process.Id,
+                              Block  => False);
+
+      if not Status_Available (Status) then
+         return False;
+      end if;
+
+      if Exit_Status_Of (Status) = POSIX.Process_Primitives.Normal_Exit then
+         return True;
+      end if;
+
+      return False;
+   end Normal_Exit;
+
+
    function Image (Process : in Shell.Process) return String
    is
       use POSIX.Process_Identification;

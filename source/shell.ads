@@ -68,7 +68,11 @@ is
    --
    -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
-   procedure Wait_On (Process : in     Shell.Process);
+   procedure Wait_On        (Process : in     Shell.Process);
+   function  Has_Terminated (Process : in     Shell.Process) return Boolean;
+   function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
+   --
+   -- Returns True if the process has terminated and the exit status is normal.
 
    function Image (Process : in Shell.Process) return String;
 
