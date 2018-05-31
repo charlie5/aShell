@@ -30,7 +30,7 @@ is
    type Pipe is private;
 
    function  To_Pipe return Pipe;
-   function  To_String (The_Pipe : in     Pipe) return String;     -- Returns available output from the 'read end' as a string.
+   function  Output_Of (The_Pipe : in     Pipe) return String;     -- Returns available output from the 'read end' as a string.
    procedure Close     (The_Pipe : in     Pipe);
 
    procedure Close_Write_End (The_Pipe : in     Pipe);

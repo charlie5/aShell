@@ -268,7 +268,7 @@ is
       Process := Run (Command);
       Wait_On (Process);
 
-      return To_String (Pipe);
+      return Output_Of (Pipe);
    end Command_Output;
 
 
@@ -290,8 +290,8 @@ is
       Wait_On (Process);
 
       return (Ada.Finalization.Limited_Controlled with
-                Output => new String' (To_String (Output_Pipe)),
-                Errors => new String' (To_String (Error_Pipe)));
+                Output => new String' (Output_Of (Output_Pipe)),
+                Errors => new String' (Output_Of (Error_Pipe)));
    end Results_Of;
 
 
@@ -335,7 +335,7 @@ is
    end To_Pipe;
 
 
-   function  To_String (The_Pipe : in     Pipe) return String
+   function  Output_Of (The_Pipe : in     Pipe) return String
    is
       Max_Process_Output : constant := 20 * 1024;
       Buffer : POSIX.IO.IO_Buffer (1 .. Max_Process_Output);
@@ -349,7 +349,7 @@ is
    exception
       when Ada.IO_Exceptions.End_Error =>
          return "";
-   end To_String;
+   end Output_Of;
 
 
    procedure Close (The_Pipe : in     Pipe)
