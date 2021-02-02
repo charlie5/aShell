@@ -268,7 +268,12 @@ is
       Process := Run (Command);
       Wait_On (Process);
 
-      return Output_Of (Pipe);
+      declare
+         Output : constant String := Output_Of (Pipe);
+      begin
+         close (Pipe);
+         return Output;
+      end;
    end Command_Output;
 
 
@@ -354,9 +359,15 @@ is
 
    procedure Close (The_Pipe : in     Pipe)
    is
+      use POSIX.IO;
    begin
-      POSIX.IO.Close (File => The_Pipe.Read_End);
-      POSIX.IO.Close (File => The_Pipe.Write_End);
+      if Is_Open (The_Pipe.Read_End) then
+         Close (File => The_Pipe.Read_End);
+      end if;
+
+      if Is_Open (The_Pipe.Write_End) then
+         Close (File => The_Pipe.Write_End);
+      end if;
    end Close;
 
 
