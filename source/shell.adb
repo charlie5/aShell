@@ -164,8 +164,6 @@ is
       Name   : constant POSIX_String := To_POSIX_String (+The_Command.Name);
       Result :          Process;
    begin
-      log ("Running command named '" & To_String (Name) & "'");
-
       Result := Start (Program   => +The_Command.Name,
                        Arguments =>  The_Command.Arguments,
                        Input     =>  The_Command.Input_Pipe,
