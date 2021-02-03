@@ -1,0 +1,16 @@
+with
+     "../../ashell",
+     "../../shared";
+
+
+project Test_Pipeline_Output is
+
+   for Object_Dir use "build";
+   for   Exec_Dir use ".";
+
+   for Main use ("test_pipeline_output.adb");
+
+   package Compiler renames Shared.Compiler;
+
+end Test_Pipeline_Output;
+
