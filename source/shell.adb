@@ -275,6 +275,29 @@ is
    end Command_Output;
 
 
+   function Pipeline_Output (The_Commands : in     Command_Array) return String
+   is
+      Commands     :          Shell.Command_Array := The_Commands;
+      Last_Command :          Shell.Command  renames Commands (Commands'Last);
+      Pipe         : constant Shell.Pipe          := To_Pipe;
+   begin
+      Last_Command.Output_Pipe := Pipe;
+
+      declare
+         Process_List : constant Shell.Process_Array := Run (Commands);
+         Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
+      begin
+         Wait_On (Last_Process);
+
+         declare
+            Output : constant String := Output_Of (Pipe);
+         begin
+            close (Pipe);
+            return Output;
+         end;
+      end;
+   end Pipeline_Output;
+
 
    -- Command Results
    --
