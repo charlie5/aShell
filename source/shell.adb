@@ -247,15 +247,14 @@ is
    end Run;
 
 
-   function Command_Output (The_Command : in Command) return String
+   function Command_Output (The_Command : in out Command) return String
    is
-      Command :          Shell.Command := The_Command;
-      Pipe    : constant Shell.Pipe    := To_Pipe;
+      Pipe    : constant Shell.Pipe   := To_Pipe;
       Process :          Shell.Process;
    begin
-      Command.Output_Pipe := Pipe;
+      The_Command.Output_Pipe := Pipe;
 
-      Process := Run (Command);
+      Process := Run (The_Command);
       Wait_On (Process);
 
       declare
@@ -267,16 +266,15 @@ is
    end Command_Output;
 
 
-   function Pipeline_Output (The_Commands : in Command_Array) return String
+   function Pipeline_Output (The_Commands : in out Command_Array) return String
    is
-      Commands     :          Shell.Command_Array := The_Commands;
-      Last_Command :          Shell.Command  renames Commands (Commands'Last);
-      Pipe         : constant Shell.Pipe          := To_Pipe;
+      Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
+      Pipe         : constant Shell.Pipe         := To_Pipe;
    begin
       Last_Command.Output_Pipe := Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Run (Commands);
+         Process_List : constant Shell.Process_Array := Run (The_Commands);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          Wait_On (Last_Process);
@@ -294,17 +292,16 @@ is
    -- Command Results
    --
 
-   function Results_Of (The_Command : in Command) return Command_Results
+   function Results_Of (The_Command : in out Command) return Command_Results
    is
-      Command     :          Shell.Command := The_Command;
       Output_Pipe : constant Shell.Pipe    := To_Pipe;
       Error_Pipe  : constant Shell.Pipe    := To_Pipe;
       Process     :          Shell.Process;
    begin
-      Command.Output_Pipe := Output_Pipe;
-      Command. Error_Pipe :=  Error_Pipe;
+      The_Command.Output_Pipe := Output_Pipe;
+      The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (Command);
+      Process := Run (The_Command);
       Wait_On (Process);
 
       return (Ada.Finalization.Limited_Controlled with
@@ -350,7 +347,7 @@ is
    end To_Pipe;
 
 
-   function  Output_Of (The_Pipe : in Pipe) return String
+   function Output_Of (The_Pipe : in Pipe) return String
    is
       Max_Process_Output : constant := 20 * 1024;
       Buffer : POSIX.IO.IO_Buffer (1 .. Max_Process_Output);
@@ -545,7 +542,6 @@ is
       Wait_For_Child_Process (Status => Status,
                               Child  => Process.Id);
    end Wait_On;
-
 
 
    function Has_Terminated (Process : in Shell.Process) return Boolean

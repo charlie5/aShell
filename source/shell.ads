@@ -106,13 +106,13 @@ is
                   Pipeline    : in     Boolean      := True) return Process_Array;
 
 
-   function  Command_Output  (The_Command  : in Command)       return String;
-   function  Pipeline_Output (The_Commands : in Command_Array) return String;
+   function  Command_Output  (The_Command  : in out Command)       return String;
+   function  Pipeline_Output (The_Commands : in out Command_Array) return String;
 
 
    type Command_Results is limited private;
 
-   function  Results_Of (The_Command : in Command) return Command_Results;
+   function  Results_Of (The_Command : in out Command) return Command_Results;
    --
    -- Runs the command and returns the results.
 

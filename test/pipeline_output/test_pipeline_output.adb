@@ -11,7 +11,8 @@ begin
 
    declare
       use Shell;
-      Output : constant String := Shell.Pipeline_Output (To_Commands ("ps -A | grep bash | wc"));
+      Commands : Shell.Command_Array := To_Commands ("ps -A | grep bash | wc");
+      Output   : constant String     := Shell.Pipeline_Output (Commands);
    begin
       Put_Line ("'" & Output & "'");
    end;
