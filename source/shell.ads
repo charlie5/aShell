@@ -113,6 +113,8 @@ is
    type Command_Results is limited private;
 
    function  Results_Of (The_Command : in Command) return Command_Results;
+   --
+   -- Runs the command and returns the results.
 
    function  Output_Of  (The_Results : in Command_Results) return String;
    function  Errors_Of  (The_Results : in Command_Results) return String;
