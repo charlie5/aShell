@@ -30,11 +30,11 @@ is
    type Pipe is private;
 
    function  To_Pipe return Pipe;
-   function  Output_Of (The_Pipe : in     Pipe) return String;     -- Returns available output from the 'read end' as a string.
-   procedure Close     (The_Pipe : in     Pipe);
+   function  Output_Of (The_Pipe : in Pipe) return String;     -- Returns available output from the 'read end' as a string.
+   procedure Close     (The_Pipe : in Pipe);
 
-   procedure Close_Write_End (The_Pipe : in     Pipe);
-   function  Close_Write_End (The_Pipe : in     Pipe) return Boolean;
+   procedure Close_Write_End (The_Pipe : in Pipe);
+   function  Close_Write_End (The_Pipe : in Pipe) return Boolean;
 
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
@@ -49,28 +49,28 @@ is
    type Process       is private;
    type Process_Array is array (Positive range <>) of Process;
 
-   function Start (Program           : in     String;
-                   Arguments         : in     String_Array := Nil_Strings;
-                   Working_Directory : in     String       := ".";
-                   Input             : in     Pipe         := Standard_Input;
-                   Output            : in     Pipe         := Standard_Output;
-                   Errors            : in     Pipe         := Standard_Error;
-                   Pipeline          : in     Boolean      := False) return Process;
+   function Start (Program           : in String;
+                   Arguments         : in String_Array := Nil_Strings;
+                   Working_Directory : in String       := ".";
+                   Input             : in Pipe         := Standard_Input;
+                   Output            : in Pipe         := Standard_Output;
+                   Errors            : in Pipe         := Standard_Error;
+                   Pipeline          : in Boolean      := False) return Process;
    --
    -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
-   function Start (Command           : in     String;
-                   Working_Directory : in     String       := ".";
-                   Input             : in     Pipe         := Standard_Input;
-                   Output            : in     Pipe         := Standard_Output;
-                   Errors            : in     Pipe         := Standard_Error;
-                   Pipeline          : in     Boolean      := False) return Process;
+   function Start (Command           : in String;
+                   Working_Directory : in String       := ".";
+                   Input             : in Pipe         := Standard_Input;
+                   Output            : in Pipe         := Standard_Output;
+                   Errors            : in Pipe         := Standard_Error;
+                   Pipeline          : in Boolean      := False) return Process;
    --
    -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
-   procedure Wait_On        (Process : in     Shell.Process);
-   function  Has_Terminated (Process : in     Shell.Process) return Boolean;
-   function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
+   procedure Wait_On        (Process : in Shell.Process);
+   function  Has_Terminated (Process : in Shell.Process) return Boolean;
+   function  Normal_Exit    (Process : in Shell.Process) return Boolean;
    --
    -- Returns True if the process has terminated and the exit status is normal.
 
@@ -87,8 +87,8 @@ is
    type Command (Argument_Count : Argument_Range := 0)  is private;
    type Command_Array is array (Positive range <>) of Command;
 
-   function To_Command  (Command_Line : in    String) return Command;           -- An example 'Command_Line' is "ps -A".
-   function To_Commands (Pipeline     : in    String) return Command_Array;     -- An example 'Pipeline'     is "ps -A | grep bash | wc".
+   function To_Command  (Command_Line : in String) return Command;           -- An example 'Command_Line' is "ps -A".
+   function To_Commands (Pipeline     : in String) return Command_Array;     -- An example 'Pipeline'     is "ps -A | grep bash | wc".
 
 
    procedure Connect (From, To : in out Command);           -- Connects 'From's standard output to 'To's standard input via a pipe.
@@ -106,16 +106,16 @@ is
                   Pipeline    : in     Boolean      := True) return Process_Array;
 
 
-   function  Command_Output  (The_Command  : in     Command)       return String;
-   function  Pipeline_Output (The_Commands : in     Command_Array) return String;
+   function  Command_Output  (The_Command  : in Command)       return String;
+   function  Pipeline_Output (The_Commands : in Command_Array) return String;
 
 
    type Command_Results is limited private;
 
-   function  Results_Of (The_Command : in     Command) return Command_Results;
+   function  Results_Of (The_Command : in Command) return Command_Results;
 
-   function  Output_Of  (The_Results : in     Command_Results) return String;
-   function  Errors_Of  (The_Results : in     Command_Results) return String;
+   function  Output_Of  (The_Results : in Command_Results) return String;
+   function  Errors_Of  (The_Results : in Command_Results) return String;
 
 
 private

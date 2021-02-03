@@ -43,12 +43,12 @@ is
    function To_Arguments (All_Arguments : in String) return String_Array
    is
       use GNAT.OS_Lib;
-      Command_Name  : constant String      := "Command_Name";     -- Argument_String_To_List expects the command name to be the 1st piece
+      Command_Name : constant String      := "Command_Name";     -- Argument_String_To_List expects the command name to be the 1st piece
                                                                   -- of the string, so we provide a dummy name.
-      Arguments     : Argument_List_Access := Argument_String_To_List (  Command_Name
+      Arguments    : Argument_List_Access := Argument_String_To_List (  Command_Name
                                                                        & " "
                                                                        & All_Arguments);
-      Result        : String_Array (1 .. Arguments'Length - 1);
+      Result       : String_Array (1 .. Arguments'Length - 1);
    begin
       for i in Result'Range
       loop
@@ -60,7 +60,7 @@ is
    end To_Arguments;
 
 
-   function To_Command (Command_Line : in    String) return Command
+   function To_Command (Command_Line : in String) return Command
    is
       use POSIX.Process_Primitives,
           Ada.Strings.Fixed;
@@ -90,8 +90,7 @@ is
    end to_Command;
 
 
-
-   function To_Commands (Pipeline : in    String) return Command_Array
+   function To_Commands (Pipeline : in String) return Command_Array
    is
       use Ada.Strings.Fixed;
 
@@ -111,8 +110,8 @@ is
                      First  => First,
                      Last   => Last);
          declare
-            Full_Command  : constant String := Trim (Pipeline (First .. Last),
-                                                     Ada.Strings.Both);
+            Full_Command : constant String := Trim (Pipeline (First .. Last),
+                                                    Ada.Strings.Both);
          begin
             log ("'" & Full_Command & "'");
 
@@ -129,7 +128,6 @@ is
    end To_Commands;
 
 
-
    procedure Connect (From, To : in out Command)
    is
       Pipe : constant Shell.Pipe := to_Pipe;
@@ -137,7 +135,6 @@ is
       From.Output_Pipe := Pipe;
       To.Input_Pipe    := Pipe;
    end Connect;
-
 
 
    procedure Connect (Commands : in out Command_Array)
@@ -153,9 +150,8 @@ is
    end Connect;
 
 
-
-   function  Run (The_Command : in     Command;
-                  Pipeline    : in     Boolean := False) return Process
+   function Run (The_Command : in Command;
+                 Pipeline    : in Boolean := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -174,16 +170,14 @@ is
    end Run;
 
 
-
-   procedure Run (The_Command : in     Command;
-                  Pipeline    : in     Boolean := False)
+   procedure Run (The_Command : in Command;
+                  Pipeline    : in Boolean := False)
    is
       Process : Shell.Process := Run (The_Command, Pipeline);     -- Work is done here.
       pragma Unreferenced (Process);                              -- We don't care about the returned process.
    begin
       null;
    end Run;
-
 
 
    function Run (Commands : in out Command_Array;
@@ -229,19 +223,18 @@ is
             --
             if I /= Commands'First
             then
-               Close_Pipe_Write_Ends (Commands (I - 1));             -- Close ends for the prior command.
+               Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
             end if;
 
             if I = Commands'Last
             then
-               Close_Pipe_Write_Ends (Commands (Commands'Last));     -- Close ends for the final command.
+               Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
             end if;
          end;
       end loop;
 
       return Processes;
    end Run;
-
 
 
    procedure Run (Commands : in out Command_Array;
@@ -254,8 +247,7 @@ is
    end Run;
 
 
-
-   function Command_Output (The_Command : in     Command) return String
+   function Command_Output (The_Command : in Command) return String
    is
       Command :          Shell.Command := The_Command;
       Pipe    : constant Shell.Pipe    := To_Pipe;
@@ -275,7 +267,7 @@ is
    end Command_Output;
 
 
-   function Pipeline_Output (The_Commands : in     Command_Array) return String
+   function Pipeline_Output (The_Commands : in Command_Array) return String
    is
       Commands     :          Shell.Command_Array := The_Commands;
       Last_Command :          Shell.Command  renames Commands (Commands'Last);
@@ -302,7 +294,7 @@ is
    -- Command Results
    --
 
-   function  Results_Of (The_Command : in     Command) return Command_Results
+   function Results_Of (The_Command : in Command) return Command_Results
    is
       Command     :          Shell.Command := The_Command;
       Output_Pipe : constant Shell.Pipe    := To_Pipe;
@@ -321,7 +313,6 @@ is
    end Results_Of;
 
 
-
    overriding
    procedure Finalize (Results : in out Command_Results)
    is
@@ -332,20 +323,18 @@ is
    end Finalize;
 
 
-
-   function Output_Of (The_Results : in     Command_Results) return String
+   function Output_Of (The_Results : in Command_Results) return String
    is
    begin
       return The_Results.Output.all;
    end Output_Of;
 
 
-   function Errors_Of (The_Results : in     Command_Results) return String
+   function Errors_Of (The_Results : in Command_Results) return String
    is
    begin
       return The_Results.Errors.all;
    end Errors_Of;
-
 
 
    -- Pipes
@@ -361,7 +350,7 @@ is
    end To_Pipe;
 
 
-   function  Output_Of (The_Pipe : in     Pipe) return String
+   function  Output_Of (The_Pipe : in Pipe) return String
    is
       Max_Process_Output : constant := 20 * 1024;
       Buffer : POSIX.IO.IO_Buffer (1 .. Max_Process_Output);
@@ -378,7 +367,7 @@ is
    end Output_Of;
 
 
-   procedure Close (The_Pipe : in     Pipe)
+   procedure Close (The_Pipe : in Pipe)
    is
       use POSIX.IO;
    begin
@@ -392,14 +381,14 @@ is
    end Close;
 
 
-   procedure Close_Write_End (The_Pipe : in     Pipe)
+   procedure Close_Write_End (The_Pipe : in Pipe)
    is
    begin
       POSIX.IO.Close (The_Pipe.Write_End);
    end Close_Write_End;
 
 
-   function  Close_Write_End (The_Pipe : in     Pipe) return Boolean
+   function Close_Write_End (The_Pipe : in Pipe) return Boolean
    is
    begin
       Close_Write_End (The_Pipe);
@@ -411,16 +400,15 @@ is
    --
 
    overriding
-   procedure Read  (Stream : in out Pipe_Stream;
-                    Item   :    out Stream_Element_Array;
-                    Last   :    out Stream_Element_Offset)
+   procedure Read (Stream : in out Pipe_Stream;
+                   Item   :    out Stream_Element_Array;
+                   Last   :    out Stream_Element_Offset)
    is
    begin
       POSIX.IO.Read (File   => Stream.Pipe.Read_End,
                      Buffer => Item,
                      Last   => Last);
    end Read;
-
 
 
    overriding
@@ -436,17 +424,16 @@ is
    end Write;
 
 
-
    -- Processes
    --
 
-   function Start (Program           : in     String;
-                   Arguments         : in     String_Array := Nil_Strings;
-                   Working_Directory : in     String       := ".";
-                   Input             : in     Pipe         := Standard_Input;
-                   Output            : in     Pipe         := Standard_Output;
-                   Errors            : in     Pipe         := Standard_Error;
-                   Pipeline          : in     Boolean      := False) return Process
+   function Start (Program           : in String;
+                   Arguments         : in String_Array := Nil_Strings;
+                   Working_Directory : in String       := ".";
+                   Input             : in Pipe         := Standard_Input;
+                   Output            : in Pipe         := Standard_Output;
+                   Errors            : in Pipe         := Standard_Error;
+                   Pipeline          : in Boolean      := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -492,7 +479,7 @@ is
 
       for I in Arguments'Range
       loop
-         Append (Args,  To_POSIX_String (+Arguments (I)));
+         Append (Args, To_POSIX_String (+Arguments (I)));
       end loop;
 
       Start_Process_Search (The_Process_Id,
@@ -530,12 +517,12 @@ is
    end Start;
 
 
-   function Start (Command           : in     String;
-                   Working_Directory : in     String       := ".";
-                   Input             : in     Pipe         := Standard_Input;
-                   Output            : in     Pipe         := Standard_Output;
-                   Errors            : in     Pipe         := Standard_Error;
-                   Pipeline          : in     Boolean      := False) return Process
+   function Start (Command           : in String;
+                   Working_Directory : in String  := ".";
+                   Input             : in Pipe    := Standard_Input;
+                   Output            : in Pipe    := Standard_Output;
+                   Errors            : in Pipe    := Standard_Error;
+                   Pipeline          : in Boolean := False) return Process
    is
    begin
       return Start (Program           => "/bin/sh",
@@ -549,7 +536,7 @@ is
    end Start;
 
 
-   procedure Wait_On (Process : in     Shell.Process)
+   procedure Wait_On (Process : in Shell.Process)
    is
       use POSIX.Process_Primitives;
 
@@ -561,7 +548,7 @@ is
 
 
 
-   function  Has_Terminated (Process : in     Shell.Process) return Boolean
+   function Has_Terminated (Process : in Shell.Process) return Boolean
    is
       use POSIX.Process_Primitives;
 
@@ -575,7 +562,7 @@ is
    end Has_Terminated;
 
 
-   function  Normal_Exit (Process : in     Shell.Process) return Boolean
+   function Normal_Exit (Process : in Shell.Process) return Boolean
    is
       use POSIX.Process_Primitives;
 
