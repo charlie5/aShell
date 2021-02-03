@@ -41,8 +41,7 @@ package body POSIX.Process_Primitives.Extensions is
 
    use POSIX.C,
        POSIX.Implementation,
-       POSIX.Process_Identification,
-       POSIX.Process_Environment;
+       POSIX.Process_Identification;
 
    C_File_Mode : constant array (POSIX.IO.File_Mode) of Bits :=
      (POSIX.IO.Read_Only  => O_RDONLY,
