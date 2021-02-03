@@ -52,8 +52,7 @@ is
 
    function To_Command (Command_Line : in String) return Command
    is
-      use POSIX.Process_Primitives,
-          Ada.Strings.Fixed;
+      use Ada.Strings.Fixed;
 
       I : constant Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
    begin
@@ -141,12 +140,7 @@ is
    function Run (The_Command : in Command;
                  Pipeline    : in Boolean := False) return Process
    is
-      use POSIX,
-          POSIX.Process_Primitives,
-          POSIX.Process_Identification;
-
-      Name   : constant POSIX_String := To_POSIX_String (+The_Command.Name);
-      Result :          Process;
+      Result : Process;
    begin
       Result := Start (Program   => +The_Command.Name,
                        Arguments =>  The_Command.Arguments,
@@ -337,14 +331,16 @@ is
 
    function Output_Of (The_Pipe : in Pipe) return String
    is
+      use POSIX;
       Max_Process_Output : constant := 20 * 1024;
-      Buffer : POSIX.IO.IO_Buffer (1 .. Max_Process_Output);
-      Last   : POSIX.IO_Count;
+
+      Buffer : Stream_Element_Array (1 .. Max_Process_Output);
+      Last   : Stream_Element_Offset;
    begin
-      POSIX.IO.Read (File   => The_Pipe.Read_End,
-                     Buffer => Buffer,
-                     Last   => Last);
-      return POSIX.To_String (Buffer (1 .. Integer (Last)));
+      IO.Read (File   => The_Pipe.Read_End,
+               Buffer => Buffer,
+               Last   => Last);
+      return To_String (To_POSIX_String (Buffer (1 .. Last)));
 
    exception
       when Ada.IO_Exceptions.End_Error =>
@@ -422,8 +418,7 @@ is
    is
       use POSIX,
           POSIX.Process_Primitives,
-          POSIX.Process_Primitives.Extensions,
-          Ada.Strings.Unbounded;
+          POSIX.Process_Primitives.Extensions;
 
       The_Template   : Process_Template;
       The_Process    : Process;
