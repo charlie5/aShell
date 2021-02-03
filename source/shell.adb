@@ -5,21 +5,11 @@ with
      Ada.Strings.Maps,
      Ada.IO_Exceptions,
      Ada.Unchecked_Deallocation,
-     Ada.Text_IO,
 
      POSIX.Process_Primitives.Extensions;
 
 package body Shell
 is
-
-   procedure log (Message : in String)
-   is
-   begin
-      Ada.Text_IO.Put_Line (File => Ada.Text_IO.Standard_Error,
-                            Item => Message);
-   end log;
-
-
    -- Strings
    --
 
@@ -113,8 +103,6 @@ is
             Full_Command : constant String := Trim (Pipeline (First .. Last),
                                                     Ada.Strings.Both);
          begin
-            log ("'" & Full_Command & "'");
-
             Count          := Count + 1;
             Result (Count) := to_Command (Full_Command);
          end;
