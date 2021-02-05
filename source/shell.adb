@@ -140,15 +140,15 @@ is
    function Run (The_Command : in Command;
                  Pipeline    : in Boolean := False) return Process
    is
-      Result : Process;
+      Process : Shell.Process;
    begin
-      Result := Start (Program   => +The_Command.Name,
-                       Arguments =>  The_Command.Arguments,
-                       Input     =>  The_Command.Input_Pipe,
-                       Output    =>  The_Command.Output_Pipe,
-                       Errors    =>  The_Command.Error_Pipe,
-                       Pipeline  =>  Pipeline);
-      return Result;
+      Process := Start (Program   => +The_Command.Name,
+                        Arguments =>  The_Command.Arguments,
+                        Input     =>  The_Command.Input_Pipe,
+                        Output    =>  The_Command.Output_Pipe,
+                        Errors    =>  The_Command.Error_Pipe,
+                        Pipeline  =>  Pipeline);
+      return Process;
    end Run;
 
 
@@ -231,20 +231,34 @@ is
 
    function Command_Output (The_Command : in out Command) return String
    is
-      Pipe    : constant Shell.Pipe   := To_Pipe;
-      Process :          Shell.Process;
+      Output_Pipe : constant Shell.Pipe   := To_Pipe;
+      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
+      Process     :          Shell.Process;
    begin
-      The_Command.Output_Pipe := Pipe;
+      The_Command.Output_Pipe := Output_Pipe;
+      The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command);
       Wait_On (Process);
 
-      declare
-         Output : constant String := Output_Of (Pipe);
-      begin
-         close (Pipe);
-         return Output;
-      end;
+      if Normal_Exit (Process)
+      then
+         declare
+            Output : constant String := Output_Of (Output_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            return Output;
+         end;
+      else
+         declare
+            Error : constant String := Output_Of (Error_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            raise Command_Error with Error;
+         end;
+      end if;
    end Command_Output;
 
 
@@ -292,6 +306,15 @@ is
          end;
       end if;
    end Output_Of;
+
+
+   procedure Run (Command_Line : in String)
+   is
+      Output : String := Output_Of (Command_Line);
+   begin
+      null;
+   end Run;
+
 
 
    -- Command Results
