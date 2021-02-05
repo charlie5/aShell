@@ -265,9 +265,11 @@ is
    function Pipeline_Output (The_Commands : in out Command_Array) return String
    is
       Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
-      Pipe         : constant Shell.Pipe         := To_Pipe;
+      Output_Pipe  : constant Shell.Pipe         := To_Pipe;
+      Error_Pipe   : constant Shell.Pipe         := To_Pipe;
    begin
-      Last_Command.Output_Pipe := Pipe;
+      Last_Command.Output_Pipe := Output_Pipe;
+      Last_Command. Error_Pipe := Error_Pipe;
 
       declare
          Process_List : constant Shell.Process_Array := Run (The_Commands);
@@ -275,12 +277,24 @@ is
       begin
          Wait_On (Last_Process);
 
-         declare
-            Output : constant String := Output_Of (Pipe);
-         begin
-            close (Pipe);
-            return Output;
-         end;
+         if Normal_Exit (Last_Process)
+         then
+            declare
+               Output : constant String := Output_Of (Output_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               return Output;
+            end;
+         else
+            declare
+               Error : constant String := Output_Of (Error_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               raise Command_Error with Error;
+            end;
+         end if;
       end;
    end Pipeline_Output;
 
@@ -310,11 +324,10 @@ is
 
    procedure Run (Command_Line : in String)
    is
-      Output : String := Output_Of (Command_Line);
+      Output : String := Output_Of (Command_Line) with Unreferenced;
    begin
       null;
    end Run;
-
 
 
    -- Command Results

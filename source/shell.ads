@@ -112,6 +112,12 @@ is
    --
    -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
+   procedure Run (Command_Line : in String);
+   --
+   -- Runs a command line and raises Command_Error on failure.
+
+   Command_Error : exception;
+
 
    type Command_Results is limited private;
 
