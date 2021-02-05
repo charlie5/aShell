@@ -271,6 +271,29 @@ is
    end Pipeline_Output;
 
 
+   function Output_Of (Command_Line : in String) return String
+   is
+      use Ada.Strings.Fixed;
+      The_Index   : constant Natural := Index (Command_Line, " | ");
+      Is_Pipeline : constant Boolean := (if The_Index = 0 then True else False);
+   begin
+      if Is_Pipeline
+      then
+         declare
+            The_Commands : Command_Array := To_Commands (Command_Line);
+         begin
+            return Pipeline_Output (The_Commands);
+         end;
+      else
+         declare
+            The_Command : Command := To_Command (Command_Line);
+         begin
+            return Command_Output (The_Command);
+         end;
+      end if;
+   end Output_Of;
+
+
    -- Command Results
    --
 

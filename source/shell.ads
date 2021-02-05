@@ -108,6 +108,9 @@ is
 
    function  Command_Output  (The_Command  : in out Command)       return String;
    function  Pipeline_Output (The_Commands : in out Command_Array) return String;
+   function  Output_Of       (Command_Line : in     String)        return String;
+   --
+   -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
 
    type Command_Results is limited private;
