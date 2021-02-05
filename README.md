@@ -6,6 +6,14 @@ Under an ISC license.
 
 ## Example
 
+   declare
+      Output : constant String := Shell.Output_Of ("ps -A | grep bash | wc");
+   begin
+      Put_Line (Output);
+   end;
+
+## Example
+
 A trivial shell script:
 
     #! /bin/sh
