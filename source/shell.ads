@@ -119,6 +119,9 @@ is
    Command_Error : exception;
 
 
+   -- Command Results
+   --
+
    type Command_Results is limited private;
 
    function  Results_Of (The_Command : in out Command) return Command_Results;
