@@ -138,10 +138,13 @@ is
 
 
    function Run (The_Command : in Command;
+                 Input       : in String  := "";
                  Pipeline    : in Boolean := False) return Process
    is
       Process : Shell.Process;
    begin
+      Write_To (The_Command.Input_Pipe, Input);
+
       Process := Start (Program   => +The_Command.Name,
                         Arguments =>  The_Command.Arguments,
                         Input     =>  The_Command.Input_Pipe,
@@ -153,20 +156,24 @@ is
 
 
    procedure Run (The_Command : in Command;
+                  Input       : in String  := "";
                   Pipeline    : in Boolean := False)
    is
-      Process : Shell.Process := Run (The_Command, Pipeline);     -- Work is done here.
-      pragma Unreferenced (Process);                              -- We don't care about the returned process.
+      Process : Shell.Process := Run (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
       null;
    end Run;
 
 
    function Run (Commands : in out Command_Array;
+                 Input    : in     String       := "";
                  Pipeline : in     Boolean      := True) return Process_Array
    is
-      Processes : Process_Array (Commands'Range);
+      First_Command : Command renames Commands (Commands'First);
+      Processes     : Process_Array (Commands'Range);
    begin
+      Write_To (First_Command.Input_Pipe, Input);
+
       if not Pipeline
       then
          for I in Commands'Range
@@ -220,16 +227,17 @@ is
 
 
    procedure Run (Commands : in out Command_Array;
+                  Input    : in     String       := "";
                   Pipeline : in     Boolean      := True)
    is
-      Processes : Process_Array := Run (Commands, Pipeline);     -- Work is done here.
-      pragma Unreferenced (Processes);                           -- Not interested in Processes.
+      Processes : Process_Array := Run (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
       null;
    end Run;
 
 
-   function Command_Output (The_Command : in out Command) return String
+   function Command_Output (The_Command : in out Command;
+                            Input       : in     String := "") return String
    is
       Output_Pipe : constant Shell.Pipe   := To_Pipe;
       Error_Pipe  : constant Shell.Pipe   := To_Pipe;
@@ -238,7 +246,7 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (The_Command);
+      Process := Run (The_Command, Input);
       Wait_On (Process);
 
       if Normal_Exit (Process)
@@ -262,7 +270,8 @@ is
    end Command_Output;
 
 
-   function Pipeline_Output (The_Commands : in out Command_Array) return String
+   function Pipeline_Output (The_Commands : in out Command_Array;
+                             Input        : in     String       := "") return String
    is
       Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
       Output_Pipe  : constant Shell.Pipe         := To_Pipe;
@@ -272,7 +281,7 @@ is
       Last_Command. Error_Pipe := Error_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Run (The_Commands);
+         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          Wait_On (Last_Process);
@@ -299,7 +308,8 @@ is
    end Pipeline_Output;
 
 
-   function Output_Of (Command_Line : in String) return String
+   function Output_Of (Command_Line : in String;
+                       Input        : in String  := "") return String
    is
       use Ada.Strings.Fixed;
       The_Index   : constant Natural := Index (Command_Line, " | ");
@@ -310,21 +320,22 @@ is
          declare
             The_Commands : Command_Array := To_Commands (Command_Line);
          begin
-            return Pipeline_Output (The_Commands);
+            return Pipeline_Output (The_Commands, Input);
          end;
       else
          declare
             The_Command : Command := To_Command (Command_Line);
          begin
-            return Command_Output (The_Command);
+            return Command_Output (The_Command, Input);
          end;
       end if;
    end Output_Of;
 
 
-   procedure Run (Command_Line : in String)
+   procedure Run (Command_Line : in String;
+                  Input        : in     String := "")
    is
-      Output : String := Output_Of (Command_Line) with Unreferenced;
+      Output : String := Output_Of (Command_Line, Input) with Unreferenced;
    begin
       null;
    end Run;
@@ -405,6 +416,16 @@ is
       when Ada.IO_Exceptions.End_Error =>
          return "";
    end Output_Of;
+
+
+   procedure Write_To (The_Pipe : in Pipe;   Input : in String)
+   is
+      subtype   My_String is String (Input'Range);
+      procedure Write     is new POSIX.IO.Generic_Write (My_String);
+   begin
+      Write (The_Pipe.Write_End, Input);
+   end Write_To;
+
 
 
    procedure Close (The_Pipe : in Pipe)

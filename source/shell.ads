@@ -30,7 +30,8 @@ is
    type Pipe is private;
 
    function  To_Pipe return Pipe;
-   function  Output_Of (The_Pipe : in Pipe) return String;     -- Returns available output from the 'read end' as a string.
+   function  Output_Of (The_Pipe : in Pipe)       return String;     -- Returns available output from the 'read end' as a string.
+   procedure Write_To  (The_Pipe : in Pipe;   Input : in String);
    procedure Close     (The_Pipe : in Pipe);
 
    procedure Close_Write_End (The_Pipe : in Pipe);
@@ -96,23 +97,35 @@ is
 
 
    function  Run (The_Command : in     Command;
+                  Input       : in     String  := "";
                   Pipeline    : in     Boolean := False) return Process;
+
    procedure Run (The_Command : in     Command;
+                  Input       : in     String  := "";
                   Pipeline    : in     Boolean := False);
 
    procedure Run (Commands    : in out Command_Array;
+                  Input       : in     String  := "";
                   Pipeline    : in     Boolean      := True);
+
    function  Run (Commands    : in out Command_Array;
+                  Input       : in     String  := "";
                   Pipeline    : in     Boolean      := True) return Process_Array;
 
 
-   function  Command_Output  (The_Command  : in out Command)       return String;
-   function  Pipeline_Output (The_Commands : in out Command_Array) return String;
-   function  Output_Of       (Command_Line : in     String)        return String;
+   function  Command_Output  (The_Command  : in out Command;
+                              Input        : in     String := "") return String;
+
+   function  Pipeline_Output (The_Commands : in out Command_Array;
+                              Input        : in     String := "") return String;
+
+   function  Output_Of       (Command_Line : in     String;
+                              Input        : in     String := "") return String;
    --
    -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
-   procedure Run (Command_Line : in String);
+   procedure Run (Command_Line : in String;
+                  Input        : in String  := "");
    --
    -- Runs a command line and raises Command_Error on failure.
 
