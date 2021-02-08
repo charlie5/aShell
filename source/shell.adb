@@ -356,9 +356,8 @@ is
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command, Input);
-      --  Wait_On (Process);
 
-      if Normal_Exit (Process)
+      if Normal_Exit (Process)     -- This waits til command completion.
       then
          declare
             Output : constant String := Output_Of (Output_Pipe);
@@ -390,9 +389,8 @@ is
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command, Input);
-      --  Wait_On (Process);
 
-      if Normal_Exit (Process)
+      if Normal_Exit (Process)     -- This waits til command completion.
       then
          declare
             Output : constant Ada.Streams.Stream_Element_Array := Output_Of (Output_Pipe);
@@ -427,9 +425,7 @@ is
          Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
-         Wait_On (Last_Process);
-
-         if Normal_Exit (Last_Process)
+         if Normal_Exit (Last_Process)     -- This waits til command completion.
          then
             declare
                Output : constant String := Output_Of (Output_Pipe);
@@ -465,9 +461,7 @@ is
          Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
-         Wait_On (Last_Process);
-
-         if Normal_Exit (Last_Process)
+         if Normal_Exit (Last_Process)     -- This waits til command completion.
          then
             declare
                Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
@@ -548,9 +542,8 @@ is
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command, Input);
-      --  Wait_On (Process);
 
-      if Normal_Exit (Process)
+      if Normal_Exit (Process)     -- This waits til command completion.
       then
          declare
             Output : constant String := Output_Of (Output_Pipe);
@@ -582,9 +575,8 @@ is
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command, Input);
-      --  Wait_On (Process);
 
-      if Normal_Exit (Process)
+      if Normal_Exit (Process)     -- This waits til command completion.
       then
          declare
             Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
@@ -619,9 +611,7 @@ is
          Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
-         Wait_On (Last_Process);
-
-         if Normal_Exit (Last_Process)
+         if Normal_Exit (Last_Process)     -- This waits til command completion.
          then
             declare
                Output : constant String := Output_Of (Output_Pipe);
@@ -657,9 +647,7 @@ is
          Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
-         Wait_On (Last_Process);
-
-         if Normal_Exit (Last_Process)
+         if Normal_Exit (Last_Process)     -- This waits til command completion.
          then
             declare
                Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
@@ -760,7 +748,21 @@ is
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command);
-      Wait_On (Process);
+
+      if Normal_Exit (Process)     -- This waits til command completion.
+      then
+         return (Ada.Finalization.Limited_Controlled with
+                 Output => new String' (Output_Of (Output_Pipe)),
+                 Errors => new String' (Output_Of (Error_Pipe)));
+      else
+         declare
+            Error : constant String := Output_Of (Error_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            raise Command_Error with Error;
+         end;
+      end if;
 
       return (Ada.Finalization.Limited_Controlled with
                 Output => new String' (Output_Of (Output_Pipe)),
@@ -971,7 +973,6 @@ is
                                                      Input.Read_End);
          Set_File_Action_To_Close     (The_Template, Input.Read_End);
       end if;
-
 
       Append (Args, Name);
 
