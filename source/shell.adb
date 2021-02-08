@@ -851,12 +851,17 @@ is
    is
       use POSIX.IO;
    begin
-      if Is_Open (The_Pipe.Read_End) then
-         Close (File => The_Pipe.Read_End);
-      end if;
+      if    The_Pipe /= Standard_Input
+        and The_Pipe /= Standard_Output
+        and The_Pipe /= Standard_Error
+      then
+         if Is_Open (The_Pipe.Read_End) then
+            Close (File => The_Pipe.Read_End);
+         end if;
 
-      if Is_Open (The_Pipe.Write_End) then
-         Close (File => The_Pipe.Write_End);
+         if Is_Open (The_Pipe.Write_End) then
+            Close (File => The_Pipe.Write_End);
+         end if;
       end if;
    end Close;
 
