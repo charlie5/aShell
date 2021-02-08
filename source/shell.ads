@@ -7,6 +7,7 @@ with
      POSIX.IO,
      POSIX.Process_Identification,
      POSIX.Process_Primitives,
+     Ada.Containers.Vectors,
      Ada.Finalization;
 
 package Shell
@@ -89,7 +90,7 @@ is
    subtype Argument_Range is Natural        range 0 .. Max_Arguments;
    subtype Argument_Id    is Argument_Range range 1 .. Argument_Range'Last;
 
-   type Command (Argument_Count : Argument_Range := 0)  is private;
+   type Command       is tagged limited private;
    type Command_Array is array (Positive range <>) of Command;
 
    function To_Command  (Command_Line : in String) return Command;           -- An example 'Command_Line' is "ps -A".
@@ -195,7 +196,7 @@ is
 
    type Command_Results is limited private;
 
-   function  Results_Of (The_Command : in out Command) return Command_Results;
+   function  Results_Of (The_Command : in out Command'Class) return Command_Results;
    --
    -- Runs the command and returns the results.
 
@@ -214,17 +215,18 @@ private
 
    Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
 
+   package String_Vectors is new Ada.Containers.Vectors (Positive, Unbounded_String);
+   subtype String_Vector  is String_Vectors.Vector;
 
-   type Command (Argument_Count : Argument_Range := 0) is
-      record
-         Name        : Unbounded_String;
-         Arguments   : String_Array (1 .. Argument_Count);
-
-         Input_Pipe  : Pipe := Standard_Input;
-         Output_Pipe : Pipe := Standard_Output;
-         Error_Pipe  : Pipe := Standard_Error;
-      end record;
-
+   type Command is limited new Ada.Finalization.Limited_Controlled
+     with
+         record
+            Name        : Unbounded_String;
+            Arguments   : String_Vector;
+            Input_Pipe  : Pipe := Standard_Input;
+            Output_Pipe : Pipe := Standard_Output;
+            Error_Pipe  : Pipe := Standard_Error;
+         end record;
 
    Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;     -- TODO: Better way to define a null file descriptor ?
 

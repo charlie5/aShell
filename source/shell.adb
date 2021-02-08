@@ -27,6 +27,34 @@ is
    end "+";
 
 
+   function To_String_Vector (Strings : String_Array) return String_Vector
+   is
+      use String_Vectors;
+      Vector : String_Vector;
+   begin
+      for Each of Strings
+      loop
+         Vector.Append (Each);
+      end loop;
+
+      return Vector;
+   end To_String_Vector;
+
+
+   function To_String_Array (Strings : String_Vector) return String_Array
+   is
+      use String_Vectors;
+      The_Array : String_Array (1 .. Natural (Strings.Length));
+   begin
+      for I in The_Array'Range
+      loop
+         The_Array (I) := Strings.Element (I);
+      end loop;
+
+      return The_Array;
+   end To_String_Array;
+
+
    -- Commands
    --
 
@@ -50,6 +78,28 @@ is
    end To_Arguments;
 
 
+   procedure define (The_Command : out Command;   Command_Line : in String)
+   is
+      use Ada.Strings.Fixed;
+
+      I : constant Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
+   begin
+      if I = 0
+      then
+         The_Command.Name := +Command_Line;
+         return;
+      end if;
+
+      declare
+         Name      : constant String       :=               Command_Line (Command_Line'First .. I - 1);
+         Arguments : constant String_Array := To_Arguments (Command_Line (I + 1              .. Command_Line'Last));
+      begin
+         The_Command.Name      := +(Name);
+         The_Command.Arguments := To_String_Vector (Arguments);
+      end;
+   end define;
+
+
    function To_Command (Command_Line : in String) return Command
    is
       use Ada.Strings.Fixed;
@@ -58,23 +108,21 @@ is
    begin
       if I = 0
       then
-         declare
-            Result : Command;
-         begin
+         return Result : Command
+         do
             Result.Name := +Command_Line;
-            return Result;
-         end;
+         end return;
       end if;
 
       declare
          Name      : constant String       :=               Command_Line (Command_Line'First .. I - 1);
          Arguments : constant String_Array := To_Arguments (Command_Line (I + 1              .. Command_Line'Last));
-
-         Result    : Command (Argument_Count => Arguments'Length);
       begin
-         Result.Name      := +(Name);
-         Result.Arguments := Arguments;
-         return Result;
+         return Result : Command
+         do
+            Result.Name      := +(Name);
+            Result.Arguments := To_String_Vector (Arguments);
+         end return;
       end;
    end to_Command;
 
@@ -84,12 +132,11 @@ is
       use Ada.Strings.Fixed;
 
       Cursor : Positive := Pipeline'First;
-
       First,
       Last   : Positive;
-
-      Result : Command_Array (1 .. Max_Commands_In_Pipeline);
       Count  : Natural := 0;
+
+      All_Commands : String_Array (1 .. Max_Commands_In_Pipeline);
    begin
       loop
          Find_Token (Source => Pipeline,
@@ -102,8 +149,8 @@ is
             Full_Command : constant String := Trim (Pipeline (First .. Last),
                                                     Ada.Strings.Both);
          begin
-            Count          := Count + 1;
-            Result (Count) := to_Command (Full_Command);
+            Count                :=  Count + 1;
+            All_Commands (Count) := +Full_Command;
          end;
 
          exit when Last = Pipeline'Last;
@@ -111,7 +158,13 @@ is
          Cursor := Last + 1;
       end loop;
 
-      return Result (1 .. Count);
+      return Result : Command_Array (1 .. Count)
+      do
+         for I in 1 .. Count
+         loop
+            define (Result (I), +All_Commands (I));
+         end loop;
+      end return;
    end To_Commands;
 
 
@@ -163,7 +216,7 @@ is
       end if;
 
       Process := Start (Program   => +The_Command.Name,
-                        Arguments =>  The_Command.Arguments,
+                        Arguments =>  To_String_Array (The_Command.Arguments),
                         Input     =>  The_Command.Input_Pipe,
                         Output    =>  The_Command.Output_Pipe,
                         Errors    =>  The_Command.Error_Pipe,
@@ -250,7 +303,7 @@ is
       Write_To (The_Command.Input_Pipe, Input);
 
       Process := Start (Program   => +The_Command.Name,
-                        Arguments =>  The_Command.Arguments,
+                        Arguments =>  To_String_Array (The_Command.Arguments),
                         Input     =>  The_Command.Input_Pipe,
                         Output    =>  The_Command.Output_Pipe,
                         Errors    =>  The_Command.Error_Pipe,
@@ -717,7 +770,7 @@ is
    -- Command Results
    --
 
-   function Results_Of (The_Command : in out Command) return Command_Results
+   function Results_Of (The_Command : in out Command'Class) return Command_Results
    is
       Output_Pipe : constant Shell.Pipe    := To_Pipe;
       Error_Pipe  : constant Shell.Pipe    := To_Pipe;
