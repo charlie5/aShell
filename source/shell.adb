@@ -137,13 +137,17 @@ is
    end Connect;
 
 
-   function Run (The_Command : in Command;
-                 Input       : in String  := "";
-                 Pipeline    : in Boolean := False) return Process
+   function Run (The_Command : in out Command;
+                 Input       : in     String  := "";
+                 Pipeline    : in     Boolean := False) return Process
    is
       Process : Shell.Process;
    begin
-      Write_To (The_Command.Input_Pipe, Input);
+      if Input /= ""
+      then
+         The_Command.Input_Pipe := To_Pipe;
+         Write_To (The_Command.Input_Pipe, Input);
+      end if;
 
       Process := Start (Program   => +The_Command.Name,
                         Arguments =>  The_Command.Arguments,
@@ -155,9 +159,9 @@ is
    end Run;
 
 
-   procedure Run (The_Command : in Command;
-                  Input       : in String  := "";
-                  Pipeline    : in Boolean := False)
+   procedure Run (The_Command : in out Command;
+                  Input       : in     String  := "";
+                  Pipeline    : in     Boolean := False)
    is
       Process : Shell.Process := Run (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
@@ -172,7 +176,11 @@ is
       First_Command : Command renames Commands (Commands'First);
       Processes     : Process_Array (Commands'Range);
    begin
-      Write_To (First_Command.Input_Pipe, Input);
+      if Input /= ""
+      then
+         First_Command.Input_Pipe := To_Pipe;
+         Write_To (First_Command.Input_Pipe, Input);
+      end if;
 
       if not Pipeline
       then
@@ -236,6 +244,107 @@ is
    end Run;
 
 
+   function Run (The_Command : in out Command;
+                 Input       : in     Stream_Element_Array;
+                 Pipeline    : in     Boolean := False) return Process
+   is
+      Process : Shell.Process;
+   begin
+      The_Command.Input_Pipe := To_Pipe;
+      Write_To (The_Command.Input_Pipe, Input);
+
+      Process := Start (Program   => +The_Command.Name,
+                        Arguments =>  The_Command.Arguments,
+                        Input     =>  The_Command.Input_Pipe,
+                        Output    =>  The_Command.Output_Pipe,
+                        Errors    =>  The_Command.Error_Pipe,
+                        Pipeline  =>  Pipeline);
+      return Process;
+   end Run;
+
+
+   procedure Run (The_Command : in out Command;
+                  Input       : in     Stream_Element_Array;
+                  Pipeline    : in     Boolean := False)
+   is
+      Process : Shell.Process := Run (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
+   begin
+      null;
+   end Run;
+
+
+   function Run (Commands : in out Command_Array;
+                 Input    : in     Stream_Element_Array;
+                 Pipeline : in     Boolean      := True) return Process_Array
+   is
+      First_Command : Command renames Commands (Commands'First);
+      Processes     : Process_Array (Commands'Range);
+   begin
+      First_Command.Input_Pipe := To_Pipe;
+      Write_To (First_Command.Input_Pipe, Input);
+
+      if not Pipeline
+      then
+         for I in Commands'Range
+         loop
+            Processes (I) := Run (Commands (I));
+         end loop;
+
+         return Processes;
+      end if;
+
+      Connect (Commands);
+
+      for I in Commands'Range
+      loop
+         declare
+            procedure Close_Pipe_Write_Ends (Command : in Shell.Command)
+            is
+            begin
+               if Command.Output_Pipe /= Standard_Output
+               then
+                  POSIX.IO.Close (Command.Output_Pipe.Write_End);
+               end if;
+
+               if Command.Error_Pipe /= Standard_Error
+               then
+                  POSIX.IO.Close (Command.Error_Pipe.Write_End);
+               end if;
+            end Close_Pipe_Write_Ends;
+
+         begin
+            Processes (I) := Run (Commands (I),
+                                  Pipeline => True);
+
+            -- Since we are making a pipeline, we need to close the write ends of
+            -- the Output & Errors pipes ourselves.
+            --
+            if I /= Commands'First
+            then
+               Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
+            end if;
+
+            if I = Commands'Last
+            then
+               Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+            end if;
+         end;
+      end loop;
+
+      return Processes;
+   end Run;
+
+
+   procedure Run (Commands : in out Command_Array;
+                  Input    : in     Stream_Element_Array;
+                  Pipeline : in     Boolean      := True)
+   is
+      Processes : Process_Array := Run (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
+   begin
+      null;
+   end Run;
+
+
    function Command_Output (The_Command : in out Command;
                             Input       : in     String := "") return String
    is
@@ -247,12 +356,46 @@ is
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Run (The_Command, Input);
-      Wait_On (Process);
+      --  Wait_On (Process);
 
       if Normal_Exit (Process)
       then
          declare
             Output : constant String := Output_Of (Output_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            return Output;
+         end;
+      else
+         declare
+            Error : constant String := Output_Of (Error_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            raise Command_Error with Error;
+         end;
+      end if;
+   end Command_Output;
+
+
+   function Command_Output  (The_Command  : in out Command;
+                             Input        : in     String := "") return Ada.Streams.Stream_Element_Array
+   is
+      Output_Pipe : constant Shell.Pipe   := To_Pipe;
+      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
+      Process     :          Shell.Process;
+   begin
+      The_Command.Output_Pipe := Output_Pipe;
+      The_Command. Error_Pipe :=  Error_Pipe;
+
+      Process := Run (The_Command, Input);
+      --  Wait_On (Process);
+
+      if Normal_Exit (Process)
+      then
+         declare
+            Output : constant Ada.Streams.Stream_Element_Array := Output_Of (Output_Pipe);
          begin
             close (Output_Pipe);
             close ( Error_Pipe);
@@ -308,12 +451,266 @@ is
    end Pipeline_Output;
 
 
+   function Pipeline_Output (The_Commands : in out Command_Array;
+                             Input        : in     String       := "") return Stream_Element_Array
+   is
+      Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
+      Output_Pipe  : constant Shell.Pipe         := To_Pipe;
+      Error_Pipe   : constant Shell.Pipe         := To_Pipe;
+   begin
+      Last_Command.Output_Pipe := Output_Pipe;
+      Last_Command. Error_Pipe := Error_Pipe;
+
+      declare
+         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
+      begin
+         Wait_On (Last_Process);
+
+         if Normal_Exit (Last_Process)
+         then
+            declare
+               Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               return Output;
+            end;
+         else
+            declare
+               Error : constant String := Output_Of (Error_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               raise Command_Error with Error;
+            end;
+         end if;
+      end;
+   end Pipeline_Output;
+
+
    function Output_Of (Command_Line : in String;
                        Input        : in String  := "") return String
    is
       use Ada.Strings.Fixed;
       The_Index   : constant Natural := Index (Command_Line, " | ");
-      Is_Pipeline : constant Boolean := (if The_Index = 0 then True else False);
+      Is_Pipeline : constant Boolean := (if The_Index = 0 then False else True);
+   begin
+      if Is_Pipeline
+      then
+         declare
+            The_Commands : Command_Array := To_Commands (Command_Line);
+         begin
+            return Pipeline_Output (The_Commands, Input);
+         end;
+      else
+         declare
+            The_Command : Command := To_Command (Command_Line);
+         begin
+            return Command_Output (The_Command, Input);
+         end;
+      end if;
+   end Output_Of;
+
+
+   function Output_Of (Command_Line : in String;
+                       Input        : in String  := "") return Stream_Element_Array
+   is
+      use Ada.Strings.Fixed;
+      The_Index   : constant Natural := Index (Command_Line, " | ");
+      Is_Pipeline : constant Boolean := (if The_Index = 0 then False else True);
+   begin
+      if Is_Pipeline
+      then
+         declare
+            The_Commands : Command_Array := To_Commands (Command_Line);
+         begin
+            return Pipeline_Output (The_Commands, Input);
+         end;
+      else
+         declare
+            The_Command : Command := To_Command (Command_Line);
+         begin
+            return Command_Output (The_Command, Input);
+         end;
+      end if;
+   end Output_Of;
+
+
+   function Command_Output (The_Command : in out Command;
+                            Input       : in     Stream_Element_Array) return String
+   is
+      Output_Pipe : constant Shell.Pipe   := To_Pipe;
+      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
+      Process     :          Shell.Process;
+   begin
+      The_Command.Output_Pipe := Output_Pipe;
+      The_Command. Error_Pipe :=  Error_Pipe;
+
+      Process := Run (The_Command, Input);
+      --  Wait_On (Process);
+
+      if Normal_Exit (Process)
+      then
+         declare
+            Output : constant String := Output_Of (Output_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            return Output;
+         end;
+      else
+         declare
+            Error : constant String := Output_Of (Error_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            raise Command_Error with Error;
+         end;
+      end if;
+   end Command_Output;
+
+
+   function Command_Output (The_Command : in out Command;
+                            Input       : in     Stream_Element_Array) return Stream_Element_Array
+   is
+      Output_Pipe : constant Shell.Pipe   := To_Pipe;
+      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
+      Process     :          Shell.Process;
+   begin
+      The_Command.Output_Pipe := Output_Pipe;
+      The_Command. Error_Pipe :=  Error_Pipe;
+
+      Process := Run (The_Command, Input);
+      --  Wait_On (Process);
+
+      if Normal_Exit (Process)
+      then
+         declare
+            Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            return Output;
+         end;
+      else
+         declare
+            Error : constant String := Output_Of (Error_Pipe);
+         begin
+            close (Output_Pipe);
+            close ( Error_Pipe);
+            raise Command_Error with Error;
+         end;
+      end if;
+   end Command_Output;
+
+
+   function Pipeline_Output (The_Commands : in out Command_Array;
+                             Input        : in     Stream_Element_Array) return String
+   is
+      Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
+      Output_Pipe  : constant Shell.Pipe         := To_Pipe;
+      Error_Pipe   : constant Shell.Pipe         := To_Pipe;
+   begin
+      Last_Command.Output_Pipe := Output_Pipe;
+      Last_Command. Error_Pipe := Error_Pipe;
+
+      declare
+         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
+      begin
+         Wait_On (Last_Process);
+
+         if Normal_Exit (Last_Process)
+         then
+            declare
+               Output : constant String := Output_Of (Output_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               return Output;
+            end;
+         else
+            declare
+               Error : constant String := Output_Of (Error_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               raise Command_Error with Error;
+            end;
+         end if;
+      end;
+   end Pipeline_Output;
+
+
+   function Pipeline_Output (The_Commands : in out Command_Array;
+                             Input        : in     Stream_Element_Array) return Stream_Element_Array
+   is
+      Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
+      Output_Pipe  : constant Shell.Pipe         := To_Pipe;
+      Error_Pipe   : constant Shell.Pipe         := To_Pipe;
+   begin
+      Last_Command.Output_Pipe := Output_Pipe;
+      Last_Command. Error_Pipe := Error_Pipe;
+
+      declare
+         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
+      begin
+         Wait_On (Last_Process);
+
+         if Normal_Exit (Last_Process)
+         then
+            declare
+               Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               return Output;
+            end;
+         else
+            declare
+               Error : constant String := Output_Of (Error_Pipe);
+            begin
+               close (Output_Pipe);
+               close ( Error_Pipe);
+               raise Command_Error with Error;
+            end;
+         end if;
+      end;
+   end Pipeline_Output;
+
+
+   function Output_Of (Command_Line : in String;
+                       Input        : in Stream_Element_Array) return String
+   is
+      use Ada.Strings.Fixed;
+      The_Index   : constant Natural := Index (Command_Line, " | ");
+      Is_Pipeline : constant Boolean := (if The_Index = 0 then False else True);
+   begin
+      if Is_Pipeline
+      then
+         declare
+            The_Commands : Command_Array := To_Commands (Command_Line);
+         begin
+            return Pipeline_Output (The_Commands, Input);
+         end;
+      else
+         declare
+            The_Command : Command := To_Command (Command_Line);
+         begin
+            return Command_Output (The_Command, Input);
+         end;
+      end if;
+   end Output_Of;
+
+
+   function Output_Of (Command_Line : in String;
+                       Input        : in Stream_Element_Array) return Stream_Element_Array
+   is
+      use Ada.Strings.Fixed;
+      The_Index   : constant Natural := Index (Command_Line, " | ");
+      Is_Pipeline : constant Boolean := (if The_Index = 0 then False else True);
    begin
       if Is_Pipeline
       then
@@ -333,9 +730,18 @@ is
 
 
    procedure Run (Command_Line : in String;
-                  Input        : in     String := "")
+                  Input        : in String := "")
    is
       Output : String := Output_Of (Command_Line, Input) with Unreferenced;
+   begin
+      null;
+   end Run;
+
+
+   procedure Run (Command_Line : in String;
+                  Input        : in Stream_Element_Array)
+   is
+      Output : Stream_Element_Array := Output_Of (Command_Line, Input) with Unreferenced;
    begin
       null;
    end Run;
@@ -418,6 +824,39 @@ is
    end Output_Of;
 
 
+   function Output_Of (The_Pipe : in Pipe) return Ada.Streams.Stream_Element_Array
+
+   is
+      use POSIX;
+      Max_Process_Output : constant := 20 * 1024;
+
+      Buffer : Stream_Element_Array (1 .. Max_Process_Output);
+      Last   : Stream_Element_Offset;
+   begin
+      IO.Read (File   => The_Pipe.Read_End,
+               Buffer => Buffer,
+               Last   => Last);
+      return Buffer (1 .. Last);
+
+   exception
+      when Ada.IO_Exceptions.End_Error =>
+         declare
+            Null_Array : Ada.Streams.Stream_Element_Array (1..0);
+         begin
+            return Null_Array;
+         end;
+   end Output_Of;
+
+
+   procedure Write_To (The_Pipe : in Pipe;   Input : in Stream_Element_Array)
+   is
+      subtype   Stream_Array is Stream_Element_Array (Input'Range);
+      procedure Write        is new POSIX.IO.Generic_Write (Stream_Array);
+   begin
+      Write (The_Pipe.Write_End, Input);
+   end Write_To;
+
+
    procedure Write_To (The_Pipe : in Pipe;   Input : in String)
    is
       subtype   My_String is String (Input'Range);
@@ -425,7 +864,6 @@ is
    begin
       Write (The_Pipe.Write_End, Input);
    end Write_To;
-
 
 
    procedure Close (The_Pipe : in Pipe)
@@ -629,7 +1067,7 @@ is
    begin
       Wait_For_Child_Process (Status => Status,
                               Child  => Process.Id,
-                              Block  => False);
+                              Block  => True);
 
       if not Status_Available (Status) then
          return False;

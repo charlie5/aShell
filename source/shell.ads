@@ -29,8 +29,12 @@ is
    --
    type Pipe is private;
 
+   use Ada.Streams;
+
    function  To_Pipe return Pipe;
-   function  Output_Of (The_Pipe : in Pipe)       return String;     -- Returns available output from the 'read end' as a string.
+   function  Output_Of (The_Pipe : in Pipe) return Stream_Element_Array;   -- Returns available output from the 'read end' as a stream array.
+   function  Output_Of (The_Pipe : in Pipe) return String;                 -- Returns available output from the 'read end' as a string.
+   procedure Write_To  (The_Pipe : in Pipe;   Input : in Stream_Element_Array);
    procedure Write_To  (The_Pipe : in Pipe;   Input : in String);
    procedure Close     (The_Pipe : in Pipe);
 
@@ -96,11 +100,11 @@ is
    procedure Connect (Commands : in out Command_Array);     -- Connects each command in a pipeline.
 
 
-   function  Run (The_Command : in     Command;
+   function  Run (The_Command : in out Command;
                   Input       : in     String  := "";
                   Pipeline    : in     Boolean := False) return Process;
 
-   procedure Run (The_Command : in     Command;
+   procedure Run (The_Command : in out Command;
                   Input       : in     String  := "";
                   Pipeline    : in     Boolean := False);
 
@@ -112,20 +116,74 @@ is
                   Input       : in     String  := "";
                   Pipeline    : in     Boolean      := True) return Process_Array;
 
+   function  Run (The_Command : in out Command;
+                  Input       : in     Stream_Element_Array;
+                  Pipeline    : in     Boolean := False) return Process;
+
+   procedure Run (The_Command : in out Command;
+                  Input       : in     Stream_Element_Array;
+                  Pipeline    : in     Boolean := False);
+
+   procedure Run (Commands    : in out Command_Array;
+                  Input       : in     Stream_Element_Array;
+                  Pipeline    : in     Boolean      := True);
+
+   function  Run (Commands    : in out Command_Array;
+                  Input       : in     Stream_Element_Array;
+                  Pipeline    : in     Boolean      := True) return Process_Array;
+
 
    function  Command_Output  (The_Command  : in out Command;
                               Input        : in     String := "") return String;
 
+   function  Command_Output  (The_Command  : in out Command;
+                              Input        : in     String := "") return Stream_Element_Array;
+
    function  Pipeline_Output (The_Commands : in out Command_Array;
                               Input        : in     String := "") return String;
+
+   function  Pipeline_Output (The_Commands : in out Command_Array;
+                              Input        : in     String := "") return Stream_Element_Array;
 
    function  Output_Of       (Command_Line : in     String;
                               Input        : in     String := "") return String;
    --
    -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
+   function  Output_Of       (Command_Line : in     String;
+                              Input        : in     String := "") return Stream_Element_Array;
+   --
+   -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
+
+   function  Command_Output  (The_Command  : in out Command;
+                              Input        : in     Stream_Element_Array) return String;
+
+   function  Command_Output  (The_Command  : in out Command;
+                              Input        : in     Stream_Element_Array) return Stream_Element_Array;
+
+   function  Pipeline_Output (The_Commands : in out Command_Array;
+                              Input        : in     Stream_Element_Array) return String;
+
+   function  Pipeline_Output (The_Commands : in out Command_Array;
+                              Input        : in     Stream_Element_Array) return Stream_Element_Array;
+
+   function  Output_Of       (Command_Line : in     String;
+                              Input        : in     Stream_Element_Array) return String;
+   --
+   -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
+
+   function  Output_Of       (Command_Line : in     String;
+                              Input        : in     Stream_Element_Array) return Stream_Element_Array;
+   --
+   -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
+
    procedure Run (Command_Line : in String;
-                  Input        : in String  := "");
+                  Input        : in String := "");
+   --
+   -- Runs a command line and raises Command_Error on failure.
+
+   procedure Run (Command_Line : in String;
+                  Input        : in Stream_Element_Array);
    --
    -- Runs a command line and raises Command_Error on failure.
 
@@ -190,8 +248,6 @@ private
       record
          Pipe : Shell.Pipe;
       end record;
-
-   use Ada.Streams;
 
    overriding
    procedure Read  (Stream : in out Pipe_Stream;
