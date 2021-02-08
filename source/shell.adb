@@ -135,6 +135,21 @@ is
    end Connect;
 
 
+   procedure Close_Pipe_Write_Ends (Command : in Shell.Command)
+   is
+   begin
+      if Command.Output_Pipe /= Standard_Output
+      then
+         Close_Write_End (Command.Output_Pipe);
+      end if;
+
+      if Command.Error_Pipe /= Standard_Error
+      then
+         Close_Write_End (Command.Error_Pipe);
+      end if;
+   end Close_Pipe_Write_Ends;
+
+
    function Run (The_Command : in out Command;
                  Input       : in     String  := "";
                  Pipeline    : in     Boolean := False) return Process
@@ -194,38 +209,21 @@ is
 
       for I in Commands'Range
       loop
-         declare
-            procedure Close_Pipe_Write_Ends (Command : in Shell.Command)
-            is
-            begin
-               if Command.Output_Pipe /= Standard_Output
-               then
-                  POSIX.IO.Close (Command.Output_Pipe.Write_End);
-               end if;
+         Processes (I) := Run (Commands (I),
+                               Pipeline => True);
 
-               if Command.Error_Pipe /= Standard_Error
-               then
-                  POSIX.IO.Close (Command.Error_Pipe.Write_End);
-               end if;
-            end Close_Pipe_Write_Ends;
+         -- Since we are making a pipeline, we need to close the write ends of
+         -- the Output & Errors pipes ourselves.
+         --
+         if I /= Commands'First
+         then
+            Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
+         end if;
 
-         begin
-            Processes (I) := Run (Commands (I),
-                                  Pipeline => True);
-
-            -- Since we are making a pipeline, we need to close the write ends of
-            -- the Output & Errors pipes ourselves.
-            --
-            if I /= Commands'First
-            then
-               Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
-            end if;
-
-            if I = Commands'Last
-            then
-               Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
-            end if;
-         end;
+         if I = Commands'Last
+         then
+            Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+         end if;
       end loop;
 
       return Processes;
@@ -295,38 +293,21 @@ is
 
       for I in Commands'Range
       loop
-         declare
-            procedure Close_Pipe_Write_Ends (Command : in Shell.Command)
-            is
-            begin
-               if Command.Output_Pipe /= Standard_Output
-               then
-                  POSIX.IO.Close (Command.Output_Pipe.Write_End);
-               end if;
+         Processes (I) := Run (Commands (I),
+                               Pipeline => True);
 
-               if Command.Error_Pipe /= Standard_Error
-               then
-                  POSIX.IO.Close (Command.Error_Pipe.Write_End);
-               end if;
-            end Close_Pipe_Write_Ends;
+         -- Since we are making a pipeline, we need to close the write ends of
+         -- the Output & Errors pipes ourselves.
+         --
+         if I /= Commands'First
+         then
+            Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
+         end if;
 
-         begin
-            Processes (I) := Run (Commands (I),
-                                  Pipeline => True);
-
-            -- Since we are making a pipeline, we need to close the write ends of
-            -- the Output & Errors pipes ourselves.
-            --
-            if I /= Commands'First
-            then
-               Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
-            end if;
-
-            if I = Commands'Last
-            then
-               Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
-            end if;
-         end;
+         if I = Commands'Last
+         then
+            Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+         end if;
       end loop;
 
       return Processes;
