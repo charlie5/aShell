@@ -4,7 +4,6 @@ with
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
      Ada.IO_Exceptions,
-     Ada.Unchecked_Deallocation,
 
      POSIX.Process_Primitives.Extensions;
 
@@ -62,7 +61,7 @@ is
    is
       use GNAT.OS_Lib;
       Command_Name : constant String      := "Command_Name";     -- Argument_String_To_List expects the command name to be the 1st piece
-                                                                  -- of the string, so we provide a dummy name.
+                                                                 -- of the string, so we provide a dummy name.
       Arguments    : Argument_List_Access := Argument_String_To_List (  Command_Name
                                                                        & " "
                                                                        & All_Arguments);
@@ -637,7 +636,7 @@ is
       Error_Pipe   : constant Shell.Pipe         := To_Pipe;
    begin
       Last_Command.Output_Pipe := Output_Pipe;
-      Last_Command. Error_Pipe := Error_Pipe;
+      Last_Command. Error_Pipe :=  Error_Pipe;
 
       declare
          Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
@@ -770,7 +769,7 @@ is
    -- Command Results
    --
 
-   function Results_Of (The_Command : in out Command'Class) return Command_Results
+   function Results_Of (The_Command : in out Command) return Command_Results
    is
       Output_Pipe : constant Shell.Pipe    := To_Pipe;
       Error_Pipe  : constant Shell.Pipe    := To_Pipe;
@@ -783,9 +782,8 @@ is
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then
-         return (Ada.Finalization.Limited_Controlled with
-                 Output => new String' (Output_Of (Output_Pipe)),
-                 Errors => new String' (Output_Of (Error_Pipe)));
+         return (Output => +Output_Of (Output_Pipe),
+                 Errors => +Output_Of ( Error_Pipe));
       else
          declare
             Error : constant String := Output_Of (Error_Pipe);
@@ -796,33 +794,32 @@ is
          end;
       end if;
 
-      return (Ada.Finalization.Limited_Controlled with
-                Output => new String' (Output_Of (Output_Pipe)),
-                Errors => new String' (Output_Of (Error_Pipe)));
+      return (Output => +Output_Of (Output_Pipe),
+              Errors => +Output_Of ( Error_Pipe));
    end Results_Of;
 
 
    overriding
-   procedure Finalize (Results : in out Command_Results)
+   procedure Finalize (The_Command : in out Command)
    is
-      procedure Deallocate is new Ada.Unchecked_Deallocation (String, String_Access);
    begin
-      Deallocate (Results.Output);
-      Deallocate (Results.Errors);
+      Close (The_Command. Input_Pipe);
+      Close (The_Command.Output_Pipe);
+      Close (The_Command. Error_Pipe);
    end Finalize;
 
 
    function Output_Of (The_Results : in Command_Results) return String
    is
    begin
-      return The_Results.Output.all;
+      return +The_Results.Output;
    end Output_Of;
 
 
    function Errors_Of (The_Results : in Command_Results) return String
    is
    begin
-      return The_Results.Errors.all;
+      return +The_Results.Errors;
    end Errors_Of;
 
 

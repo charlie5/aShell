@@ -196,7 +196,7 @@ is
 
    type Command_Results is limited private;
 
-   function  Results_Of (The_Command : in out Command'Class) return Command_Results;
+   function  Results_Of (The_Command : in out Command) return Command_Results;
    --
    -- Runs the command and returns the results.
 
@@ -227,6 +227,9 @@ private
             Output_Pipe : Pipe := Standard_Output;
             Error_Pipe  : Pipe := Standard_Error;
          end record;
+
+   overriding
+   procedure Finalize (The_Command : in out Command);
 
    Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;     -- TODO: Better way to define a null file descriptor ?
 
@@ -259,22 +262,15 @@ private
    procedure Write (Stream : in out Pipe_Stream;
                     Item   : in     Stream_Element_Array);
 
-
    type Process is
       record
          Id : Process_ID;
       end record;
 
-
-   type String_Access is access all String;
-
-   type Command_Results is new Ada.Finalization.Limited_Controlled with
+   type Command_Results is
       record
-         Output : String_Access;
-         Errors : String_Access;
+         Output : Unbounded_String;
+         Errors : Unbounded_String;
       end record;
-
-   overriding
-   procedure Finalize (Results : in out Command_Results);
 
 end Shell;
