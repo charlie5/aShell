@@ -127,10 +127,8 @@ is
    procedure Connect (Commands : in out Command_Array)
    is
    begin
-      for I in Commands'Range
+      for I in Commands'First .. Commands'Last - 1
       loop
-         exit when I + 1 > Commands'Last;
-
          Connect (From => Commands (I),
                   To   => Commands (I + 1));
       end loop;
