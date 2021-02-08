@@ -62,7 +62,7 @@ is
                    Errors            : in Pipe         := Standard_Error;
                    Pipeline          : in Boolean      := False) return Process;
    --
-   -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
+   -- With a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
    function Start (Command           : in String;
                    Working_Directory : in String       := ".";
@@ -71,7 +71,7 @@ is
                    Errors            : in Pipe         := Standard_Error;
                    Pipeline          : in Boolean      := False) return Process;
    --
-   -- When in a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
+   -- With a pipeline, closing the write ends of the 'Output' & 'Errors' pipes becomes the callers responsibility.
 
    procedure Wait_On        (Process : in Shell.Process);
    function  Has_Terminated (Process : in Shell.Process) return Boolean;
