@@ -173,17 +173,17 @@ is
    -- The 'Output_Of' functions take a command line and calls Command_Output or Pipeline_Output, as appropriate.
    --
 
-   function  Output_Of       (Command_Line : in     String;
-                              Input        : in     String := "") return String;
+   function  Output_Of (Command_Line : in String;
+                        Input        : in String := "") return String;
 
-   function  Output_Of       (Command_Line : in     String;
-                              Input        : in     String := "") return Stream_Element_Array;
+   function  Output_Of (Command_Line : in String;
+                        Input        : in String := "") return Stream_Element_Array;
 
-   function  Output_Of       (Command_Line : in     String;
-                              Input        : in     Stream_Element_Array) return String;
+   function  Output_Of (Command_Line : in String;
+                        Input        : in Stream_Element_Array) return String;
 
-   function  Output_Of       (Command_Line : in     String;
-                              Input        : in     Stream_Element_Array) return Stream_Element_Array;
+   function  Output_Of (Command_Line : in String;
+                        Input        : in Stream_Element_Array) return Stream_Element_Array;
 
 
    -- The 'Run' procedures wait for process completion and raise a Command_Error on failure.
