@@ -202,9 +202,9 @@ is
    end Close_Pipe_Write_Ends;
 
 
-   function Run (The_Command : in out Command;
-                 Input       : in     String  := "";
-                 Pipeline    : in     Boolean := False) return Process
+   function Start (The_Command : in out Command;
+                   Input       : in     String  := "";
+                   Pipeline    : in     Boolean := False) return Process
    is
       Process : Shell.Process;
    begin
@@ -221,22 +221,22 @@ is
                         Errors    =>  The_Command.Error_Pipe,
                         Pipeline  =>  Pipeline);
       return Process;
-   end Run;
+   end Start;
 
 
-   procedure Run (The_Command : in out Command;
-                  Input       : in     String  := "";
-                  Pipeline    : in     Boolean := False)
+   procedure Start (The_Command : in out Command;
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean := False)
    is
-      Process : Shell.Process := Run (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
+      Process : Shell.Process := Start (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
       null;
-   end Run;
+   end Start;
 
 
-   function Run (Commands : in out Command_Array;
-                 Input    : in     String       := "";
-                 Pipeline : in     Boolean      := True) return Process_Array
+   function Start (Commands : in out Command_Array;
+                   Input    : in     String       := "";
+                   Pipeline : in     Boolean      := True) return Process_Array
    is
       First_Command : Command renames Commands (Commands'First);
       Processes     : Process_Array (Commands'Range);
@@ -251,7 +251,7 @@ is
       then
          for I in Commands'Range
          loop
-            Processes (I) := Run (Commands (I));
+            Processes (I) := Start (Commands (I));
          end loop;
 
          return Processes;
@@ -261,8 +261,8 @@ is
 
       for I in Commands'Range
       loop
-         Processes (I) := Run (Commands (I),
-                               Pipeline => True);
+         Processes (I) := Start (Commands (I),
+                                 Pipeline => True);
 
          -- Since we are making a pipeline, we need to close the write ends of
          -- the Output & Errors pipes ourselves.
@@ -279,22 +279,22 @@ is
       end loop;
 
       return Processes;
-   end Run;
+   end Start;
 
 
-   procedure Run (Commands : in out Command_Array;
-                  Input    : in     String       := "";
-                  Pipeline : in     Boolean      := True)
+   procedure Start (Commands : in out Command_Array;
+                    Input    : in     String       := "";
+                    Pipeline : in     Boolean      := True)
    is
-      Processes : Process_Array := Run (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
+      Processes : Process_Array := Start (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
       null;
-   end Run;
+   end Start;
 
 
-   function Run (The_Command : in out Command;
-                 Input       : in     Stream_Element_Array;
-                 Pipeline    : in     Boolean := False) return Process
+   function Start (The_Command : in out Command;
+                   Input       : in     Stream_Element_Array;
+                   Pipeline    : in     Boolean := False) return Process
    is
       Process : Shell.Process;
    begin
@@ -308,22 +308,22 @@ is
                         Errors    =>  The_Command.Error_Pipe,
                         Pipeline  =>  Pipeline);
       return Process;
-   end Run;
+   end Start;
 
 
-   procedure Run (The_Command : in out Command;
-                  Input       : in     Stream_Element_Array;
-                  Pipeline    : in     Boolean := False)
+   procedure Start (The_Command : in out Command;
+                    Input       : in     Stream_Element_Array;
+                    Pipeline    : in     Boolean := False)
    is
-      Process : Shell.Process := Run (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
+      Process : Shell.Process := Start (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
       null;
-   end Run;
+   end Start;
 
 
-   function Run (Commands : in out Command_Array;
-                 Input    : in     Stream_Element_Array;
-                 Pipeline : in     Boolean      := True) return Process_Array
+   function Start (Commands : in out Command_Array;
+                   Input    : in     Stream_Element_Array;
+                   Pipeline : in     Boolean      := True) return Process_Array
    is
       First_Command : Command renames Commands (Commands'First);
       Processes     : Process_Array (Commands'Range);
@@ -335,7 +335,7 @@ is
       then
          for I in Commands'Range
          loop
-            Processes (I) := Run (Commands (I));
+            Processes (I) := Start (Commands (I));
          end loop;
 
          return Processes;
@@ -345,8 +345,8 @@ is
 
       for I in Commands'Range
       loop
-         Processes (I) := Run (Commands (I),
-                               Pipeline => True);
+         Processes (I) := Start (Commands (I),
+                                 Pipeline => True);
 
          -- Since we are making a pipeline, we need to close the write ends of
          -- the Output & Errors pipes ourselves.
@@ -363,17 +363,17 @@ is
       end loop;
 
       return Processes;
-   end Run;
+   end Start;
 
 
-   procedure Run (Commands : in out Command_Array;
-                  Input    : in     Stream_Element_Array;
-                  Pipeline : in     Boolean      := True)
+   procedure Start (Commands : in out Command_Array;
+                    Input    : in     Stream_Element_Array;
+                    Pipeline : in     Boolean      := True)
    is
-      Processes : Process_Array := Run (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
+      Processes : Process_Array := Start (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
       null;
-   end Run;
+   end Start;
 
 
    function Command_Output (The_Command : in out Command;
@@ -386,7 +386,7 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (The_Command, Input);
+      Process := Start (The_Command, Input);
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then
@@ -419,7 +419,7 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (The_Command, Input);
+      Process := Start (The_Command, Input);
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then
@@ -453,7 +453,7 @@ is
       Last_Command. Error_Pipe := Error_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Process_List : constant Shell.Process_Array := Start (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          if Normal_Exit (Last_Process)     -- This waits til command completion.
@@ -489,7 +489,7 @@ is
       Last_Command. Error_Pipe := Error_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Process_List : constant Shell.Process_Array := Start (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          if Normal_Exit (Last_Process)     -- This waits til command completion.
@@ -572,7 +572,7 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (The_Command, Input);
+      Process := Start (The_Command, Input);
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then
@@ -605,7 +605,7 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (The_Command, Input);
+      Process := Start (The_Command, Input);
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then
@@ -639,7 +639,7 @@ is
       Last_Command. Error_Pipe :=  Error_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Process_List : constant Shell.Process_Array := Start (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          if Normal_Exit (Last_Process)     -- This waits til command completion.
@@ -675,7 +675,7 @@ is
       Last_Command. Error_Pipe := Error_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Run (The_Commands, Input);
+         Process_List : constant Shell.Process_Array := Start (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          if Normal_Exit (Last_Process)     -- This waits til command completion.
@@ -778,7 +778,7 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Run (The_Command);
+      Process := Start (The_Command);
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then

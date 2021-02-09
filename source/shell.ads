@@ -95,37 +95,37 @@ is
    procedure Connect (Commands : in out Command_Array);  -- Connects each command in a pipeline.
 
 
-   function  Run (The_Command : in out Command;
-                  Input       : in     String  := "";
-                  Pipeline    : in     Boolean := False) return Process;
+   function  Start (The_Command : in out Command;
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean := False) return Process;
 
-   procedure Run (The_Command : in out Command;
-                  Input       : in     String  := "";
-                  Pipeline    : in     Boolean := False);
+   procedure Start (The_Command : in out Command;
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean := False);
 
-   procedure Run (Commands    : in out Command_Array;
-                  Input       : in     String  := "";
-                  Pipeline    : in     Boolean      := True);
+   procedure Start (Commands    : in out Command_Array;
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean      := True);
 
-   function  Run (Commands    : in out Command_Array;
-                  Input       : in     String  := "";
-                  Pipeline    : in     Boolean      := True) return Process_Array;
+   function  Start (Commands    : in out Command_Array;
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean      := True) return Process_Array;
 
-   function  Run (The_Command : in out Command;
-                  Input       : in     Stream_Element_Array;
-                  Pipeline    : in     Boolean := False) return Process;
+   function  Start (The_Command : in out Command;
+                    Input       : in     Stream_Element_Array;
+                    Pipeline    : in     Boolean := False) return Process;
 
-   procedure Run (The_Command : in out Command;
-                  Input       : in     Stream_Element_Array;
-                  Pipeline    : in     Boolean := False);
+   procedure Start (The_Command : in out Command;
+                    Input       : in     Stream_Element_Array;
+                    Pipeline    : in     Boolean := False);
 
-   procedure Run (Commands    : in out Command_Array;
-                  Input       : in     Stream_Element_Array;
-                  Pipeline    : in     Boolean      := True);
+   procedure Start (Commands    : in out Command_Array;
+                    Input       : in     Stream_Element_Array;
+                    Pipeline    : in     Boolean      := True);
 
-   function  Run (Commands    : in out Command_Array;
-                  Input       : in     Stream_Element_Array;
-                  Pipeline    : in     Boolean      := True) return Process_Array;
+   function  Start (Commands    : in out Command_Array;
+                    Input       : in     Stream_Element_Array;
+                    Pipeline    : in     Boolean      := True) return Process_Array;
 
 
    function  Command_Output  (The_Command  : in out Command;
