@@ -19,12 +19,12 @@ begin
       ls      : Shell.Process       := Start (Program   => "ls",
                                               Arguments => (1 => +"-alhR",
                                                             2 => +"/"),
-                                              Output    => ls_Pipe);
+                                              Output    => ls_Pipe) with Unreferenced;
    begin
       for i in 1 .. 10
       loop
          delay 1.0;                                    -- Allow time to elapse so the process can pump the pipe with plenty of output.
-         Put_Line ("'" & To_String (ls_Pipe) & "'");   -- The 'To_String' function reads any output from the pipe as a String.
+         Put_Line ("'" & Output_Of (ls_Pipe) & "'");   -- The 'To_String' function reads any output from the pipe as a String.
       end loop;
    end;
 

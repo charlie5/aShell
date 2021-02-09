@@ -3,7 +3,7 @@ with Ada.Text_IO;
 
 with Shell;
 
-procedure Environment_Test_Runner
+procedure Test_Environment
 is
    use Ada.Text_IO;
 begin
@@ -28,7 +28,7 @@ begin
       Put_Line ("Expected output:");
       Put_Line (Expected);
       Put_Line ("Actual output:");
-      Run (Piped_Commands);
+      Start (Piped_Commands);
       delay 1.0;
       Put_Line ("End test 1");
    end Test_1;
@@ -52,7 +52,7 @@ begin
       Put_Line ("Expected output:");
       Put_Line (Expected);
       Put_Line ("Actual output:");
-      Run (Piped_Commands);
+      Start (Piped_Commands);
       delay 1.0;
       Put_Line ("End test 2");
    end Test_2;
@@ -60,4 +60,4 @@ begin
    New_Line (2);
 
    Put_Line ("End tests.");
-end Environment_Test_Runner;
+end Test_Environment;

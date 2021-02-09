@@ -12,7 +12,7 @@ begin
 
    declare
       use Shell;
-      The_Command : constant Command := To_Command ("ls -alh");
+      The_Command :          Command := To_Command ("ls -alh");
       Output      : constant String  := Command_Output (The_Command);
    begin
       Put_Line (Output);

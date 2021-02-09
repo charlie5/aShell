@@ -7,17 +7,17 @@ procedure Test_aShell
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start tests.");
+   Put_Line ("Start aShell tests.");
 
    new_Line (2);
    Put_Line ("Test 1 ~ Run single command =>'ls -alh'");
    Test_1:
    declare
       use Shell;
-      The_Command : constant Command := To_Command ("ls -alh");
+      The_Command :          Command := To_Command ("ls -alh");
+      The_Process : constant Process := Start (The_Command);
    begin
-      Run (The_Command);
-      delay 1.0;
+      Wait_On (The_Process);
    end Test_1;
 
 
@@ -26,10 +26,10 @@ begin
    Test_2:
    declare
       use Shell;
-      Piped_Commands : Command_Array := To_Commands ("ls -alh | wc");
+      Piped_Commands :          Command_Array := To_Commands ("ls -alh | wc");
+      Processes      : constant Process_Array := Start (Piped_Commands);
    begin
-      Run (Piped_Commands);
-      delay 1.0;
+      Wait_On (Processes (Processes'Last));
    end Test_2;
 
 
@@ -38,8 +38,8 @@ begin
    Test_3:
    declare
       use Shell;
-      The_Command : constant Command       := To_Command ("sleep 3");
-      The_Process : constant Shell.Process := Run (The_Command);
+      The_Command :          Command       := To_Command ("sleep 3");
+      The_Process : constant Shell.Process := Start (The_Command);
    begin
       Put_Line ("Sleep process id: " & Image (The_Process));
    end Test_3;
@@ -51,7 +51,7 @@ begin
    declare
       use Shell;
       The_Commands  :          Command_Array       := To_Commands ("sleep 3 | sleep 3");
-      The_Processes : constant Shell.Process_Array := Run (The_Commands, Pipeline => False);
+      The_Processes : constant Shell.Process_Array := Start (The_Commands, Pipeline => False);
    begin
       for i in The_Processes'Range
       loop
@@ -61,5 +61,5 @@ begin
 
 
    New_Line (2);
-   Put_Line ("End tests.");
+   Put_Line ("End aShell tests.");
 end Test_aShell;
