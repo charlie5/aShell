@@ -12,7 +12,6 @@ is
 
    function Has_Element (Pos : in Cursor) return Boolean
    is
-      use Ada.Directories;
    begin
       return Pos.Directory_Entry /= null;
    end Has_Element;
@@ -97,7 +96,6 @@ is
    overriding
    function First (Object : in Iterator) return Cursor
    is
-      use Ada.Directories;
       C : Cursor;
    begin
       C := Cursor' (Container       => Object.Container,

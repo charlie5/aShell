@@ -82,7 +82,6 @@ private
    -- String Vectors
    --
 
-   use type Unbounded_String;
    package Strings_Vector is new Ada.Containers.Vectors (Index_Type   => Positive,
                                                          Element_Type => Unbounded_String);
 
