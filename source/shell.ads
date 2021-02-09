@@ -95,6 +95,8 @@ is
    procedure Connect (Commands : in out Command_Array);  -- Connects each command in a pipeline.
 
 
+   -- Single commands.
+   --
    function  Start (The_Command : in out Command;
                     Input       : in     String  := "";
                     Pipeline    : in     Boolean := False) return Process;
@@ -102,14 +104,6 @@ is
    procedure Start (The_Command : in out Command;
                     Input       : in     String  := "";
                     Pipeline    : in     Boolean := False);
-
-   procedure Start (Commands    : in out Command_Array;
-                    Input       : in     String  := "";
-                    Pipeline    : in     Boolean      := True);
-
-   function  Start (Commands    : in out Command_Array;
-                    Input       : in     String  := "";
-                    Pipeline    : in     Boolean      := True) return Process_Array;
 
    function  Start (The_Command : in out Command;
                     Input       : in     Stream_Element_Array;
@@ -119,13 +113,23 @@ is
                     Input       : in     Stream_Element_Array;
                     Pipeline    : in     Boolean := False);
 
+   -- Multiple commands.
+   --
+   function  Start (Commands    : in out Command_Array;
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean := True) return Process_Array;
+
    procedure Start (Commands    : in out Command_Array;
-                    Input       : in     Stream_Element_Array;
-                    Pipeline    : in     Boolean      := True);
+                    Input       : in     String  := "";
+                    Pipeline    : in     Boolean := True);
 
    function  Start (Commands    : in out Command_Array;
                     Input       : in     Stream_Element_Array;
-                    Pipeline    : in     Boolean      := True) return Process_Array;
+                    Pipeline    : in     Boolean := True) return Process_Array;
+
+   procedure Start (Commands    : in out Command_Array;
+                    Input       : in     Stream_Element_Array;
+                    Pipeline    : in     Boolean := True);
 
 
    function  Command_Output  (The_Command  : in out Command;
