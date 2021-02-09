@@ -26,7 +26,7 @@ is
    Nil_Strings : constant String_Array;
 
 
-   -- Pipes
+   --- Pipes
    --
    type Pipe is private;
 
@@ -46,11 +46,10 @@ is
    Standard_Output : constant Pipe;
    Standard_Error  : constant Pipe;
 
-
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with private;
 
 
-   -- Processes
+   --- Processes
    --
    type Process       is private;
    type Process_Array is array (Positive range <>) of Process;
@@ -83,18 +82,13 @@ is
    function Image (Process : in Shell.Process) return String;
 
 
-   -- Commands
+   --- Commands
    --
-   Max_Arguments : constant := 32;     -- Arbitrary.
-
-   subtype Argument_Range is Natural        range 0 .. Max_Arguments;
-   subtype Argument_Id    is Argument_Range range 1 .. Argument_Range'Last;
-
    type Command       is tagged limited private;
    type Command_Array is array (Positive range <>) of Command;
 
-   function To_Command  (Command_Line : in String) return Command;           -- An example 'Command_Line' is "ps -A".
-   function To_Commands (Pipeline     : in String) return Command_Array;     -- An example 'Pipeline'     is "ps -A | grep bash | wc".
+   function To_Command  (Command_Line : in String) return Command;        -- An example 'Command_Line' is "ps -A".
+   function To_Commands (Pipeline     : in String) return Command_Array;  -- An example 'Pipeline'     is "ps -A | grep bash | wc".
 
 
    procedure Connect (From, To : in out Command);           -- Connects 'From's standard output to 'To's standard input via a pipe.
