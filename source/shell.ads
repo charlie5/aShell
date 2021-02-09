@@ -91,8 +91,8 @@ is
    function To_Commands (Pipeline     : in String) return Command_Array;  -- An example 'Pipeline'     is "ps -A | grep bash | wc".
 
 
-   procedure Connect (From, To : in out Command);           -- Connects 'From's standard output to 'To's standard input via a pipe.
-   procedure Connect (Commands : in out Command_Array);     -- Connects each command in a pipeline.
+   procedure Connect (From, To : in out Command);        -- Connects 'From's standard output to 'To's standard input via a pipe.
+   procedure Connect (Commands : in out Command_Array);  -- Connects each command in a pipeline.
 
 
    function  Run (The_Command : in out Command;
