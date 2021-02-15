@@ -841,13 +841,13 @@ is
       use POSIX;
       Max_Process_Output : constant := 20 * 1024;
 
-      Buffer : Stream_Element_Array (1 .. Max_Process_Output);
+      Buffer : Stream_Element_Array (0 .. Max_Process_Output);
       Last   : Stream_Element_Offset;
    begin
       IO.Read (File   => The_Pipe.Read_End,
                Buffer => Buffer,
                Last   => Last);
-      return To_String (To_POSIX_String (Buffer (1 .. Last)));
+      return To_String (To_POSIX_String (Buffer (0 .. Last)));
 
    exception
       when Ada.IO_Exceptions.End_Error =>
