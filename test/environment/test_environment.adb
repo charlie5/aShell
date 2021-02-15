@@ -7,7 +7,7 @@ procedure Test_Environment
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start tests.");
+   Put_Line ("Begin 'Test_Environment' tests.");
 
    New_Line (2);
 
@@ -59,5 +59,5 @@ begin
 
    New_Line (2);
 
-   Put_Line ("End tests.");
+   Put_Line ("End 'Test_Environment' tests.");
 end Test_Environment;

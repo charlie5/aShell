@@ -7,7 +7,7 @@ is
    use Shell,
        Ada.Text_IO;
 begin
-   Put_Line ("Start test.");
+   Put_Line ("Begin 'Piped_Processes' test.");
    New_Line (2);
 
    declare
@@ -68,5 +68,5 @@ begin
    end;
 
    New_Line (2);
-   Put_Line ("End test.");
+   Put_Line ("End 'Piped_Processes' test.");
 end Test_Piped_Processes;

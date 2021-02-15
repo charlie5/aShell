@@ -10,7 +10,7 @@ procedure Test_Pipe_Output_To_String
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start test.");
+   Put_Line ("Begin 'Pipe_Output_To_String' test.");
    New_Line (2);
 
    declare
@@ -29,5 +29,5 @@ begin
    end;
 
    New_Line (2);
-   Put_Line ("End test.");
+   Put_Line ("End 'Pipe_Output_To_String' test.");
 end Test_Pipe_Output_To_String;

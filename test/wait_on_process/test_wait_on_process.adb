@@ -7,7 +7,7 @@ procedure Test_Wait_On_Process
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start test.");
+   Put_Line ("Begin 'Wait_On_Process' test.");
    New_Line (2);
 
    declare
@@ -22,5 +22,5 @@ begin
    end;
 
    New_Line (2);
-   Put_Line ("End test.");
+   Put_Line ("End 'Wait_On_Process' test.");
 end Test_Wait_On_Process;

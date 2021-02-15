@@ -7,7 +7,7 @@ procedure Test_aShell
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start aShell tests.");
+   Put_Line ("Begin aShell tests.");
 
    new_Line (2);
    Put_Line ("Test 1 ~ Run single command =>'ls -alh'");

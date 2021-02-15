@@ -8,7 +8,7 @@ procedure Test_Iterate_Directory
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start test.");
+   Put_Line ("Begin 'Iterate_Directory' test.");
    New_Line (2);
 
    declare
@@ -22,5 +22,5 @@ begin
    end;
 
    New_Line (2);
-   Put_Line ("End test.");
+   Put_Line ("End 'Iterate_Directory' test.");
 end Test_Iterate_Directory;

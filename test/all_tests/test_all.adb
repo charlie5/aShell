@@ -13,7 +13,7 @@ procedure Test_All
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Start all tests.");
+   Put_Line ("Begin all tests.");
    New_Line (2);
 
    Test_Ashell;
