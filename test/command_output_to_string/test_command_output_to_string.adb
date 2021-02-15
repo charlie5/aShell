@@ -15,7 +15,7 @@ begin
       The_Command :          Command := To_Command ("ls -alh");
       Output      : constant String  := Command_Output (The_Command);
    begin
-      Put_Line (Output);
+      Put_Line ("'" & Output & "'");
    end;
 
    New_Line (2);

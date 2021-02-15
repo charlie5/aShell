@@ -15,7 +15,7 @@ begin
       use Shell.Directory_Iteration,
           Ada  .Directories;
    begin
-      for Each of To_Directory ("/home", Recurse => True)
+      for Each of To_Directory ("..", Recurse => True)
       loop
          Put_Line (Full_Name (Each));     -- Display the full name of each file.
       end loop;

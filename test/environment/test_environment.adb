@@ -21,7 +21,7 @@ begin
       use Shell;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
-      Put_Line ("Test 1 ~ Run piped commands => »" & Commands & "«");
+      Put_Line ("Test 1 ~ Run piped commands => '" & Commands & "'");
 
       Ada.Environment_Variables.Set (Name  => Name,
                                      Value => Value);
@@ -45,7 +45,7 @@ begin
       use Shell;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
-      Put_Line ("Test 2 ~ Run piped commands => »" & Commands & "«");
+      Put_Line ("Test 2 ~ Run piped commands => '" & Commands & "'");
 
       Ada.Environment_Variables.Set (Name  => Name,
                                      Value => Value);

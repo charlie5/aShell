@@ -17,7 +17,7 @@ begin
                                                Arguments => (1 => (+"3")));
 
    begin
-      Put_Line ("Waiting on process ...");
+      Put_Line ("Waiting on process ('sleep 3') ...");
       Wait_On (Sleep);
    end;
 
