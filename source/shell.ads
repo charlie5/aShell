@@ -13,7 +13,7 @@ with
 package Shell
 is
 
-   -- Strings
+   --- Strings
    --
    type Unbounded_String is new Ada.Strings.Unbounded.Unbounded_String;
 
@@ -25,12 +25,18 @@ is
    Nil_String  : constant Unbounded_String;
    Nil_Strings : constant String_Array;
 
+   use Ada.Streams;
+
+   function To_String (From : in Stream_Element_Array) return String;
+   function To_Stream (From : in String)               return Stream_Element_Array;
+
+   function "+" (From : in Stream_Element_Array) return String               renames To_String;
+   function "+" (From : in String)               return Stream_Element_Array renames To_Stream;
+
 
    --- Pipes
    --
    type Pipe is private;
-
-   use Ada.Streams;
 
    function  To_Pipe return Pipe;
    function  Output_Of (The_Pipe : in Pipe) return Stream_Element_Array;   -- Returns available output from the 'read end' as a stream array.

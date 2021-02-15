@@ -4,6 +4,7 @@ with
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
      Ada.IO_Exceptions,
+     Ada.Unchecked_Conversion,
 
      POSIX.Process_Primitives.Extensions;
 
@@ -52,6 +53,26 @@ is
 
       return The_Array;
    end To_String_Array;
+
+
+   function To_String (From : in Ada.Streams.Stream_Element_Array) return String
+   is
+      subtype  Stream_Array is Stream_Element_Array (From'Range);
+      subtype  My_String    is String               (1 .. From'Length);
+      function Convert      is new Ada.Unchecked_Conversion (Stream_Array, My_String);
+   begin
+      return Convert (From);
+   end To_String;
+
+
+   function To_Stream (From : in String) return Ada.Streams.Stream_Element_Array
+   is
+      subtype  My_String    is String (From'Range);
+      subtype  Stream_Array is Stream_Element_Array (0 .. From'Length - 1);
+      function Convert      is new Ada.Unchecked_Conversion (My_String, Stream_Array);
+   begin
+      return Convert (From);
+   end To_Stream;
 
 
    -- Commands
