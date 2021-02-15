@@ -88,7 +88,7 @@ is
    -- Any open pipes attached to a command will be automatically closed when the command goes out of scope.
    --
 
-   type Command       is tagged limited private;
+   type Command       is tagged private;
    type Command_Array is array (Positive range <>) of Command;
 
    function To_Command  (Command_Line : in String) return Command;        -- An example 'Command_Line' is "ps -A".
@@ -226,7 +226,7 @@ private
    package String_Vectors is new Ada.Containers.Vectors (Positive, Unbounded_String);
    subtype String_Vector  is String_Vectors.Vector;
 
-   type Command is limited new Ada.Finalization.Limited_Controlled
+   type Command is new Ada.Finalization.Controlled
      with
          record
             Name        : Unbounded_String;
