@@ -24,4 +24,4 @@ test_pipe_output_to_string
 test_piped_processes
 test_pipeline_output
 test_wait_on_process
-
+test_all
