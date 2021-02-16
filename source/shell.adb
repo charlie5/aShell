@@ -412,33 +412,38 @@ is
    -- Command Results
    --
 
-   function Results_Of (The_Command : in out Command) return Command_Results
+   function Results_Of (The_Command : in out Command;
+                        Input       : in     Data   := No_Data) return Command_Results
    is
-      Output_Pipe : constant Shell.Pipe    := To_Pipe;
-      Error_Pipe  : constant Shell.Pipe    := To_Pipe;
+      Input_Pipe  : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
+      Output_Pipe : constant Shell.Pipe   := To_Pipe;
+      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
       Process     :          Shell.Process;
    begin
+      The_Command. Input_Pipe :=  Input_Pipe;
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
       Process := Start (The_Command);
 
-      if Normal_Exit (Process)     -- This waits til command completion.
+      if Normal_Exit (Process)   -- This waits til command completion.
       then
-         return (Output => +(+Output_Of (Output_Pipe)),
-                 Errors => +(+Output_Of ( Error_Pipe)));
+         declare
+            Output : constant Data := Output_Of (Output_Pipe);
+            Error  : constant Data := Output_Of ( Error_Pipe);
+         begin
+            return (Output_Size => Output'Length,
+                    Error_Size  => Error 'Length,
+                    Output      => Output,
+                    Errors      => Error);
+         end;
       else
          declare
-            Error : constant String := +Output_Of (Error_Pipe);
+            Error : constant Data := Output_Of (Error_Pipe);
          begin
-            close (Output_Pipe);
-            close ( Error_Pipe);
-            raise Command_Error with Error;
+            raise Command_Error with +Error;
          end;
       end if;
-
-      return (Output => +(+Output_Of (Output_Pipe)),
-              Errors => +(+Output_Of ( Error_Pipe)));
    end Results_Of;
 
 
@@ -452,17 +457,17 @@ is
    end Finalize;
 
 
-   function Output_Of (The_Results : in Command_Results) return String
+   function Output_Of (The_Results : in Command_Results) return Data
    is
    begin
-      return +The_Results.Output;
+      return The_Results.Output;
    end Output_Of;
 
 
-   function Errors_Of (The_Results : in Command_Results) return String
+   function Errors_Of (The_Results : in Command_Results) return Data
    is
    begin
-      return +The_Results.Errors;
+      return The_Results.Errors;
    end Errors_Of;
 
 

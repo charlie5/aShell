@@ -17,7 +17,8 @@ is
    --
    use Ada.Streams;
 
-   subtype Data is Stream_Element_Array;
+   subtype Data        is Stream_Element_Array;
+   subtype Data_Offset is Stream_Element_Offset;
 
    No_Data : constant Data;
 
@@ -169,17 +170,17 @@ is
    --- Command Results
    --
 
-   type Command_Results is limited private;
+   type Command_Results (Output_Size : Data_Offset;
+                         Error_Size  : Data_Offset) is private;
 
-   -- TODO: Need to add Results_Of for a command array ?
-
-   function  Results_Of (The_Command : in out Command) return Command_Results;   -- TODO: Need to add Input parameter ?
+   function  Results_Of (The_Command : in out Command;
+                         Input       : in     Data   := No_Data) return Command_Results;
    --
    -- Runs the command to completion and returns the results.
    -- A Command_Error is raised on failure.
 
-   function  Output_Of  (The_Results : in Command_Results) return String;   -- TODO: Make these return Stream_Element_Array.
-   function  Errors_Of  (The_Results : in Command_Results) return String;
+   function  Output_Of  (The_Results : in Command_Results) return Data;
+   function  Errors_Of  (The_Results : in Command_Results) return Data;
 
 
 private
@@ -247,10 +248,11 @@ private
          Id : Process_ID;
       end record;
 
-   type Command_Results is
+   type Command_Results (Output_Size : Data_Offset;
+                         Error_Size  : Data_Offset) is
       record
-         Output : Unbounded_String;
-         Errors : Unbounded_String;
+         Output : Data (1 .. Output_Size);
+         Errors : Data (1 ..  Error_Size);
       end record;
 
 end Shell;
