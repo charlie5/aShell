@@ -227,10 +227,11 @@ is
                    Input       : in     Data    := No_Data;
                    Pipeline    : in     Boolean := False) return Process
    is
-      Process : Shell.Process;
+      Input_Pipe : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
+      Process    :          Shell.Process;
    begin
-      The_Command.Input_Pipe := To_Pipe;
-      Write_To (The_Command.Input_Pipe, Input);
+      The_Command.Input_Pipe :=  Input_Pipe;
+      Write_To (Input_Pipe, Input);
 
       Process := Start (Program   => +The_Command.Name,
                         Arguments =>  To_String_Array (The_Command.Arguments),
@@ -256,11 +257,12 @@ is
                    Input    : in     Data    := No_Data;
                    Pipeline : in     Boolean := True) return Process_Array
    is
-      First_Command : Command renames Commands (Commands'First);
-      Processes     : Process_Array  (Commands'Range);
+      First_Command :          Command renames Commands (Commands'First);
+      Input_Pipe    : constant Shell.Pipe   := (if Input = No_Data then First_Command.Input_Pipe else To_Pipe);
+      Processes     :          Process_Array  (Commands'Range);
    begin
-      First_Command.Input_Pipe := To_Pipe;
-      Write_To (First_Command.Input_Pipe, Input);
+      First_Command.Input_Pipe := Input_Pipe;
+      Write_To (Input_Pipe, Input);
 
       if not Pipeline
       then
@@ -354,7 +356,7 @@ is
          Process_List : constant Shell.Process_Array := Start (The_Commands, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
-         if Normal_Exit (Last_Process)     -- This waits til command completion.
+         if Normal_Exit (Last_Process)     -- This waits til final command completes.
          then
             declare
                Output : constant Data := Output_Of (Output_Pipe);
