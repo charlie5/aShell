@@ -109,97 +109,99 @@ is
 
    -- Single commands.
    --
+   --  function  Start (The_Command : in out Command;
+   --                   Input       : in     String  := "";
+   --                   Pipeline    : in     Boolean := False) return Process;
+
+   --  procedure Start (The_Command : in out Command;
+   --                   Input       : in     String  := "";
+   --                   Pipeline    : in     Boolean := False);
+
+   Null_Stream_Element_Array : constant Stream_Element_Array;
+
    function  Start (The_Command : in out Command;
-                    Input       : in     String  := "";
-                    Pipeline    : in     Boolean := False) return Process;
+                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
+                    Pipeline    : in     Boolean              := False) return Process;
 
    procedure Start (The_Command : in out Command;
-                    Input       : in     String  := "";
-                    Pipeline    : in     Boolean := False);
-
-   function  Start (The_Command : in out Command;
-                    Input       : in     Stream_Element_Array;
-                    Pipeline    : in     Boolean := False) return Process;
-
-   procedure Start (The_Command : in out Command;
-                    Input       : in     Stream_Element_Array;
-                    Pipeline    : in     Boolean := False);
+                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
+                    Pipeline    : in     Boolean              := False);
 
    -- Multiple commands.
    --
+   --  function  Start (Commands    : in out Command_Array;
+   --                   Input       : in     String  := "";
+   --                   Pipeline    : in     Boolean := True) return Process_Array;
+   --
+   --  procedure Start (Commands    : in out Command_Array;
+   --                   Input       : in     String  := "";
+   --                   Pipeline    : in     Boolean := True);
+
    function  Start (Commands    : in out Command_Array;
-                    Input       : in     String  := "";
-                    Pipeline    : in     Boolean := True) return Process_Array;
+                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
+                    Pipeline    : in     Boolean              := True) return Process_Array;
 
    procedure Start (Commands    : in out Command_Array;
-                    Input       : in     String  := "";
-                    Pipeline    : in     Boolean := True);
-
-   function  Start (Commands    : in out Command_Array;
-                    Input       : in     Stream_Element_Array;
-                    Pipeline    : in     Boolean := True) return Process_Array;
-
-   procedure Start (Commands    : in out Command_Array;
-                    Input       : in     Stream_Element_Array;
-                    Pipeline    : in     Boolean := True);
+                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
+                    Pipeline    : in     Boolean              := True);
 
 
    -- The 'Command_Output' subprograms take a single command and waits until the process completes.
    --
 
-   function  Command_Output  (The_Command  : in out Command;
-                              Input        : in     String := "") return String;
+   --  function  Command_Output  (The_Command  : in out Command;
+   --                             Input        : in     String := "") return String;
+   --
+   --  function  Command_Output  (The_Command  : in out Command;
+   --                             Input        : in     String := "") return Stream_Element_Array;
+   --
+   --  function  Command_Output  (The_Command  : in out Command;
+   --                             Input        : in     Stream_Element_Array) return String;
 
    function  Command_Output  (The_Command  : in out Command;
-                              Input        : in     String := "") return Stream_Element_Array;
-
-   function  Command_Output  (The_Command  : in out Command;
-                              Input        : in     Stream_Element_Array) return String;
-
-   function  Command_Output  (The_Command  : in out Command;
-                              Input        : in     Stream_Element_Array) return Stream_Element_Array;
+                              Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
 
 
    -- The 'Pipeline_Output' subprograms take multiple pipelined commands and waits until the final process completes.
    --
 
-   function  Pipeline_Output (The_Commands : in out Command_Array;
-                              Input        : in     String := "") return String;
+   --  function  Pipeline_Output (The_Commands : in out Command_Array;
+   --                             Input        : in     String := "") return String;
+   --
+   --  function  Pipeline_Output (The_Commands : in out Command_Array;
+   --                             Input        : in     String := "") return Stream_Element_Array;
+   --
+   --  function  Pipeline_Output (The_Commands : in out Command_Array;
+   --                             Input        : in     Stream_Element_Array) return String;
 
    function  Pipeline_Output (The_Commands : in out Command_Array;
-                              Input        : in     String := "") return Stream_Element_Array;
-
-   function  Pipeline_Output (The_Commands : in out Command_Array;
-                              Input        : in     Stream_Element_Array) return String;
-
-   function  Pipeline_Output (The_Commands : in out Command_Array;
-                              Input        : in     Stream_Element_Array) return Stream_Element_Array;
+                              Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
 
 
    -- The 'Output_Of' functions take a command line and calls Command_Output or Pipeline_Output, as appropriate.
    --
 
-   function  Output_Of (Command_Line : in String;
-                        Input        : in String := "") return String;
+   --  function  Output_Of (Command_Line : in String;
+   --                       Input        : in String := "") return String;
+   --
+   --  function  Output_Of (Command_Line : in String;
+   --                       Input        : in String := "") return Stream_Element_Array;
+   --
+   --  function  Output_Of (Command_Line : in String;
+   --                       Input        : in Stream_Element_Array) return String;
 
    function  Output_Of (Command_Line : in String;
-                        Input        : in String := "") return Stream_Element_Array;
-
-   function  Output_Of (Command_Line : in String;
-                        Input        : in Stream_Element_Array) return String;
-
-   function  Output_Of (Command_Line : in String;
-                        Input        : in Stream_Element_Array) return Stream_Element_Array;
+                        Input        : in Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
 
 
    -- The 'Run' procedures wait for process completion and raise a Command_Error on failure.
    -- Any process error message is attached to the exception.
 
-   procedure Run (Command_Line : in String;
-                  Input        : in String := "");
+   --  procedure Run (Command_Line : in String;
+   --                 Input        : in String := "");
 
    procedure Run (Command_Line : in String;
-                  Input        : in Stream_Element_Array);
+                  Input        : in Stream_Element_Array := Null_Stream_Element_Array);
 
    Command_Error : exception;
 
@@ -209,12 +211,14 @@ is
 
    type Command_Results is limited private;
 
-   function  Results_Of (The_Command : in out Command) return Command_Results;
+   -- TODO: Need to add Results_Of for a command array ?
+
+   function  Results_Of (The_Command : in out Command) return Command_Results;   -- TODO: Need to add Input parameter ?
    --
    -- Runs the command to completion and returns the results.
    -- A Command_Error is raised on failure.
 
-   function  Output_Of  (The_Results : in Command_Results) return String;
+   function  Output_Of  (The_Results : in Command_Results) return String;   -- TODO: Make these return Stream_Element_Array.
    function  Errors_Of  (The_Results : in Command_Results) return String;
 
 
@@ -223,6 +227,8 @@ private
    subtype Process_Template is POSIX.Process_Primitives.Process_Template;
    subtype File_Descriptor  is POSIX.IO.File_Descriptor;
    subtype Process_ID       is POSIX.Process_Identification.Process_ID;
+
+   Null_Stream_Element_Array : constant Stream_Element_Array (1 .. 0) := (others => <>);
 
    Nil_String  : constant Unbounded_String := Unbounded_String (Ada.Strings.Unbounded.Null_Unbounded_String);
    Nil_Strings : constant String_Array     := (1 .. 0 => <>);
