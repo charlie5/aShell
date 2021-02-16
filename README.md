@@ -7,11 +7,15 @@ Under an ISC license.
 ## Example
 
     declare
-       Output : constant String := Shell.Output_Of ("ps -A | grep bash | wc");
+       Output : constant String := +Shell.Output_Of ("ps -A | grep bash | wc");
     begin
        Put_Line (Output);
     end;
 
+This produce output similar to ...
+
+     14      56     434
+     
 ## Example
 
 A trivial shell script:
