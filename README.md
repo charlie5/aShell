@@ -12,7 +12,7 @@ Under an ISC license.
        Put_Line (Output);
     end;
 
-This produce output similar to ...
+This will produce output similar to ...
 
      14      56     434
      
