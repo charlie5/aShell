@@ -48,11 +48,8 @@ is
 
    function  To_Pipe return Pipe;
 
-   function  Output_Of (The_Pipe : in Pipe) return Data;     -- Returns available output from the 'read end' as a stream array.
-   function  Output_Of (The_Pipe : in Pipe) return String;   -- Returns available output from the 'read end' as a string.
-
+   function  Output_Of (The_Pipe : in Pipe)       return Data;   -- Returns available output from the 'read end'.
    procedure Write_To  (The_Pipe : in Pipe;   Input : in Data);
-   procedure Write_To  (The_Pipe : in Pipe;   Input : in String);
 
    procedure Close     (The_Pipe : in Pipe);
 

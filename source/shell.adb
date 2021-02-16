@@ -330,7 +330,7 @@ is
          end;
       else
          declare
-            Error : constant String := Output_Of (Error_Pipe);
+            Error : constant String := +Output_Of (Error_Pipe);
          begin
             close (Output_Pipe);
             close ( Error_Pipe);
@@ -365,7 +365,7 @@ is
             end;
          else
             declare
-               Error : constant String := Output_Of (Error_Pipe);
+               Error : constant String := +Output_Of (Error_Pipe);
             begin
                close (Output_Pipe);
                close ( Error_Pipe);
@@ -425,11 +425,11 @@ is
 
       if Normal_Exit (Process)     -- This waits til command completion.
       then
-         return (Output => +Output_Of (Output_Pipe),
-                 Errors => +Output_Of ( Error_Pipe));
+         return (Output => +(+Output_Of (Output_Pipe)),
+                 Errors => +(+Output_Of ( Error_Pipe)));
       else
          declare
-            Error : constant String := Output_Of (Error_Pipe);
+            Error : constant String := +Output_Of (Error_Pipe);
          begin
             close (Output_Pipe);
             close ( Error_Pipe);
@@ -437,8 +437,8 @@ is
          end;
       end if;
 
-      return (Output => +Output_Of (Output_Pipe),
-              Errors => +Output_Of ( Error_Pipe));
+      return (Output => +(+Output_Of (Output_Pipe)),
+              Errors => +(+Output_Of ( Error_Pipe)));
    end Results_Of;
 
 
