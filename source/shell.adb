@@ -230,8 +230,12 @@ is
       Input_Pipe : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
       Process    :          Shell.Process;
    begin
-      The_Command.Input_Pipe :=  Input_Pipe;
-      Write_To (Input_Pipe, Input);
+      The_Command.Input_Pipe := Input_Pipe;
+
+      if Input_Pipe /= Standard_Input
+      then
+         Write_To (Input_Pipe, Input);
+      end if;
 
       Process := Start (Program   => +The_Command.Name,
                         Arguments =>  To_String_Array (The_Command.Arguments),
@@ -262,7 +266,11 @@ is
       Processes     :          Process_Array  (Commands'Range);
    begin
       First_Command.Input_Pipe := Input_Pipe;
-      Write_To (Input_Pipe, Input);
+
+      if Input_Pipe /= Standard_Input
+      then
+         Write_To (Input_Pipe, Input);
+      end if;
 
       if not Pipeline
       then
@@ -422,6 +430,11 @@ is
       Error_Pipe  : constant Shell.Pipe   := To_Pipe;
       Process     :          Shell.Process;
    begin
+      if Input_Pipe /= Standard_Input
+      then
+         Write_To (Input_Pipe, Input);
+      end if;
+
       The_Command. Input_Pipe :=  Input_Pipe;
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
