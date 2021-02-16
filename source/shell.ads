@@ -12,8 +12,7 @@ with
 
 package Shell
 is
-
-   --- Strings and Data
+   --- Data
    --
    use Ada.Streams;
 
@@ -23,6 +22,8 @@ is
    No_Data : constant Data;
 
 
+   --- Strings
+   --
    type Unbounded_String is new Ada.Strings.Unbounded.Unbounded_String;
 
    function "+" (Item : in String)           return Unbounded_String;
@@ -99,6 +100,8 @@ is
 
    --- Commands
    --
+   Command_Error : exception;
+
 
    -- Any open pipes attached to a command will be automatically closed when the command goes out of scope.
    --
@@ -139,6 +142,9 @@ is
                     Pipeline    : in     Boolean := True);
 
 
+   -- Ouput
+   --
+
    function  Command_Output  (The_Command  : in out Command;
                               Input        : in     Data   := No_Data) return Data;
    --
@@ -164,8 +170,6 @@ is
    -- Wait for (final) process completion and raise a Command_Error on failure.
    -- Any process error message is attached to the exception.
 
-   Command_Error : exception;
-
 
    --- Command Results
    --
@@ -176,7 +180,7 @@ is
    function  Results_Of (The_Command : in out Command;
                          Input       : in     Data   := No_Data) return Command_Results;
    --
-   -- Runs the command to completion and returns the results.
+   -- Runs the command to completion and return the results.
    -- A Command_Error is raised on failure.
 
    function  Output_Of  (The_Results : in Command_Results) return Data;
