@@ -55,21 +55,21 @@ is
    end To_String_Array;
 
 
-   function To_String (From : in Ada.Streams.Stream_Element_Array) return String
+   function To_String (From : in Data) return String
    is
-      subtype  Stream_Array is Stream_Element_Array (From'Range);
-      subtype  My_String    is String               (1 .. From'Length);
-      function Convert      is new Ada.Unchecked_Conversion (Stream_Array, My_String);
+      subtype  My_Data   is Data   (From'Range);
+      subtype  My_String is String (1 .. From'Length);
+      function Convert   is new Ada.Unchecked_Conversion (My_Data, My_String);
    begin
       return Convert (From);
    end To_String;
 
 
-   function To_Stream (From : in String) return Ada.Streams.Stream_Element_Array
+   function To_Stream (From : in String) return Data
    is
-      subtype  My_String    is String (From'Range);
-      subtype  Stream_Array is Stream_Element_Array (0 .. From'Length - 1);
-      function Convert      is new Ada.Unchecked_Conversion (My_String, Stream_Array);
+      subtype  My_String is String (From'Range);
+      subtype  My_Data   is Data   (0 .. From'Length - 1);
+      function Convert   is new Ada.Unchecked_Conversion (My_String, My_Data);
    begin
       return Convert (From);
    end To_Stream;
@@ -102,7 +102,7 @@ is
    is
       use Ada.Strings.Fixed;
 
-      I : constant Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
+      I : constant Natural := Index (Command_Line, " ");
    begin
       if I = 0
       then
@@ -124,7 +124,7 @@ is
    is
       use Ada.Strings.Fixed;
 
-      I : constant Natural := Index (Command_Line, " ");     -- TODO: Check for other legal whitespace.
+      I : constant Natural := Index (Command_Line, " ");
    begin
       if I = 0
       then
@@ -224,8 +224,8 @@ is
 
 
    function Start (The_Command : in out Command;
-                   Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
-                   Pipeline    : in     Boolean              := False) return Process
+                   Input       : in     Data    := No_Data;
+                   Pipeline    : in     Boolean := False) return Process
    is
       Process : Shell.Process;
    begin
@@ -243,8 +243,8 @@ is
 
 
    procedure Start (The_Command : in out Command;
-                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
-                    Pipeline    : in     Boolean              := False)
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := False)
    is
       Process : Shell.Process := Start (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
@@ -253,11 +253,11 @@ is
 
 
    function Start (Commands : in out Command_Array;
-                   Input    : in     Stream_Element_Array := Null_Stream_Element_Array;
-                   Pipeline : in     Boolean              := True) return Process_Array
+                   Input    : in     Data    := No_Data;
+                   Pipeline : in     Boolean := True) return Process_Array
    is
       First_Command : Command renames Commands (Commands'First);
-      Processes     : Process_Array (Commands'Range);
+      Processes     : Process_Array  (Commands'Range);
    begin
       First_Command.Input_Pipe := To_Pipe;
       Write_To (First_Command.Input_Pipe, Input);
@@ -298,8 +298,8 @@ is
 
 
    procedure Start (Commands : in out Command_Array;
-                    Input    : in     Stream_Element_Array := Null_Stream_Element_Array;
-                    Pipeline : in     Boolean              := True)
+                    Input    : in     Data    := No_Data;
+                    Pipeline : in     Boolean := True)
    is
       Processes : Process_Array := Start (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
    begin
@@ -308,7 +308,7 @@ is
 
 
    function Command_Output (The_Command  : in out Command;
-                            Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array
+                            Input        : in     Data   := No_Data) return Data
    is
       Output_Pipe : constant Shell.Pipe   := To_Pipe;
       Error_Pipe  : constant Shell.Pipe   := To_Pipe;
@@ -319,10 +319,10 @@ is
 
       Process := Start (The_Command, Input);
 
-      if Normal_Exit (Process)     -- This waits til command completion.
+      if Normal_Exit (Process)   -- This waits til command completion.
       then
          declare
-            Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
+            Output : constant Data := Output_Of (Output_Pipe);
          begin
             close (Output_Pipe);
             close ( Error_Pipe);
@@ -341,7 +341,7 @@ is
 
 
    function Pipeline_Output (The_Commands : in out Command_Array;
-                             Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array
+                             Input        : in     Data         := No_Data) return Data
    is
       Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
       Output_Pipe  : constant Shell.Pipe         := To_Pipe;
@@ -357,7 +357,7 @@ is
          if Normal_Exit (Last_Process)     -- This waits til command completion.
          then
             declare
-               Output : constant Stream_Element_Array := Output_Of (Output_Pipe);
+               Output : constant Data := Output_Of (Output_Pipe);
             begin
                close (Output_Pipe);
                close ( Error_Pipe);
@@ -377,7 +377,7 @@ is
 
 
    function Output_Of (Command_Line : in String;
-                       Input        : in Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array
+                       Input        : in Data := No_Data) return Data
    is
       use Ada.Strings.Fixed;
       The_Index   : constant Natural := Index (Command_Line, " | ");
@@ -401,9 +401,9 @@ is
 
 
    procedure Run (Command_Line : in String;
-                  Input        : in Stream_Element_Array := Null_Stream_Element_Array)
+                  Input        : in Data  := No_Data)
    is
-      Output : Stream_Element_Array := Output_Of (Command_Line, Input) with Unreferenced;
+      Output : Data := Output_Of (Command_Line, Input) with Unreferenced;
    begin
       null;
    end Run;
@@ -498,13 +498,13 @@ is
    end Output_Of;
 
 
-   function Output_Of (The_Pipe : in Pipe) return Ada.Streams.Stream_Element_Array
+   function Output_Of (The_Pipe : in Pipe) return Data
 
    is
       use POSIX;
-      Max_Process_Output : constant := 20 * 1024;
+      Max_Process_Output : constant := 100 * 1024;
 
-      Buffer : Stream_Element_Array (1 .. Max_Process_Output);
+      Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset;
    begin
       IO.Read (File   => The_Pipe.Read_End,
@@ -514,18 +514,14 @@ is
 
    exception
       when Ada.IO_Exceptions.End_Error =>
-         declare
-            Null_Array : Ada.Streams.Stream_Element_Array (1..0);
-         begin
-            return Null_Array;
-         end;
+         return No_Data;
    end Output_Of;
 
 
-   procedure Write_To (The_Pipe : in Pipe;   Input : in Stream_Element_Array)
+   procedure Write_To (The_Pipe : in Pipe;   Input : in Data)
    is
-      subtype   Stream_Array is Stream_Element_Array (Input'Range);
-      procedure Write        is new POSIX.IO.Generic_Write (Stream_Array);
+      subtype   My_Data is Data (Input'Range);
+      procedure Write   is new POSIX.IO.Generic_Write (My_Data);
    begin
       Write (The_Pipe.Write_End, Input);
    end Write_To;

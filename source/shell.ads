@@ -13,11 +13,18 @@ with
 package Shell
 is
 
-   --- Strings
+   --- Strings and Data
    --
+   use Ada.Streams;
+
+   subtype Data is Stream_Element_Array;
+
+   No_Data : constant Data;
+
+
    type Unbounded_String is new Ada.Strings.Unbounded.Unbounded_String;
 
-   function "+" (Item : in String) return Unbounded_String;
+   function "+" (Item : in String)           return Unbounded_String;
    function "+" (Item : in Unbounded_String) return String;
 
    type String_Array is array (Positive range <>) of Unbounded_String;
@@ -25,13 +32,14 @@ is
    Nil_String  : constant Unbounded_String;
    Nil_Strings : constant String_Array;
 
-   use Ada.Streams;
 
-   function To_String (From : in Stream_Element_Array) return String;
-   function To_Stream (From : in String)               return Stream_Element_Array;
+   -- Conversion
 
-   function "+" (From : in Stream_Element_Array) return String               renames To_String;
-   function "+" (From : in String)               return Stream_Element_Array renames To_Stream;
+   function To_String (From : in Data)   return String;
+   function To_Stream (From : in String) return Data;
+
+   function "+"       (From : in Data)   return String renames To_String;
+   function "+"       (From : in String) return Data   renames To_Stream;
 
 
    --- Pipes
@@ -39,10 +47,13 @@ is
    type Pipe is private;
 
    function  To_Pipe return Pipe;
-   function  Output_Of (The_Pipe : in Pipe) return Stream_Element_Array;   -- Returns available output from the 'read end' as a stream array.
-   function  Output_Of (The_Pipe : in Pipe) return String;                 -- Returns available output from the 'read end' as a string.
-   procedure Write_To  (The_Pipe : in Pipe;   Input : in Stream_Element_Array);
+
+   function  Output_Of (The_Pipe : in Pipe) return Data;     -- Returns available output from the 'read end' as a stream array.
+   function  Output_Of (The_Pipe : in Pipe) return String;   -- Returns available output from the 'read end' as a string.
+
+   procedure Write_To  (The_Pipe : in Pipe;   Input : in Data);
    procedure Write_To  (The_Pipe : in Pipe;   Input : in String);
+
    procedure Close     (The_Pipe : in Pipe);
 
    procedure Close_Write_End (The_Pipe : in Pipe);
@@ -110,48 +121,46 @@ is
    -- Single commands.
    --
 
-   Null_Stream_Element_Array : constant Stream_Element_Array;
-
    function  Start (The_Command : in out Command;
-                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
-                    Pipeline    : in     Boolean              := False) return Process;
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := False) return Process;
 
    procedure Start (The_Command : in out Command;
-                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
-                    Pipeline    : in     Boolean              := False);
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := False);
 
    -- Multiple commands.
    --
 
    function  Start (Commands    : in out Command_Array;
-                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
-                    Pipeline    : in     Boolean              := True) return Process_Array;
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := True) return Process_Array;
 
    procedure Start (Commands    : in out Command_Array;
-                    Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
-                    Pipeline    : in     Boolean              := True);
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := True);
 
 
    function  Command_Output  (The_Command  : in out Command;
-                              Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
+                              Input        : in     Data   := No_Data) return Data;
    --
    -- Takes a single command and waits until the process completes.
 
 
    function  Pipeline_Output (The_Commands : in out Command_Array;
-                              Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
+                              Input        : in     Data         := No_Data) return Data;
    --
    -- Takes multiple pipelined commands and waits until the final process completes.
 
 
    function  Output_Of (Command_Line : in String;
-                        Input        : in Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
+                        Input        : in Data  := No_Data) return Data;
    --
    -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
 
    procedure Run (Command_Line : in String;
-                  Input        : in Stream_Element_Array := Null_Stream_Element_Array);
+                  Input        : in Data  := No_Data);
    --
    -- Takes a command line (single or multiple piped commands).
    -- Wait for (final) process completion and raise a Command_Error on failure.
@@ -182,7 +191,7 @@ private
    subtype File_Descriptor  is POSIX.IO.File_Descriptor;
    subtype Process_ID       is POSIX.Process_Identification.Process_ID;
 
-   Null_Stream_Element_Array : constant Stream_Element_Array (1 .. 0) := (others => <>);
+   No_Data : constant Data (1 .. 0) := (others => <>);
 
    Nil_String  : constant Unbounded_String := Unbounded_String (Ada.Strings.Unbounded.Null_Unbounded_String);
    Nil_Strings : constant String_Array     := (1 .. 0 => <>);
