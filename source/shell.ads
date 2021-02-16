@@ -104,18 +104,11 @@ is
    procedure Connect (Commands : in out Command_Array);  -- Connects each command in a pipeline.
 
 
-   -- The Start subprograms return before the process completes.
+   --- The Start subprograms return before the process completes.
    --
 
    -- Single commands.
    --
-   --  function  Start (The_Command : in out Command;
-   --                   Input       : in     String  := "";
-   --                   Pipeline    : in     Boolean := False) return Process;
-
-   --  procedure Start (The_Command : in out Command;
-   --                   Input       : in     String  := "";
-   --                   Pipeline    : in     Boolean := False);
 
    Null_Stream_Element_Array : constant Stream_Element_Array;
 
@@ -129,13 +122,6 @@ is
 
    -- Multiple commands.
    --
-   --  function  Start (Commands    : in out Command_Array;
-   --                   Input       : in     String  := "";
-   --                   Pipeline    : in     Boolean := True) return Process_Array;
-   --
-   --  procedure Start (Commands    : in out Command_Array;
-   --                   Input       : in     String  := "";
-   --                   Pipeline    : in     Boolean := True);
 
    function  Start (Commands    : in out Command_Array;
                     Input       : in     Stream_Element_Array := Null_Stream_Element_Array;
@@ -146,62 +132,30 @@ is
                     Pipeline    : in     Boolean              := True);
 
 
-   -- The 'Command_Output' subprograms take a single command and waits until the process completes.
-   --
-
-   --  function  Command_Output  (The_Command  : in out Command;
-   --                             Input        : in     String := "") return String;
-   --
-   --  function  Command_Output  (The_Command  : in out Command;
-   --                             Input        : in     String := "") return Stream_Element_Array;
-   --
-   --  function  Command_Output  (The_Command  : in out Command;
-   --                             Input        : in     Stream_Element_Array) return String;
-
    function  Command_Output  (The_Command  : in out Command;
                               Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
-
-
-   -- The 'Pipeline_Output' subprograms take multiple pipelined commands and waits until the final process completes.
    --
+   -- Takes a single command and waits until the process completes.
 
-   --  function  Pipeline_Output (The_Commands : in out Command_Array;
-   --                             Input        : in     String := "") return String;
-   --
-   --  function  Pipeline_Output (The_Commands : in out Command_Array;
-   --                             Input        : in     String := "") return Stream_Element_Array;
-   --
-   --  function  Pipeline_Output (The_Commands : in out Command_Array;
-   --                             Input        : in     Stream_Element_Array) return String;
 
    function  Pipeline_Output (The_Commands : in out Command_Array;
                               Input        : in     Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
-
-
-   -- The 'Output_Of' functions take a command line and calls Command_Output or Pipeline_Output, as appropriate.
    --
+   -- Takes multiple pipelined commands and waits until the final process completes.
 
-   --  function  Output_Of (Command_Line : in String;
-   --                       Input        : in String := "") return String;
-   --
-   --  function  Output_Of (Command_Line : in String;
-   --                       Input        : in String := "") return Stream_Element_Array;
-   --
-   --  function  Output_Of (Command_Line : in String;
-   --                       Input        : in Stream_Element_Array) return String;
 
    function  Output_Of (Command_Line : in String;
                         Input        : in Stream_Element_Array := Null_Stream_Element_Array) return Stream_Element_Array;
+   --
+   -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
-
-   -- The 'Run' procedures wait for process completion and raise a Command_Error on failure.
-   -- Any process error message is attached to the exception.
-
-   --  procedure Run (Command_Line : in String;
-   --                 Input        : in String := "");
 
    procedure Run (Command_Line : in String;
                   Input        : in Stream_Element_Array := Null_Stream_Element_Array);
+   --
+   -- Takes a command line (single or multiple piped commands).
+   -- Wait for (final) process completion and raise a Command_Error on failure.
+   -- Any process error message is attached to the exception.
 
    Command_Error : exception;
 
