@@ -479,25 +479,6 @@ is
    end To_Pipe;
 
 
-   function Output_Of (The_Pipe : in Pipe) return String
-   is
-      use POSIX;
-      Max_Process_Output : constant := 20 * 1024;
-
-      Buffer : Stream_Element_Array (0 .. Max_Process_Output);
-      Last   : Stream_Element_Offset;
-   begin
-      IO.Read (File   => The_Pipe.Read_End,
-               Buffer => Buffer,
-               Last   => Last);
-      return To_String (To_POSIX_String (Buffer (0 .. Last)));
-
-   exception
-      when Ada.IO_Exceptions.End_Error =>
-         return "";
-   end Output_Of;
-
-
    function Output_Of (The_Pipe : in Pipe) return Data
 
    is
@@ -522,15 +503,6 @@ is
    is
       subtype   My_Data is Data (Input'Range);
       procedure Write   is new POSIX.IO.Generic_Write (My_Data);
-   begin
-      Write (The_Pipe.Write_End, Input);
-   end Write_To;
-
-
-   procedure Write_To (The_Pipe : in Pipe;   Input : in String)
-   is
-      subtype   My_String is String (Input'Range);
-      procedure Write     is new POSIX.IO.Generic_Write (My_String);
    begin
       Write (The_Pipe.Write_End, Input);
    end Write_To;
