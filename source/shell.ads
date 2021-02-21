@@ -122,7 +122,7 @@ is
    function  Output_Pipe (The_Command : in Command) return Pipe;
    function   Error_Pipe (The_Command : in Command) return Pipe;
 
-   function  Process_of (The_Command : in Command) return Process;
+   function  Process_of  (The_Command : in Command) return Process;
 
 
    --- The Start subprograms return before the process completes.
