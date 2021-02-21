@@ -223,6 +223,48 @@ is
    end Close_Pipe_Write_Ends;
 
 
+   function Input_Pipe (The_Command : in Command) return Pipe
+   is
+   begin
+      return The_Command.Input_Pipe;
+   end Input_Pipe;
+
+
+   function Output_Pipe (The_Command : in Command) return Pipe
+   is
+   begin
+      return The_Command.Output_Pipe;
+   end Output_Pipe;
+
+
+   function Error_Pipe (The_Command : in Command) return Pipe
+   is
+   begin
+      return The_Command.Error_Pipe;
+   end Error_Pipe;
+
+
+   procedure Input_Pipe_is (For_Command : in out Command;   Now : in Pipe)
+   is
+   begin
+      For_Command.Input_Pipe := Now;
+   end Input_Pipe_is;
+
+
+   procedure Output_Pipe_is (For_Command : in out Command;   Now : in Pipe)
+   is
+   begin
+      For_Command.Output_Pipe := Now;
+   end Output_Pipe_is;
+
+
+   procedure Error_Pipe_is (For_Command : in out Command;   Now : in Pipe)
+   is
+   begin
+      For_Command.Error_Pipe := Now;
+   end Error_Pipe_is;
+
+
    function Start (The_Command : in out Command;
                    Input       : in     Data    := No_Data;
                    Pipeline    : in     Boolean := False) return Process

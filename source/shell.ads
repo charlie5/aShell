@@ -112,11 +112,19 @@ is
    function To_Command  (Command_Line : in String) return Command;        -- An example 'Command_Line' is "ps -A".
    function To_Commands (Pipeline     : in String) return Command_Array;  -- An example 'Pipeline'     is "ps -A | grep bash | wc".
 
-   function "+" (Command_Line : in String) return Command       renames To_Command;
-   function "+" (Pipeline     : in String) return Command_Array renames To_Commands;
+   function "+"         (Command_Line : in String) return Command       renames To_Command;
+   function "+"         (Pipeline     : in String) return Command_Array renames To_Commands;
 
    procedure Connect (From, To : in out Command);        -- Connects 'From's output to 'To's input via a pipe.
    procedure Connect (Commands : in out Command_Array);  -- Connects each command in a pipeline.
+
+   function  Input_Pipe (The_Command : in Command) return Pipe;
+   function Output_Pipe (The_Command : in Command) return Pipe;
+   function  Error_Pipe (The_Command : in Command) return Pipe;
+
+   procedure  Input_Pipe_is (For_Command : in out Command;   Now : in Pipe);
+   procedure Output_Pipe_is (For_Command : in out Command;   Now : in Pipe);
+   procedure  Error_Pipe_is (For_Command : in out Command;   Now : in Pipe);
 
 
    --- The Start subprograms return before the process completes.
