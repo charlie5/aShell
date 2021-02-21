@@ -150,23 +150,35 @@ is
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := True);
 
-   -- Ouput
+   --- Command Results
    --
 
-   function  Command_Output  (The_Command  : in out Command;
-                              Input        : in     Data   := No_Data) return Data;
+   type Command_Results (Output_Size : Data_Offset;
+                         Error_Size  : Data_Offset) is private;
+
+   function  Results_Of (The_Command : in out Command) return Command_Results;
+
+   function  Output_Of  (The_Results : in Command_Results) return Data;
+   function  Errors_Of  (The_Results : in Command_Results) return Data;
+
+
+   --- Run
+   --
+
+   function  Run (The_Command  : in out Command;
+                  Input        : in     Data   := No_Data) return Command_Results;
    --
    -- Takes a single command and waits until the process completes.
 
 
-   function  Pipeline_Output (The_Commands : in out Command_Array;
-                              Input        : in     Data         := No_Data) return Data;
+   function  Run (The_Commands : in out Command_Array;
+                  Input        : in     Data         := No_Data) return Command_Results;
    --
    -- Takes multiple pipelined commands and waits until the final process completes.
 
 
-   function  Output_Of (Command_Line : in String;
-                        Input        : in Data  := No_Data) return Data;
+   function  Run (Command_Line : in String;
+                  Input        : in Data  := No_Data) return Command_Results;
    --
    -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
 
@@ -244,6 +256,13 @@ private
    type Process is
       record
          Id : Process_ID := POSIX.Process_Identification.Null_Process_ID;
+      end record;
+
+   type Command_Results (Output_Size : Data_Offset;
+                         Error_Size  : Data_Offset) is
+      record
+         Output : Data (1 .. Output_Size);
+         Errors : Data (1 ..  Error_Size);
       end record;
 
 end Shell;

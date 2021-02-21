@@ -344,8 +344,8 @@ is
    end Start;
 
 
-   function Command_Output (The_Command  : in out Command;
-                            Input        : in     Data   := No_Data) return Data
+   function Run (The_Command  : in out Command;
+                 Input        : in     Data   := No_Data) return Command_Results
    is
       Output_Pipe : constant Shell.Pipe   := To_Pipe;
       Error_Pipe  : constant Shell.Pipe   := To_Pipe;
@@ -359,10 +359,12 @@ is
       then
          declare
             Output : constant Data := Output_Of (Output_Pipe);
+            Error  : constant Data := Output_Of ( Error_Pipe);
          begin
-            close (Output_Pipe);
-            close ( Error_Pipe);
-            return Output;
+            return (Output_Size => Output'Length,
+                    Error_Size  => Error 'Length,
+                    Output      => Output,
+                    Errors      => Error);
          end;
       else
          declare
@@ -373,11 +375,11 @@ is
             raise Command_Error with Error;
          end;
       end if;
-   end Command_Output;
+   end Run;
 
 
-   function Pipeline_Output (The_Commands : in out Command_Array;
-                             Input        : in     Data         := No_Data) return Data
+   function Run (The_Commands : in out Command_Array;
+                             Input        : in     Data         := No_Data) return Command_Results
    is
       Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
       Output_Pipe  : constant Shell.Pipe         := To_Pipe;
@@ -392,13 +394,14 @@ is
       begin
          if Normal_Exit (Last_Process)     -- This waits til final command completes.
          then
-            declare
-               Output : constant Data := Output_Of (Output_Pipe);
-            begin
-               close (Output_Pipe);
-               close ( Error_Pipe);
-               return Output;
-            end;
+            return Results_Of (Last_Command);
+            --  declare
+            --     Output : constant Data := Output_Of (Output_Pipe);
+            --  begin
+            --     close (Output_Pipe);
+            --     close ( Error_Pipe);
+            --     return Output;
+            --  end;
          else
             declare
                Error : constant String := +Output_Of (Error_Pipe);
@@ -409,11 +412,11 @@ is
             end;
          end if;
       end;
-   end Pipeline_Output;
+   end Run;
 
 
-   function Output_Of (Command_Line : in String;
-                       Input        : in Data := No_Data) return Data
+   function Run (Command_Line : in String;
+                       Input        : in Data := No_Data) return Command_Results
    is
       use Ada.Strings.Fixed;
       The_Index   : constant Natural := Index (Command_Line, " | ");
@@ -424,25 +427,40 @@ is
          declare
             The_Commands : Command_Array := To_Commands (Command_Line);
          begin
-            return Pipeline_Output (The_Commands, Input);
+            return Run (The_Commands, Input);
          end;
       else
          declare
             The_Command : Command := To_Command (Command_Line);
          begin
-            return Command_Output (The_Command, Input);
+            return Run (The_Command, Input);
          end;
       end if;
-   end Output_Of;
+   end Run;
 
 
    procedure Run (Command_Line : in String;
                   Input        : in Data  := No_Data)
    is
-      Output : Data := Output_Of (Command_Line, Input) with Unreferenced;
+      Results : Command_Results := Run (Command_Line, Input) with Unreferenced;
    begin
       null;
    end Run;
+
+
+   -- Command Results
+   --
+
+   function Results_Of (The_Command : in out Command) return Command_Results
+   is
+      Output : constant Data := Output_Of (The_Command.Output_Pipe);
+      Error  : constant Data := Output_Of (The_Command. Error_Pipe);
+   begin
+      return (Output_Size => Output'Length,
+              Error_Size  => Error 'Length,
+              Output      => Output,
+              Errors      => Error);
+   end Results_Of;
 
 
    overriding
@@ -453,6 +471,20 @@ is
       Close (The_Command.Output_Pipe);
       Close (The_Command. Error_Pipe);
    end Finalize;
+
+
+   function Output_Of (The_Results : in Command_Results) return Data
+   is
+   begin
+      return The_Results.Output;
+   end Output_Of;
+
+
+   function Errors_Of (The_Results : in Command_Results) return Data
+   is
+   begin
+      return The_Results.Errors;
+   end Errors_Of;
 
 
    --- Pipes

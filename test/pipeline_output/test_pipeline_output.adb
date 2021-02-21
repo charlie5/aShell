@@ -12,7 +12,7 @@ begin
    declare
       use Shell;
       Commands : Shell.Command_Array :=  To_Commands ("ps -A | grep bash | wc");
-      Output   : constant String     := +Pipeline_Output (Commands);
+      Output   : constant String     := +Output_Of (Run (Commands));
    begin
       Put_Line ("'" & Output & "'");
    end;
