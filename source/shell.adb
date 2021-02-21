@@ -350,8 +350,9 @@ is
    --- Run
    --
 
-   function Run (The_Command  : in out Command;
-                 Input        : in     Data   := No_Data) return Command_Results
+   procedure Run (The_Command : in out Command;
+                  Input       : in     Data    := No_Data;
+                  Raise_Error : in     Boolean := False)
    is
    begin
       The_Command.Output_Pipe := To_Pipe;
@@ -359,18 +360,9 @@ is
 
       Start (The_Command, Input);
 
-      if Normal_Exit (The_Command.Process)   -- This waits til command completion.
+      if     not Normal_Exit (The_Command.Process)   -- This waits til command completion.
+        and then Raise_Error
       then
-         declare
-            Output : constant Data := Output_Of (The_Command.Output_Pipe);
-            Error  : constant Data := Output_Of (The_Command. Error_Pipe);
-         begin
-            return (Output_Size => Output'Length,
-                    Error_Size  => Error 'Length,
-                    Output      => Output,
-                    Errors      => Error);
-         end;
-      else
          declare
             Error : constant String := +Output_Of (The_Command.Error_Pipe);
          begin
@@ -380,8 +372,20 @@ is
    end Run;
 
 
-   function Run (The_Pipeline : in out Command_Array;
-                 Input        : in     Data         := No_Data) return Command_Results
+   function Run (The_Command : in out Command;
+                 Input       : in     Data    := No_Data;
+                 Raise_Error : in     Boolean := False) return Command_Results
+   is
+   begin
+      Run (The_Command, Input, Raise_Error);
+
+      return Results_Of (The_Command);
+   end Run;
+
+
+   procedure Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False)
    is
       Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
    begin
@@ -392,10 +396,9 @@ is
          Process_List : Shell.Process_Array := Start (The_Pipeline, Input);
          Last_Process : Shell.Process  renames Process_List (Process_List'Last);
       begin
-         if Normal_Exit (Last_Process)     -- This waits til final command completes.
+         if     not Normal_Exit (Last_Process)   -- This waits til command completion.
+           and then Raise_Error
          then
-            return Results_Of (Last_Command);
-         else
             declare
                Error : constant String := +Output_Of (Last_Command.Error_Pipe);
             begin
@@ -403,6 +406,18 @@ is
             end;
          end if;
       end;
+   end Run;
+
+
+   function Run (The_Pipeline : in out Command_Array;
+                 Input        : in     Data    := No_Data;
+                 Raise_Error  : in     Boolean := False) return Command_Results
+   is
+      Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
+   begin
+      Run (The_Pipeline, Input, Raise_Error);
+
+      return Results_Of (Last_Command);
    end Run;
 
 
@@ -447,7 +462,8 @@ is
       Output : constant Data := Output_Of (The_Command.Output_Pipe);
       Error  : constant Data := Output_Of (The_Command. Error_Pipe);
    begin
-      return (Output_Size => Output'Length,
+      return (Process     => The_Command.Process,
+              Output_Size => Output'Length,
               Error_Size  => Error 'Length,
               Output      => Output,
               Errors      => Error);
@@ -495,7 +511,7 @@ is
 
    is
       use POSIX;
-      Max_Process_Output : constant := 100 * 1024;
+      Max_Process_Output : constant := 200 * 1024;
 
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset;

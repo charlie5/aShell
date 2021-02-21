@@ -165,11 +165,22 @@ is
    --- Run - Block until process completes.
    --
 
+   procedure Run (The_Command  : in out Command;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False);
+
    function  Run (The_Command  : in out Command;
-                  Input        : in     Data := No_Data) return Command_Results;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False) return Command_Results;
+
+   procedure Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False);
 
    function  Run (The_Pipeline : in out Command_Array;
-                  Input        : in     Data := No_Data) return Command_Results;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False) return Command_Results;
+
 
    function  Run (Command_Line : in     String;
                   Input        : in     Data := No_Data) return Command_Results;
@@ -255,8 +266,9 @@ private
    type Command_Results (Output_Size : Data_Offset;
                          Error_Size  : Data_Offset) is
       record
-         Output : Data (1 .. Output_Size);
-         Errors : Data (1 ..  Error_Size);
+         Process : Shell.Process;
+         Output  : Data (1 .. Output_Size);
+         Errors  : Data (1 ..  Error_Size);
       end record;
 
 end Shell;
