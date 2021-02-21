@@ -162,25 +162,19 @@ is
    function  Errors_Of  (The_Results : in Command_Results) return Data;
 
 
-   --- Run
+   --- Run - Block until process completes.
    --
 
    function  Run (The_Command  : in out Command;
                   Input        : in     Data   := No_Data) return Command_Results;
-   --
-   -- Takes a single command and waits until the process completes.
-
 
    function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data         := No_Data) return Command_Results;
-   --
-   -- Takes multiple pipelined commands and waits until the final process completes.
-
 
    function  Run (Command_Line : in String;
                   Input        : in Data  := No_Data) return Command_Results;
    --
-   -- Takes a command line and calls Command_Output or Pipeline_Output, as appropriate.
+   -- Takes a command line and runs a Command or a Pipeline, as appropriate.
 
 
    procedure Run (Command_Line : in String;
