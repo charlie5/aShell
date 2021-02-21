@@ -378,10 +378,10 @@ is
    end Run;
 
 
-   function Run (The_Commands : in out Command_Array;
-                             Input        : in     Data         := No_Data) return Command_Results
+   function Run (The_Pipeline : in out Command_Array;
+                 Input        : in     Data         := No_Data) return Command_Results
    is
-      Last_Command :          Shell.Command renames The_Commands (The_Commands'Last);
+      Last_Command :          Shell.Command renames The_Pipeline (The_Pipeline'Last);
       Output_Pipe  : constant Shell.Pipe         := To_Pipe;
       Error_Pipe   : constant Shell.Pipe         := To_Pipe;
    begin
@@ -389,19 +389,12 @@ is
       Last_Command. Error_Pipe := Error_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Start (The_Commands, Input);
+         Process_List : constant Shell.Process_Array := Start (The_Pipeline, Input);
          Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
       begin
          if Normal_Exit (Last_Process)     -- This waits til final command completes.
          then
             return Results_Of (Last_Command);
-            --  declare
-            --     Output : constant Data := Output_Of (Output_Pipe);
-            --  begin
-            --     close (Output_Pipe);
-            --     close ( Error_Pipe);
-            --     return Output;
-            --  end;
          else
             declare
                Error : constant String := +Output_Of (Error_Pipe);

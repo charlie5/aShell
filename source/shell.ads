@@ -171,7 +171,7 @@ is
    -- Takes a single command and waits until the process completes.
 
 
-   function  Run (The_Commands : in out Command_Array;
+   function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data         := No_Data) return Command_Results;
    --
    -- Takes multiple pipelined commands and waits until the final process completes.
