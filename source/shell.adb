@@ -251,6 +251,9 @@ is
    end Process_of;
 
 
+   --- Start
+   --
+
    function Start (The_Command : in out Command;
                    Input       : in     Data    := No_Data;
                    Pipeline    : in     Boolean := False) return Process
@@ -344,6 +347,9 @@ is
    end Start;
 
 
+   --- Run
+   --
+
    function Run (The_Command  : in out Command;
                  Input        : in     Data   := No_Data) return Command_Results
    is
@@ -383,8 +389,8 @@ is
       Last_Command. Error_Pipe := To_Pipe;
 
       declare
-         Process_List : constant Shell.Process_Array := Start (The_Pipeline, Input);
-         Last_Process :          Shell.Process  renames Process_List (Process_List'Last);
+         Process_List : Shell.Process_Array := Start (The_Pipeline, Input);
+         Last_Process : Shell.Process  renames Process_List (Process_List'Last);
       begin
          if Normal_Exit (Last_Process)     -- This waits til final command completes.
          then
@@ -686,46 +692,41 @@ is
    end Start;
 
 
-   procedure Wait_On (Process : in Shell.Process)
+   procedure Wait_On (Process : in out Shell.Process)
    is
       use POSIX.Process_Primitives;
-
-      Status : Termination_Status with Unreferenced;
    begin
-      Wait_For_Child_Process (Status => Status,
-                              Child  => Process.Id);
+      Wait_For_Child_Process (Status => Process.Status,
+                              Child  => Process.Id,
+                              Block  => True);
    end Wait_On;
 
 
-   function Has_Terminated (Process : in Shell.Process) return Boolean
+   function Has_Terminated (Process : in out Shell.Process) return Boolean
    is
       use POSIX.Process_Primitives;
-
-      Status : Termination_Status;
    begin
-      Wait_For_Child_Process (Status => Status,
+      Wait_For_Child_Process (Status => Process.Status,
                               Child  => Process.Id,
                               Block  => False);
 
-      return Status_Available (Status);
+      return Status_Available (Process.Status);
    end Has_Terminated;
 
 
-   function Normal_Exit (Process : in Shell.Process) return Boolean
+   function Normal_Exit (Process : in out Shell.Process) return Boolean
    is
       use POSIX.Process_Primitives;
-
-      Status : Termination_Status;
    begin
-      Wait_For_Child_Process (Status => Status,
+      Wait_For_Child_Process (Status => Process.Status,
                               Child  => Process.Id,
                               Block  => True);
 
-      if not Status_Available (Status) then
+      if not Status_Available (Process.Status) then
          return False;
       end if;
 
-      if Exit_Status_Of (Status) = POSIX.Process_Primitives.Normal_Exit then
+      if Exit_Status_Of (Process.Status) = POSIX.Process_Primitives.Normal_Exit then
          return True;
       end if;
 

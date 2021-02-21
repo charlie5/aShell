@@ -14,8 +14,8 @@ begin
    Test_1:
    declare
       use Shell;
-      The_Command :          Command := To_Command ("ls -alh");
-      The_Process : constant Process := Start (The_Command);
+      The_Command : Command := To_Command ("ls -alh");
+      The_Process : Process := Start (The_Command);
    begin
       Wait_On (The_Process);
    end Test_1;
@@ -26,8 +26,8 @@ begin
    Test_2:
    declare
       use Shell;
-      Piped_Commands :          Command_Array := To_Commands ("ls -alh | wc");
-      Processes      : constant Process_Array := Start (Piped_Commands);
+      Piped_Commands : Command_Array := To_Commands ("ls -alh | wc");
+      Processes      : Process_Array := Start (Piped_Commands);
    begin
       Wait_On (Processes (Processes'Last));
    end Test_2;

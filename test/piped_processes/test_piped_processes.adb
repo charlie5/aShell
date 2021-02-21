@@ -46,7 +46,7 @@ begin
                                                 Pipeline  => True);
       CWE2   : constant Boolean       := CWE (Sort_2_Pipe);
 
-      Head   : constant Shell.Process := Start (Program   => "head",
+      Head   :          Shell.Process := Start (Program   => "head",
                                                 Input     => Head_Pipe,
                                                 Pipeline  => False);
       CWE3   : constant Boolean       := CWE (Head_Pipe);

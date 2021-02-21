@@ -13,8 +13,8 @@ begin
    declare
       use Shell;
 
-      Sleep : constant Shell.Process := Start (Program   => "sleep",
-                                               Arguments => (1 => (+"3")));
+      Sleep : Shell.Process := Start (Program   => "sleep",
+                                      Arguments => (1 => (+"3")));
 
    begin
       Put_Line ("Waiting on process ('sleep 3') ...");

@@ -89,9 +89,9 @@ is
                    Errors            : in Pipe         := Standard_Error;
                    Pipeline          : in Boolean      := False) return Process;
 
-   procedure Wait_On        (Process : in Shell.Process);
-   function  Has_Terminated (Process : in Shell.Process) return Boolean;
-   function  Normal_Exit    (Process : in Shell.Process) return Boolean;
+   procedure Wait_On (Process : in out Shell.Process);
+   function  Has_Terminated (Process : in out Shell.Process) return Boolean;
+   function  Normal_Exit (Process : in out Shell.Process) return Boolean;
    --
    -- Returns True if the process has terminated and the exit status is normal.
 
@@ -248,7 +248,8 @@ private
 
    type Process is
       record
-         Id : Process_ID := POSIX.Process_Identification.Null_Process_ID;
+         Id     : Process_ID := POSIX.Process_Identification.Null_Process_ID;
+         Status : POSIX.Process_Primitives.Termination_Status;
       end record;
 
    type Command_Results (Output_Size : Data_Offset;
