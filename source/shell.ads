@@ -166,19 +166,18 @@ is
    --
 
    function  Run (The_Command  : in out Command;
-                  Input        : in     Data   := No_Data) return Command_Results;
+                  Input        : in     Data := No_Data) return Command_Results;
 
    function  Run (The_Pipeline : in out Command_Array;
-                  Input        : in     Data         := No_Data) return Command_Results;
+                  Input        : in     Data := No_Data) return Command_Results;
 
-   function  Run (Command_Line : in String;
-                  Input        : in Data  := No_Data) return Command_Results;
+   function  Run (Command_Line : in     String;
+                  Input        : in     Data := No_Data) return Command_Results;
    --
    -- Takes a command line and runs a Command or a Pipeline, as appropriate.
 
-
-   procedure Run (Command_Line : in String;
-                  Input        : in Data  := No_Data);
+   procedure Run (Command_Line : in     String;
+                  Input        : in     Data := No_Data);
    --
    -- Takes a command line (single or multiple piped commands).
    -- Wait for (final) process completion and raise a Command_Error on failure.

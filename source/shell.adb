@@ -409,7 +409,7 @@ is
 
 
    function Run (Command_Line : in String;
-                       Input        : in Data := No_Data) return Command_Results
+                       Input  : in Data := No_Data) return Command_Results
    is
       use Ada.Strings.Fixed;
       The_Index   : constant Natural := Index (Command_Line, " | ");
