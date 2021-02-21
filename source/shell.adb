@@ -277,7 +277,6 @@ is
                    Pipeline    : in     Boolean := False) return Process
    is
       Input_Pipe : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
-      Process    :          Shell.Process;
    begin
       The_Command.Input_Pipe := Input_Pipe;
 
@@ -286,13 +285,13 @@ is
          Write_To (Input_Pipe, Input);
       end if;
 
-      Process := Start (Program   => +The_Command.Name,
-                        Arguments =>  To_String_Array (The_Command.Arguments),
-                        Input     =>  The_Command.Input_Pipe,
-                        Output    =>  The_Command.Output_Pipe,
-                        Errors    =>  The_Command.Error_Pipe,
-                        Pipeline  =>  Pipeline);
-      return Process;
+      The_Command.Process := Start (Program   => +The_Command.Name,
+                                    Arguments =>  To_String_Array (The_Command.Arguments),
+                                    Input     =>  The_Command.Input_Pipe,
+                                    Output    =>  The_Command.Output_Pipe,
+                                    Errors    =>  The_Command.Error_Pipe,
+                                    Pipeline  =>  Pipeline);
+      return The_Command.Process;
    end Start;
 
 
@@ -371,14 +370,13 @@ is
    is
       Output_Pipe : constant Shell.Pipe   := To_Pipe;
       Error_Pipe  : constant Shell.Pipe   := To_Pipe;
-      Process     :          Shell.Process;
    begin
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Start (The_Command, Input);
+      Start (The_Command, Input);
 
-      if Normal_Exit (Process)   -- This waits til command completion.
+      if Normal_Exit (The_Command.Process)   -- This waits til command completion.
       then
          declare
             Output : constant Data := Output_Of (Output_Pipe);
@@ -477,7 +475,6 @@ is
       Input_Pipe  : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
       Output_Pipe : constant Shell.Pipe   := To_Pipe;
       Error_Pipe  : constant Shell.Pipe   := To_Pipe;
-      Process     :          Shell.Process;
    begin
       if Input_Pipe /= Standard_Input
       then
@@ -488,9 +485,9 @@ is
       The_Command.Output_Pipe := Output_Pipe;
       The_Command. Error_Pipe :=  Error_Pipe;
 
-      Process := Start (The_Command);
+      Start (The_Command);
 
-      if Normal_Exit (Process)   -- This waits til command completion.
+      if Normal_Exit (The_Command.Process)   -- This waits til command completion.
       then
          declare
             Output : constant Data := Output_Of (Output_Pipe);
