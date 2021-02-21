@@ -445,48 +445,6 @@ is
    end Run;
 
 
-   -- Command Results
-   --
-
-   function Results_Of (The_Command : in out Command;
-                        Input       : in     Data   := No_Data) return Command_Results
-   is
-      Input_Pipe  : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
-      Output_Pipe : constant Shell.Pipe   := To_Pipe;
-      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
-   begin
-      if Input_Pipe /= Standard_Input
-      then
-         Write_To (Input_Pipe, Input);
-      end if;
-
-      The_Command. Input_Pipe :=  Input_Pipe;
-      The_Command.Output_Pipe := Output_Pipe;
-      The_Command. Error_Pipe :=  Error_Pipe;
-
-      Start (The_Command);
-
-      if Normal_Exit (The_Command.Process)   -- This waits til command completion.
-      then
-         declare
-            Output : constant Data := Output_Of (Output_Pipe);
-            Error  : constant Data := Output_Of ( Error_Pipe);
-         begin
-            return (Output_Size => Output'Length,
-                    Error_Size  => Error 'Length,
-                    Output      => Output,
-                    Errors      => Error);
-         end;
-      else
-         declare
-            Error : constant Data := Output_Of (Error_Pipe);
-         begin
-            raise Command_Error with +Error;
-         end;
-      end if;
-   end Results_Of;
-
-
    overriding
    procedure Finalize (The_Command : in out Command)
    is
@@ -495,20 +453,6 @@ is
       Close (The_Command.Output_Pipe);
       Close (The_Command. Error_Pipe);
    end Finalize;
-
-
-   function Output_Of (The_Results : in Command_Results) return Data
-   is
-   begin
-      return The_Results.Output;
-   end Output_Of;
-
-
-   function Errors_Of (The_Results : in Command_Results) return Data
-   is
-   begin
-      return The_Results.Errors;
-   end Errors_Of;
 
 
    --- Pipes

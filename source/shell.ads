@@ -179,21 +179,6 @@ is
    -- Any process error message is attached to the exception.
 
 
-   --- Command Results
-   --
-
-   type Command_Results (Output_Size : Data_Offset;
-                         Error_Size  : Data_Offset) is private;
-
-   function  Results_Of (The_Command : in out Command;
-                         Input       : in     Data   := No_Data) return Command_Results;
-   --
-   -- Runs the command to completion and return the results.
-   -- A Command_Error is raised on failure.
-
-   function  Output_Of  (The_Results : in Command_Results) return Data;
-   function  Errors_Of  (The_Results : in Command_Results) return Data;
-
 
 private
 
@@ -259,13 +244,6 @@ private
    type Process is
       record
          Id : Process_ID := POSIX.Process_Identification.Null_Process_ID;
-      end record;
-
-   type Command_Results (Output_Size : Data_Offset;
-                         Error_Size  : Data_Offset) is
-      record
-         Output : Data (1 .. Output_Size);
-         Errors : Data (1 ..  Error_Size);
       end record;
 
 end Shell;
