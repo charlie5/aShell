@@ -347,19 +347,17 @@ is
    function Run (The_Command  : in out Command;
                  Input        : in     Data   := No_Data) return Command_Results
    is
-      Output_Pipe : constant Shell.Pipe   := To_Pipe;
-      Error_Pipe  : constant Shell.Pipe   := To_Pipe;
    begin
-      The_Command.Output_Pipe := Output_Pipe;
-      The_Command. Error_Pipe :=  Error_Pipe;
+      The_Command.Output_Pipe := To_Pipe;
+      The_Command. Error_Pipe := To_Pipe;
 
       Start (The_Command, Input);
 
       if Normal_Exit (The_Command.Process)   -- This waits til command completion.
       then
          declare
-            Output : constant Data := Output_Of (Output_Pipe);
-            Error  : constant Data := Output_Of ( Error_Pipe);
+            Output : constant Data := Output_Of (The_Command.Output_Pipe);
+            Error  : constant Data := Output_Of (The_Command. Error_Pipe);
          begin
             return (Output_Size => Output'Length,
                     Error_Size  => Error 'Length,
@@ -368,10 +366,8 @@ is
          end;
       else
          declare
-            Error : constant String := +Output_Of (Error_Pipe);
+            Error : constant String := +Output_Of (The_Command.Error_Pipe);
          begin
-            close (Output_Pipe);
-            close ( Error_Pipe);
             raise Command_Error with Error;
          end;
       end if;
@@ -381,12 +377,10 @@ is
    function Run (The_Pipeline : in out Command_Array;
                  Input        : in     Data         := No_Data) return Command_Results
    is
-      Last_Command :          Shell.Command renames The_Pipeline (The_Pipeline'Last);
-      Output_Pipe  : constant Shell.Pipe         := To_Pipe;
-      Error_Pipe   : constant Shell.Pipe         := To_Pipe;
+      Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
    begin
-      Last_Command.Output_Pipe := Output_Pipe;
-      Last_Command. Error_Pipe := Error_Pipe;
+      Last_Command.Output_Pipe := To_Pipe;
+      Last_Command. Error_Pipe := To_Pipe;
 
       declare
          Process_List : constant Shell.Process_Array := Start (The_Pipeline, Input);
@@ -397,10 +391,8 @@ is
             return Results_Of (Last_Command);
          else
             declare
-               Error : constant String := +Output_Of (Error_Pipe);
+               Error : constant String := +Output_Of (Last_Command.Error_Pipe);
             begin
-               close (Output_Pipe);
-               close ( Error_Pipe);
                raise Command_Error with Error;
             end;
          end if;
