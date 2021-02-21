@@ -89,9 +89,9 @@ is
                    Errors            : in Pipe         := Standard_Error;
                    Pipeline          : in Boolean      := False) return Process;
 
-   procedure Wait_On (Process : in out Shell.Process);
+   procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
-   function  Normal_Exit (Process : in out Shell.Process) return Boolean;
+   function  Normal_Exit    (Process : in out Shell.Process) return Boolean;
    --
    -- Returns True if the process has terminated and the exit status is normal.
 
