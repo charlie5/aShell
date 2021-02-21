@@ -64,8 +64,6 @@ is
 
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with private;
 
-   Pipe_Error : exception;
-
 
    --- Processes
    --
@@ -124,12 +122,6 @@ is
    function  Output_Pipe (The_Command : in Command) return Pipe;
    function   Error_Pipe (The_Command : in Command) return Pipe;
 
-   procedure  Input_Pipe_is (For_Command : in out Command;   Now : in Pipe);
-   procedure Output_Pipe_is (For_Command : in out Command;   Now : in Pipe);
-   procedure  Error_Pipe_is (For_Command : in out Command;   Now : in Pipe);
-   --
-   -- The above 3 procedures raise a Pipe_Error if 'Now' has not been initialized.
-
    function  Process_of (The_Command : in Command) return Process;
 
 
@@ -157,7 +149,6 @@ is
    procedure Start (Commands    : in out Command_Array;
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := True);
-
 
    -- Ouput
    --

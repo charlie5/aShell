@@ -244,49 +244,6 @@ is
    end Error_Pipe;
 
 
-   Null_Pipe : constant Pipe := (Write_End => Null_File_Descriptor,
-                                 Read_End  => Null_File_Descriptor);
-
-
-   procedure Input_Pipe_is (For_Command : in out Command;   Now : in Pipe)
-   is
-   begin
-      if Now = Null_Pipe
-      then
-         raise Pipe_Error with "Attempt to set an uninitialized Input_Pipe.";
-      end if;
-
-      Close (For_Command.Input_Pipe);
-      For_Command.Input_Pipe := Now;
-   end Input_Pipe_is;
-
-
-   procedure Output_Pipe_is (For_Command : in out Command;   Now : in Pipe)
-   is
-   begin
-      if Now = Null_Pipe
-      then
-         raise Pipe_Error with "Attempt to set an uninitialized Output_Pipe.";
-      end if;
-
-      Close (For_Command.Output_Pipe);
-      For_Command.Output_Pipe := Now;
-   end Output_Pipe_is;
-
-
-   procedure Error_Pipe_is (For_Command : in out Command;   Now : in Pipe)
-   is
-   begin
-      if Now = Null_Pipe
-      then
-         raise Pipe_Error with "Attempt to set an uninitialized Error_Pipe.";
-      end if;
-
-      Close (For_Command.Error_Pipe);
-      For_Command.Error_Pipe := Now;
-   end Error_Pipe_is;
-
-
    function Process_of (The_Command : in Command) return Process
    is
    begin
