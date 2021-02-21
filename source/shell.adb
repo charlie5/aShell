@@ -265,6 +265,13 @@ is
    end Error_Pipe_is;
 
 
+   function Process_of (The_Command : in Command) return Process
+   is
+   begin
+      return The_Command.Process;
+   end Process_of;
+
+
    function Start (The_Command : in out Command;
                    Input       : in     Data    := No_Data;
                    Pipeline    : in     Boolean := False) return Process

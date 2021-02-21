@@ -126,6 +126,8 @@ is
    procedure Output_Pipe_is (For_Command : in out Command;   Now : in Pipe);
    procedure  Error_Pipe_is (For_Command : in out Command;   Now : in Pipe);
 
+   function  Process_of (The_Command : in Command) return Process;
+
 
    --- The Start subprograms return before the process completes.
    --
@@ -222,6 +224,7 @@ private
             Input_Pipe  : Pipe := Standard_Input;
             Output_Pipe : Pipe := Standard_Output;
             Error_Pipe  : Pipe := Standard_Error;
+            Process     : Shell.Process;
          end record;
 
    overriding
@@ -260,7 +263,7 @@ private
 
    type Process is
       record
-         Id : Process_ID;
+         Id : Process_ID := POSIX.Process_Identification.Null_Process_ID;
       end record;
 
    type Command_Results (Output_Size : Data_Offset;
