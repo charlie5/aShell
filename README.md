@@ -7,7 +7,8 @@ Under an ISC license.
 ## Example
 
     declare
-       Output : constant String := +Shell.Output_Of ("ps -A | grep bash | wc");
+       use Shell.Commands;
+       Output : constant String := +Output_Of ("ps -A | grep bash | wc");
     begin
        Put_Line (Output);
     end;
