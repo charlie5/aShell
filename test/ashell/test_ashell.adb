@@ -15,9 +15,9 @@ begin
    declare
       use Shell;
       The_Command : Command := To_Command ("ls -alh");
-      The_Process : Process := Start (The_Command);
    begin
-      Wait_On (The_Process);
+      Start (The_Command);
+      Wait_On (Process_of (The_Command).all);
    end Test_1;
 
 
@@ -27,9 +27,10 @@ begin
    declare
       use Shell;
       Piped_Commands : Command_Array := To_Commands ("ls -alh | wc");
-      Processes      : Process_Array := Start (Piped_Commands);
+      Last_Command   : Command  renames Piped_Commands (Piped_Commands'Last);
    begin
-      Wait_On (Processes (Processes'Last));
+      Start (Piped_Commands);
+      Wait_On (Process_of (Last_Command).all);
    end Test_2;
 
 
@@ -38,10 +39,10 @@ begin
    Test_3:
    declare
       use Shell;
-      The_Command :          Command       := To_Command ("sleep 3");
-      The_Process : constant Shell.Process := Start (The_Command);
+      The_Command : Command := To_Command ("sleep 3");
    begin
-      Put_Line ("Sleep process id: " & Image (The_Process));
+      Start (The_Command);
+      Put_Line ("Sleep process id: " & Image (Process_of (The_Command).all));
    end Test_3;
 
 
@@ -50,12 +51,14 @@ begin
    Test_4:
    declare
       use Shell;
-      The_Commands  :          Command_Array       := To_Commands ("sleep 3 | sleep 3");
-      The_Processes : constant Shell.Process_Array := Start (The_Commands, Pipeline => False);
+      The_Commands : Command_Array := To_Commands ("sleep 3 | sleep 3");
    begin
-      for i in The_Processes'Range
+      Start (The_Commands, Pipeline => False);
+
+      for i in The_Commands'Range
       loop
-         Put_Line ("Sleep command" & Positive'Image (i) & " ~ process id: " & Image (The_Processes (i)));
+         Put_Line (  "Sleep command"   & Positive'Image (i)
+                   & " ~ process id: " & Image (Process_of (The_Commands (i)).all));
       end loop;
    end Test_4;
 

@@ -54,7 +54,7 @@ begin
       pragma Unreferenced (Echo, Sort_1, Uniq, Sort_2,
                            CWE0, CWE1, CWE2, CWE3);
    begin
-      if Normal_Exit (Head)
+      if Wait_On_Normal_Exit (Head)
       then
          Put_Line ("Success");
       else

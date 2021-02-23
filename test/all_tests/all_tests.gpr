@@ -4,6 +4,7 @@ with
      "../environment/test_environment",
      "../iterate_directory/test_iterate_directory",
      "../piped_processes/test_piped_processes",
+     "../pipeline_error/test_pipeline_error",
      "../pipeline_output/test_pipeline_output",
      "../pipe_output_to_string/test_pipe_output_to_string",
      "../wait_on_process/test_wait_on_process",
