@@ -342,9 +342,10 @@ is
       The_Command.Output_Pipe := To_Pipe;
       The_Command. Error_Pipe := To_Pipe;
 
-      Start (The_Command, Input);
+      Start   (The_Command, Input);
+      Wait_On (The_Command.Process);
 
-      if     not Wait_On_Normal_Exit (The_Command.Process)   -- This waits til command completion.
+      if     not Normal_Exit (The_Command.Process)
         and then Raise_Error
       then
          declare
@@ -380,7 +381,9 @@ is
 
       for i in The_Pipeline'Range
       loop
-         if not Wait_On_Normal_Exit (The_Pipeline (i).Process)   -- This waits til command completion.
+         Wait_On (The_Pipeline (i).Process);
+
+         if not Normal_Exit (The_Pipeline (i).Process)
          then
             if Raise_Error
             then
@@ -754,18 +757,6 @@ is
 
       return Status_Available (Process.Status);
    end Has_Terminated;
-
-
-   function Wait_On_Normal_Exit (Process : in out Shell.Process) return Boolean
-   is
-      use POSIX.Process_Primitives;
-   begin
-      Wait_For_Child_Process (Status => Process.Status,
-                              Child  => Process.Id,
-                              Block  => True);
-
-      return Normal_Exit (Process);
-   end Wait_On_Normal_Exit;
 
 
    function Normal_Exit (Process : in Shell.Process) return Boolean

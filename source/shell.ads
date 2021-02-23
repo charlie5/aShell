@@ -91,13 +91,9 @@ is
 
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
-   function  Wait_On_Normal_Exit    (Process : in out Shell.Process) return Boolean;
-   --
-   -- Returns True if the process has terminated and the exit status is normal.
+   function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
 
-   function  Normal_Exit (Process : in Shell.Process) return Boolean;
-
-   function Image (Process : in Shell.Process) return String;
+   function  Image (Process : in Shell.Process) return String;
 
 
    --- Commands
