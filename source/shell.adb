@@ -456,7 +456,7 @@ is
    begin
       for Each of The_Pipeline
       loop
-         if not Normal_Exit (Each.Process)
+         if Failed (Each)
          then
             return True;
          end if;
