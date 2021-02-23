@@ -20,7 +20,7 @@ begin
 
    Test_Ashell;
    Test_Command_Error;
-   Test_Command_Output_To_String;
+   Test_Command_Output_To_String;   -- TODO: Large output is truncated. Fix.
    Test_Environment;
    Test_Iterate_Directory;
    Test_Piped_Processes;
