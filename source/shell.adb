@@ -444,6 +444,13 @@ is
    end Run;
 
 
+   function Failed (The_Command : in Command) return Boolean
+   is
+   begin
+      return not Normal_Exit (The_Command.Process);
+   end Failed;
+
+
    function Failed (The_Pipeline : in Command_Array) return Boolean
    is
    begin

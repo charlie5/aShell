@@ -126,6 +126,7 @@ is
 
    function  Name_of    (The_Command : in out Command) return String;
    function  Process_of (The_Command : in out Command) return access Process;
+   function  Failed     (The_Command : in Command) return Boolean;
 
 
    --- The Start subprograms return before the process completes.
