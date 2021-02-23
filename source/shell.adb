@@ -378,7 +378,8 @@ is
             if Raise_Error
             then
                declare
-                  Error : constant String := +Output_Of (The_Pipeline (i).Error_Pipe);
+                  Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                             & " '" & (+The_Pipeline (i).Name) & "' failed.";
                begin
                   raise Command_Error with Error;
                end;
@@ -395,21 +396,11 @@ is
                  Input        : in     Data    := No_Data;
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
-      Fail_Id : Natural;
+      Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
    begin
       Run (The_Pipeline, Input, Raise_Error);
-      Fail_Id := Which_Failed (The_Pipeline);
 
-      if Fail_Id = 0
-      then
-         declare
-            Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
-         begin
-            return Results_Of (Last_Command);
-         end;
-      else
-         return Results_Of (The_Pipeline (Fail_Id));
-      end if;
+      return Results_Of (Last_Command);
    end Run;
 
 
