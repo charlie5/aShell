@@ -91,9 +91,11 @@ is
 
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
-   function  Normal_Exit    (Process : in out Shell.Process) return Boolean;
+   function  Wait_On_Normal_Exit    (Process : in out Shell.Process) return Boolean;
    --
    -- Returns True if the process has terminated and the exit status is normal.
+
+   function  Normal_Exit (Process : in Shell.Process) return Boolean;
 
    function Image (Process : in Shell.Process) return String;
 
@@ -122,7 +124,7 @@ is
    function  Output_Pipe (The_Command : in Command) return Pipe;
    function   Error_Pipe (The_Command : in Command) return Pipe;
 
-   function  Process_of  (The_Command : in Command) return Process;
+   function  Process_of (The_Command : in out Command) return access Process;
 
 
    --- The Start subprograms return before the process completes.
@@ -131,9 +133,9 @@ is
    -- Single commands.
    --
 
-   function  Start (The_Command : in out Command;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := False) return Process;
+   --  function  Start (The_Command : in out Command;
+   --                   Input       : in     Data    := No_Data;
+   --                   Pipeline    : in     Boolean := False) return Process;
 
    procedure Start (The_Command : in out Command;
                     Input       : in     Data    := No_Data;
@@ -142,9 +144,9 @@ is
    -- Multiple commands.
    --
 
-   function  Start (Commands    : in out Command_Array;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := True) return Process_Array;
+   --  function  Start (Commands    : in out Command_Array;
+   --                   Input       : in     Data    := No_Data;
+   --                   Pipeline    : in     Boolean := True) return Process_Array;
 
    procedure Start (Commands    : in out Command_Array;
                     Input       : in     Data    := No_Data;
@@ -195,6 +197,10 @@ is
    -- Any process error message is attached to the exception.
 
 
+   function  Failed       (The_Pipeline : in Command_Array) return Boolean;
+   function  Which_Failed (The_Pipeline : in Command_Array) return Natural;
+   --
+   -- Returns 0 if no command failed.
 
 private
 
@@ -220,7 +226,7 @@ private
             Input_Pipe  : Pipe := Standard_Input;
             Output_Pipe : Pipe := Standard_Output;
             Error_Pipe  : Pipe := Standard_Error;
-            Process     : Shell.Process;
+            Process     : aliased Shell.Process;
          end record;
 
    overriding

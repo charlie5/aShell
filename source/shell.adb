@@ -244,21 +244,44 @@ is
    end Error_Pipe;
 
 
-   function Process_of (The_Command : in Command) return Process
+   function Process_of (The_Command : in out Command) return access Process
    is
    begin
-      return The_Command.Process;
+      return The_Command.Process'Unchecked_Access;
    end Process_of;
 
 
    --- Start
    --
 
-   function Start (The_Command : in out Command;
-                   Input       : in     Data    := No_Data;
-                   Pipeline    : in     Boolean := False) return Process
+   --  function Start (The_Command : in out Command;
+   --                  Input       : in     Data    := No_Data;
+   --                  Pipeline    : in     Boolean := False) return Process
+   --  is
+   --     Input_Pipe : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
+   --  begin
+   --     The_Command.Input_Pipe := Input_Pipe;
+   --
+   --     if Input_Pipe /= Standard_Input
+   --     then
+   --        Write_To (Input_Pipe, Input);
+   --     end if;
+   --
+   --     The_Command.Process := Start (Program   => +The_Command.Name,
+   --                                   Arguments =>  To_String_Array (The_Command.Arguments),
+   --                                   Input     =>  The_Command.Input_Pipe,
+   --                                   Output    =>  The_Command.Output_Pipe,
+   --                                   Errors    =>  The_Command.Error_Pipe,
+   --                                   Pipeline  =>  Pipeline);
+   --     return The_Command.Process;
+   --  end Start;
+
+
+   procedure Start (The_Command : in out Command;
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := False)
    is
-      Input_Pipe : constant Shell.Pipe   := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
+      Input_Pipe : constant Shell.Pipe := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
    begin
       The_Command.Input_Pipe := Input_Pipe;
 
@@ -273,27 +296,74 @@ is
                                     Output    =>  The_Command.Output_Pipe,
                                     Errors    =>  The_Command.Error_Pipe,
                                     Pipeline  =>  Pipeline);
-      return The_Command.Process;
    end Start;
 
+   --  procedure Start (The_Command : in out Command;
+   --                   Input       : in     Data    := No_Data;
+   --                   Pipeline    : in     Boolean := False)
+   --  is
+   --     Process : Shell.Process := Start (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
+   --  begin
+   --     null;
+   --  end Start;
 
-   procedure Start (The_Command : in out Command;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := False)
-   is
-      Process : Shell.Process := Start (The_Command, Input, Pipeline) with Unreferenced;   -- Work is done here.
-   begin
-      null;
-   end Start;
+
+   --  function Start (Commands : in out Command_Array;
+   --                  Input    : in     Data    := No_Data;
+   --                  Pipeline : in     Boolean := True) return Process_Array
+   --  is
+   --     First_Command :          Command renames Commands (Commands'First);
+   --     Input_Pipe    : constant Shell.Pipe   := (if Input = No_Data then First_Command.Input_Pipe else To_Pipe);
+   --     Processes     :          Process_Array  (Commands'Range);
+   --  begin
+   --     First_Command.Input_Pipe := Input_Pipe;
+   --
+   --     if Input_Pipe /= Standard_Input
+   --     then
+   --        Write_To (Input_Pipe, Input);
+   --     end if;
+   --
+   --     if not Pipeline
+   --     then
+   --        for I in Commands'Range
+   --        loop
+   --           Processes (I) := Start (Commands (I));
+   --        end loop;
+   --
+   --        return Processes;
+   --     end if;
+   --
+   --     Connect (Commands);
+   --
+   --     for I in Commands'Range
+   --     loop
+   --        Processes (I) := Start (Commands (I),
+   --                                Pipeline => True);
+   --
+   --        -- Since we are making a pipeline, we need to close the write ends of
+   --        -- the Output & Errors pipes ourselves.
+   --        --
+   --        if I /= Commands'First
+   --        then
+   --           Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
+   --        end if;
+   --
+   --        if I = Commands'Last
+   --        then
+   --           Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+   --        end if;
+   --     end loop;
+   --
+   --     return Processes;
+   --  end Start;
 
 
-   function Start (Commands : in out Command_Array;
-                   Input    : in     Data    := No_Data;
-                   Pipeline : in     Boolean := True) return Process_Array
+   procedure Start (Commands : in out Command_Array;
+                    Input    : in     Data    := No_Data;
+                    Pipeline : in     Boolean := True)
    is
       First_Command :          Command renames Commands (Commands'First);
       Input_Pipe    : constant Shell.Pipe   := (if Input = No_Data then First_Command.Input_Pipe else To_Pipe);
-      Processes     :          Process_Array  (Commands'Range);
    begin
       First_Command.Input_Pipe := Input_Pipe;
 
@@ -306,18 +376,18 @@ is
       then
          for I in Commands'Range
          loop
-            Processes (I) := Start (Commands (I));
+            Start (Commands (I));
          end loop;
 
-         return Processes;
+         return;
       end if;
 
       Connect (Commands);
 
       for I in Commands'Range
       loop
-         Processes (I) := Start (Commands (I),
-                                 Pipeline => True);
+         Start (Commands (I),
+                Pipeline => True);
 
          -- Since we are making a pipeline, we need to close the write ends of
          -- the Output & Errors pipes ourselves.
@@ -333,19 +403,16 @@ is
          end if;
       end loop;
 
-      return Processes;
    end Start;
 
-
-   procedure Start (Commands : in out Command_Array;
-                    Input    : in     Data    := No_Data;
-                    Pipeline : in     Boolean := True)
-   is
-      Processes : Process_Array := Start (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
-   begin
-      null;
-   end Start;
-
+   --  procedure Start (Commands : in out Command_Array;
+   --                   Input    : in     Data    := No_Data;
+   --                   Pipeline : in     Boolean := True)
+   --  is
+   --     Processes : Process_Array := Start (Commands, Input, Pipeline) with Unreferenced;   -- Work is done here.
+   --  begin
+   --     null;
+   --  end Start;
 
    --- Run
    --
@@ -360,7 +427,7 @@ is
 
       Start (The_Command, Input);
 
-      if     not Normal_Exit (The_Command.Process)   -- This waits til command completion.
+      if     not Wait_On_Normal_Exit (The_Command.Process)   -- This waits til command completion.
         and then Raise_Error
       then
          declare
@@ -393,18 +460,26 @@ is
       Last_Command. Error_Pipe := To_Pipe;
 
       declare
-         Process_List : Shell.Process_Array := Start (The_Pipeline, Input);
-         Last_Process : Shell.Process  renames Process_List (Process_List'Last);
+         --  Process_List : Shell.Process_Array := Start (The_Pipeline, Input);
       begin
-         if     not Normal_Exit (Last_Process)   -- This waits til command completion.
-           and then Raise_Error
-         then
-            declare
-               Error : constant String := +Output_Of (Last_Command.Error_Pipe);
-            begin
-               raise Command_Error with Error;
-            end;
-         end if;
+         Start (The_Pipeline, Input);
+
+         for i in The_Pipeline'Range
+         loop
+            if not Wait_On_Normal_Exit (The_Pipeline (i).Process)   -- This waits til command completion.
+            then
+               if Raise_Error
+               then
+                  declare
+                     Error : constant String := +Output_Of (The_Pipeline (i).Error_Pipe);
+                  begin
+                     raise Command_Error with Error;
+                  end;
+               end if;
+
+               return;
+            end if;
+         end loop;
       end;
    end Run;
 
@@ -413,11 +488,21 @@ is
                  Input        : in     Data    := No_Data;
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
-      Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
+      Fail_Id : Natural;
    begin
       Run (The_Pipeline, Input, Raise_Error);
+      Fail_Id := Which_Failed (The_Pipeline);
 
-      return Results_Of (Last_Command);
+      if Fail_Id = 0
+      then
+         declare
+            Last_Command : Shell.Command renames The_Pipeline (The_Pipeline'Last);
+         begin
+            return Results_Of (Last_Command);
+         end;
+      else
+         return Results_Of (The_Pipeline (Fail_Id));
+      end if;
    end Run;
 
 
@@ -452,6 +537,36 @@ is
    begin
       null;
    end Run;
+
+
+   function Failed (The_Pipeline : in Command_Array) return Boolean
+   is
+   begin
+      for Each of The_Pipeline
+      loop
+         if not Normal_Exit (Each.Process)
+         then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Failed;
+
+
+   function Which_Failed (The_Pipeline : in Command_Array) return Natural
+   is
+   begin
+      for i in The_Pipeline'Range
+      loop
+         if not Normal_Exit (The_Pipeline (i).Process)
+         then
+            return i;
+         end if;
+      end loop;
+
+      return 0;
+   end Which_Failed;
 
 
    -- Command Results
@@ -730,7 +845,7 @@ is
    end Has_Terminated;
 
 
-   function Normal_Exit (Process : in out Shell.Process) return Boolean
+   function Wait_On_Normal_Exit (Process : in out Shell.Process) return Boolean
    is
       use POSIX.Process_Primitives;
    begin
@@ -738,6 +853,14 @@ is
                               Child  => Process.Id,
                               Block  => True);
 
+      return Normal_Exit (Process);
+   end Wait_On_Normal_Exit;
+
+
+   function Normal_Exit (Process : in Shell.Process) return Boolean
+   is
+      use POSIX.Process_Primitives;
+   begin
       if not Status_Available (Process.Status) then
          return False;
       end if;

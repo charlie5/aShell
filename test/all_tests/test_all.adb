@@ -4,6 +4,7 @@ with
      Test_Environment,
      Test_Iterate_Directory,
      Test_Piped_Processes,
+     Test_Pipeline_Error,
      Test_Pipeline_Output,
      Test_Pipe_Output_To_String,
      Test_Wait_On_Process,
@@ -22,6 +23,7 @@ begin
    Test_Iterate_Directory;
    Test_Piped_Processes;
    Test_Pipeline_Output;
+   Test_Pipeline_Error;
    Test_Pipe_Output_To_String;
    Test_Wait_On_Process;
 
