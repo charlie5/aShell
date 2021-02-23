@@ -1,5 +1,5 @@
 with
-     Shell,
+     Shell.Commands,
      Ada.Text_IO;
 
 procedure Test_Pipeline_Error
@@ -10,8 +10,9 @@ begin
    New_Line (2);
 
    declare
-      use Shell;
-      Commands : Shell.Command_Array := To_Commands ("ls /non_existent_file | cat");
+      use Shell,
+          Shell.Commands;
+      Commands : Command_Array := To_Commands ("ls /non_existent_file | cat");
    begin
       Run (Commands);
 
@@ -30,8 +31,9 @@ begin
    New_Line (2);
 
    declare
-      use Shell;
-      Commands : Shell.Command_Array := To_Commands ("ls /non_existent_file | cat");
+      use Shell,
+          Shell.Commands;
+      Commands : Command_Array := To_Commands ("ls /non_existent_file | cat");
    begin
       Run (Commands, Raise_Error => True);
 

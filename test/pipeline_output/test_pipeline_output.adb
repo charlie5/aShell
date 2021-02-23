@@ -1,5 +1,5 @@
 with
-     Shell,
+     Shell.Commands,
      Ada.Text_IO;
 
 procedure Test_Pipeline_Output
@@ -10,9 +10,10 @@ begin
    New_Line (2);
 
    declare
-      use Shell;
-      Commands : Shell.Command_Array :=  To_Commands ("ps -A | grep bash | wc");
-      Output   : constant String     := +Output_Of (Run (Commands));
+      use Shell,
+          Shell.Commands;
+      Commands : Command_Array   :=  To_Commands ("ps -A | grep bash | wc");
+      Output   : constant String := +Output_Of (Run (Commands));
    begin
       Put_Line ("'" & Output & "'");
    end;

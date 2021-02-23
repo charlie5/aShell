@@ -1,5 +1,5 @@
 with
-     Shell,
+     Shell.Commands,
      Ada.Text_IO;
 
 
@@ -13,7 +13,8 @@ begin
    Put_Line ("Test 1 ~ Run single command =>'ls -alh'");
    Test_1:
    declare
-      use Shell;
+      use Shell,
+          Shell.Commands;
       The_Command : Command := To_Command ("ls -alh");
    begin
       Start (The_Command);
@@ -25,7 +26,8 @@ begin
    Put_Line ("Test 2 ~ Run piped commands => 'ls -alh | wc'");
    Test_2:
    declare
-      use Shell;
+      use Shell,
+          Shell.Commands;
       Piped_Commands : Command_Array := To_Commands ("ls -alh | wc");
       Last_Command   : Command  renames Piped_Commands (Piped_Commands'Last);
    begin
@@ -38,7 +40,8 @@ begin
    Put_Line ("Test 3 ~ Check pid of a running process => 'sleep 3'");
    Test_3:
    declare
-      use Shell;
+      use Shell,
+          Shell.Commands;
       The_Command : Command := To_Command ("sleep 3");
    begin
       Start (The_Command);
@@ -50,7 +53,8 @@ begin
    Put_Line ("Test 4 ~ Check pid of running processes => 'sleep 3'");
    Test_4:
    declare
-      use Shell;
+      use Shell,
+          Shell.Commands;
       The_Commands : Command_Array := To_Commands ("sleep 3 | sleep 3");
    begin
       Start (The_Commands, Pipeline => False);

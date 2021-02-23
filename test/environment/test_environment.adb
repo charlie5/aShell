@@ -1,7 +1,7 @@
-with Ada.Environment_Variables;
-with Ada.Text_IO;
-
-with Shell;
+with
+     Shell.Commands,
+     Ada.Environment_Variables,
+     Ada.Text_IO;
 
 procedure Test_Environment
 is
@@ -18,7 +18,8 @@ begin
       Commands : constant String := "env | grep " & Name;
       Expected : constant String := Name & "=" & Value;
 
-      use Shell;
+      use Shell,
+          Shell.Commands;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
       Put_Line ("Test 1 ~ Run piped commands => '" & Commands & "'");
@@ -42,7 +43,8 @@ begin
       Commands : constant String := "env | grep " & Name;
       Expected : constant String := Name & "=" & Value;
 
-      use Shell;
+      use Shell,
+          Shell.Commands;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
       Put_Line ("Test 2 ~ Run piped commands => '" & Commands & "'");

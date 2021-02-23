@@ -1,5 +1,5 @@
 with
-     Shell,
+     Shell.Commands,
      Ada.Text_IO;
 
 
@@ -11,7 +11,8 @@ begin
    New_Line (2);
 
    declare
-      use Shell;
+      use Shell,
+          Shell.Commands;
       The_Command :          Command :=  To_Command ("ls -alh");
       Output      : constant String  := +Output_Of (Run (The_Command));
    begin
