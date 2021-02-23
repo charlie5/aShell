@@ -130,27 +130,14 @@ is
    --- The Start subprograms return before the process completes.
    --
 
-   -- Single commands.
-   --
-
-   --  function  Start (The_Command : in out Command;
-   --                   Input       : in     Data    := No_Data;
-   --                   Pipeline    : in     Boolean := False) return Process;
-
    procedure Start (The_Command : in out Command;
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := False);
 
-   -- Multiple commands.
-   --
-
-   --  function  Start (Commands    : in out Command_Array;
-   --                   Input       : in     Data    := No_Data;
-   --                   Pipeline    : in     Boolean := True) return Process_Array;
-
    procedure Start (Commands    : in out Command_Array;
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := True);
+
 
    --- Command Results
    --
