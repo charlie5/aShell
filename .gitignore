@@ -22,6 +22,7 @@ test_iterate_directory
 test_iterate_tree
 test_pipe_output_to_string
 test_piped_processes
+test_pipeline_error
 test_pipeline_output
 test_wait_on_process
 test_all
