@@ -244,6 +244,13 @@ is
    end Error_Pipe;
 
 
+   function Name_of (The_Command : in out Command) return String
+   is
+   begin
+      return +The_Command.Name;
+   end Name_of;
+
+
    function Process_of (The_Command : in out Command) return access Process
    is
    begin

@@ -124,6 +124,7 @@ is
    function  Output_Pipe (The_Command : in Command) return Pipe;
    function   Error_Pipe (The_Command : in Command) return Pipe;
 
+   function  Name_of    (The_Command : in out Command) return String;
    function  Process_of (The_Command : in out Command) return access Process;
 
 
