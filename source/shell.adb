@@ -475,8 +475,7 @@ is
       Output : constant Data := Output_Of (The_Command.Output_Pipe);
       Error  : constant Data := Output_Of (The_Command. Error_Pipe);
    begin
-      return (--Process     => The_Command.Process,
-              Output_Size => Output'Length,
+      return (Output_Size => Output'Length,
               Error_Size  => Error 'Length,
               Output      => Output,
               Errors      => Error);

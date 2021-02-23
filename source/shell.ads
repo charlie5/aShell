@@ -259,7 +259,6 @@ private
    type Command_Results (Output_Size : Data_Offset;
                          Error_Size  : Data_Offset) is
       record
-         --  Process : Shell.Process;
          Output  : Data (1 .. Output_Size);
          Errors  : Data (1 ..  Error_Size);
       end record;
