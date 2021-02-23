@@ -1,5 +1,6 @@
 with
      "../ashell/test_ashell",
+     "../command_error/test_command_error",
      "../command_output_to_string/test_command_output_to_string",
      "../environment/test_environment",
      "../iterate_directory/test_iterate_directory",
