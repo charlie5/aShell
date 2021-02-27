@@ -96,6 +96,8 @@ is
 
    function  Image (Process : in Shell.Process) return String;
 
+   procedure Kill  (Process : in Shell.Process);
+
 
 
 private

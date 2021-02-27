@@ -2,6 +2,7 @@ with
      Ada.IO_Exceptions,
      Ada.Unchecked_Conversion,
 
+     POSIX.Signals,
      POSIX.Process_Primitives.Extensions;
 
 package body Shell
@@ -305,5 +306,12 @@ is
       return Image (Process.Id);
    end Image;
 
+
+   procedure Kill  (Process : in Shell.Process)
+   is
+      use POSIX.Signals;
+   begin
+      Send_Signal (Process.Id, Signal_Kill);
+   end Kill;
 
 end Shell;
