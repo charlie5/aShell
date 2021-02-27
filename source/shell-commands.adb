@@ -487,4 +487,11 @@ is
    end Errors_Of;
 
 
+   procedure Kill (The_Command : in Command)
+   is
+   begin
+      Kill (The_Command.Process);
+   end Kill;
+
+
 end Shell.Commands;
