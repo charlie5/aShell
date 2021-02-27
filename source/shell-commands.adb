@@ -82,7 +82,10 @@ is
    end define;
 
 
-   function To_Command (Command_Line : in String) return Command
+   function To_Command (Command_Line : in String;
+                        Input        : in Pipe  := Standard_Input;
+                        Output       : in Pipe  := Standard_Output;
+                        Errors       : in Pipe  := Standard_Error) return Command
    is
       use Ada.Strings.Fixed;
 
@@ -107,6 +110,13 @@ is
          end return;
       end;
    end to_Command;
+
+
+   function "+" (Command_Line : in String) return Command
+   is
+   begin
+      return To_Command (Command_Line);
+   end "+";
 
 
    function To_Commands (Pipeline : in String) return Command_Array
