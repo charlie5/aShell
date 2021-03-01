@@ -96,6 +96,10 @@ is
          return Result : Command
          do
             Result.Name := +Command_Line;
+
+            Result.Input_Pipe  :=  Input;
+            Result.Output_Pipe :=  Output;
+            Result.Error_Pipe  :=  Errors;
          end return;
       end if;
 
@@ -107,6 +111,10 @@ is
          do
             Result.Name      := +(Name);
             Result.Arguments := To_String_Vector (Arguments);
+
+            Result.Input_Pipe  :=  Input;
+            Result.Output_Pipe :=  Output;
+            Result.Error_Pipe  :=  Errors;
          end return;
       end;
    end to_Command;
