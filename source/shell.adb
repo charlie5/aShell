@@ -50,14 +50,38 @@ is
    --- Pipes
    --
 
-   function To_Pipe return Pipe
+   function To_Pipe (Blocking : in Boolean := True) return Pipe
    is
+      use POSIX.IO;
       The_Pipe : Pipe;
    begin
-      POSIX.IO.Create_Pipe (Read_End  => The_Pipe.Read_End,
-                            Write_End => The_Pipe.Write_End);
+      Create_Pipe (Read_End  => The_Pipe.Read_End,
+                   Write_End => The_Pipe.Write_End);
+
+      if not Blocking
+      then
+         Set_File_Control (The_Pipe.Read_End,
+                           Non_Blocking);
+      end if;
+
       return The_Pipe;
    end To_Pipe;
+
+
+   function Is_Readable (The_Pipe : in Pipe) return Boolean
+   is
+      use POSIX.IO;
+   begin
+      return Is_Open (The_Pipe.Read_End);
+   end Is_Readable;
+
+
+   function Is_Writeable (The_Pipe : in Pipe) return Boolean
+   is
+      use POSIX.IO;
+   begin
+      return Is_Open (The_Pipe.Write_End);
+   end Is_Writeable;
 
 
    function Output_Of (The_Pipe : in Pipe) return Data
@@ -75,7 +99,9 @@ is
       return Buffer (1 .. Last);
 
    exception
-      when Ada.IO_Exceptions.End_Error =>
+      when POSIX.POSIX_Error
+         | Ada.IO_Exceptions.End_Error =>
+
          return No_Data;
    end Output_Of;
 

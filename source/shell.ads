@@ -49,7 +49,10 @@ is
    --
    type Pipe is private;
 
-   function  To_Pipe return Pipe;
+   function  To_Pipe (Blocking : in Boolean := True) return Pipe;
+
+   function  Is_Readable  (The_Pipe : in Pipe) return Boolean;
+   function  Is_Writeable (The_Pipe : in Pipe) return Boolean;
 
    function  Output_Of (The_Pipe : in Pipe)       return Data;   -- Returns available output from the 'read end'.
    procedure Write_To  (The_Pipe : in Pipe;   Input : in Data);
