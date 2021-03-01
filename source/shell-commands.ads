@@ -98,6 +98,9 @@ is
 
 private
 
+   type Count        is new Natural;
+   type Count_Access is access all Count;
+
    type Command is new Ada.Finalization.Controlled
      with
          record
@@ -107,10 +110,13 @@ private
             Output_Pipe : Pipe := Standard_Output;
             Error_Pipe  : Pipe := Standard_Error;
             Process     : aliased Shell.Process;
+            Copy_Count  : Count_Access;
          end record;
 
    overriding
-   procedure Finalize (The_Command : in out Command);
+   procedure Adjust     (The_Command : in out Command);
+   overriding
+   procedure Finalize   (The_Command : in out Command);
 
 
    type Command_Results (Output_Size : Data_Offset;

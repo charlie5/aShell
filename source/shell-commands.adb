@@ -1,7 +1,8 @@
 with
      GNAT.OS_Lib,
      Ada.Strings.Fixed,
-     Ada.Strings.Maps;
+     Ada.Strings.Maps,
+     Ada.Unchecked_Deallocation;
 
 package body Shell.Commands
 is
@@ -100,6 +101,8 @@ is
             Result.Input_Pipe  :=  Input;
             Result.Output_Pipe :=  Output;
             Result.Error_Pipe  :=  Errors;
+
+            Result.Copy_Count  := new Count' (1);
          end return;
       end if;
 
@@ -115,6 +118,8 @@ is
             Result.Input_Pipe  :=  Input;
             Result.Output_Pipe :=  Output;
             Result.Error_Pipe  :=  Errors;
+
+            Result.Copy_Count  := new Count' (1);
          end return;
       end;
    end to_Command;
@@ -505,12 +510,28 @@ is
 
 
    overriding
-   procedure Finalize (The_Command : in out Command)
+   procedure Adjust (The_Command : in out Command)
    is
    begin
-      Close (The_Command. Input_Pipe);
-      Close (The_Command.Output_Pipe);
-      Close (The_Command. Error_Pipe);
+      The_Command.Copy_Count.all := The_Command.Copy_Count.all + 1;
+   end Adjust;
+
+
+   overriding
+   procedure Finalize (The_Command : in out Command)
+   is
+      procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
+   begin
+      The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
+
+      if The_Command.Copy_Count.all = 0
+      then
+         Close (The_Command. Input_Pipe);
+         Close (The_Command.Output_Pipe);
+         Close (The_Command. Error_Pipe);
+
+         Deallocate (The_Command.Copy_Count);
+      end if;
    end Finalize;
 
 
