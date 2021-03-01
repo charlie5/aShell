@@ -463,13 +463,26 @@ is
 
    function Results_Of (The_Command : in out Command) return Command_Results
    is
-      Output : constant Data := Output_Of (The_Command.Output_Pipe);
-      Error  : constant Data := Output_Of (The_Command. Error_Pipe);
    begin
-      return (Output_Size => Output'Length,
-              Error_Size  => Error 'Length,
-              Output      => Output,
-              Errors      => Error);
+      if not Is_Readable (The_Command.Output_Pipe)
+      then
+         raise Command_Error with "Command output pipe is not readable.";
+      end if;
+
+      if not Is_Readable (The_Command.Error_Pipe)
+      then
+         raise Command_Error with "Command error pipe is not readable.";
+      end if;
+
+      declare
+         Output : constant Data := Output_Of (The_Command.Output_Pipe);
+         Error  : constant Data := Output_Of (The_Command. Error_Pipe);
+      begin
+         return (Output_Size => Output'Length,
+                 Error_Size  => Error 'Length,
+                 Output      => Output,
+                 Errors      => Error);
+      end;
    end Results_Of;
 
 
