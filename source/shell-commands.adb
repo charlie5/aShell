@@ -464,15 +464,25 @@ is
    function Results_Of (The_Command : in out Command) return Command_Results
    is
    begin
-      if not Is_Readable (The_Command.Output_Pipe)
+      if    The_Command.Output_Pipe = Standard_Output
       then
-         raise Command_Error with "Command output pipe is not readable.";
+         raise Command_Error with "Attempt to read the Standard_Ouput pipe.";
+
+      elsif The_Command.Error_Pipe  = Standard_Error
+      then
+         raise Command_Error with "Attempt to read the Standard_Error pipe.";
       end if;
 
-      if not Is_Readable (The_Command.Error_Pipe)
+
+      if    not Is_Readable (The_Command.Output_Pipe)
+      then
+         raise Command_Error with "Command output pipe is not readable.";
+
+      elsif not Is_Readable (The_Command.Error_Pipe)
       then
          raise Command_Error with "Command error pipe is not readable.";
       end if;
+
 
       declare
          Output : constant Data := Output_Of (The_Command.Output_Pipe);
