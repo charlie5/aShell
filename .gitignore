@@ -22,6 +22,7 @@ test_command_error
 test_command_output_to_string
 test_iterate_directory
 test_iterate_tree
+test_nonblocking_pipe
 test_pipe_output_to_string
 test_piped_processes
 test_pipeline_error
