@@ -92,7 +92,8 @@ is
    --
    -- Returns 0 if no command failed.
 
-   procedure Kill (The_Command : in Command);
+   procedure Kill      (The_Command : in Command);
+   procedure Interrupt (The_Command : in Command);
 
 
 

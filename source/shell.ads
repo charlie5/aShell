@@ -97,9 +97,10 @@ is
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
    function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
 
-   function  Image (Process : in Shell.Process) return String;
+   function  Image     (Process : in Shell.Process) return String;
 
-   procedure Kill  (Process : in Shell.Process);
+   procedure Kill      (Process : in Shell.Process);
+   procedure Interrupt (Process : in Shell.Process);
 
 
 

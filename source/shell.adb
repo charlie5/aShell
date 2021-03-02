@@ -340,4 +340,12 @@ is
       Send_Signal (Process.Id, Signal_Kill);
    end Kill;
 
+
+   procedure Interrupt (Process : in Shell.Process)
+   is
+      use POSIX.Signals;
+   begin
+      Send_Signal (Process.Id, Signal_Interrupt);
+   end Interrupt;
+
 end Shell;

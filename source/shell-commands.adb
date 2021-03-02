@@ -556,4 +556,11 @@ is
    end Kill;
 
 
+   procedure Interrupt (The_Command : in Command)
+   is
+   begin
+      Interrupt (The_Command.Process);
+   end Interrupt;
+
+
 end Shell.Commands;
