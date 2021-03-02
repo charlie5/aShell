@@ -509,32 +509,6 @@ is
    end Results_Of;
 
 
-   overriding
-   procedure Adjust (The_Command : in out Command)
-   is
-   begin
-      The_Command.Copy_Count.all := The_Command.Copy_Count.all + 1;
-   end Adjust;
-
-
-   overriding
-   procedure Finalize (The_Command : in out Command)
-   is
-      procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
-   begin
-      The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
-
-      if The_Command.Copy_Count.all = 0
-      then
-         Close (The_Command. Input_Pipe);
-         Close (The_Command.Output_Pipe);
-         Close (The_Command. Error_Pipe);
-
-         Deallocate (The_Command.Copy_Count);
-      end if;
-   end Finalize;
-
-
    function Output_Of (The_Results : in Command_Results) return Data
    is
    begin
@@ -561,6 +535,35 @@ is
    begin
       Interrupt (The_Command.Process);
    end Interrupt;
+
+
+   --- Controlled
+   --
+
+   overriding
+   procedure Adjust (The_Command : in out Command)
+   is
+   begin
+      The_Command.Copy_Count.all := The_Command.Copy_Count.all + 1;
+   end Adjust;
+
+
+   overriding
+   procedure Finalize (The_Command : in out Command)
+   is
+      procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
+   begin
+      The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
+
+      if The_Command.Copy_Count.all = 0
+      then
+         Close (The_Command. Input_Pipe);
+         Close (The_Command.Output_Pipe);
+         Close (The_Command. Error_Pipe);
+
+         Deallocate (The_Command.Copy_Count);
+      end if;
+   end Finalize;
 
 
 end Shell.Commands;
