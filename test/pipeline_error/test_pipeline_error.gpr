@@ -5,11 +5,9 @@ with
 project Test_Pipeline_Error
 is
    for Object_Dir use "build";
-   for   Exec_Dir use ".";
-
-   for Main use ("test_pipeline_error.adb");
+   for Exec_Dir   use ".";
+   for Main       use ("test_pipeline_error.adb");
 
    package Compiler renames Shared.Compiler;
 
 end Test_Pipeline_Error;
-

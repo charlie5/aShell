@@ -5,9 +5,8 @@ project Test_Environment
 is
 
    for Object_Dir use "build";
-   for   Exec_Dir use ".";
-
-   for Main use ("test_environment.adb");
+   for Exec_Dir   use ".";
+   for Main       use ("test_environment.adb");
 
    package Compiler renames Ashell.Compiler;
 

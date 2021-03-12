@@ -1,6 +1,6 @@
 abstract 
-project Shared is
-
+project Shared
+is
    for Source_Files use ();
 
 

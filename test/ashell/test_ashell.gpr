@@ -2,15 +2,12 @@ with
      "../../ashell",
      "../../shared";
 
-
-project Test_Ashell is
-
+project Test_aShell
+is
    for Object_Dir use "build";
-   for   Exec_Dir use ".";
-
-   for Main use ("test_ashell.adb");
+   for Exec_Dir   use ".";
+   for Main       use ("test_ashell.adb");
 
    package Compiler renames Shared.Compiler;
 
-end Test_Ashell;
-
+end Test_aShell;

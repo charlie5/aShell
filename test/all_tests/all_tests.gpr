@@ -13,15 +13,12 @@ with
      "../../ashell",
      "../../shared";
 
-
 project All_Tests
 is
    for Object_Dir use "build";
-   for   Exec_Dir use ".";
-
-   for Main use ("test_all.adb");
+   for Exec_Dir   use ".";
+   for Main       use ("test_all.adb");
 
    package Compiler renames Shared.Compiler;
 
 end All_Tests;
-

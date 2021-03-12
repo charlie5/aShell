@@ -2,15 +2,12 @@ with
      "../../ashell",
      "../../shared";
 
-
-project Test_Piped_Processes is
-
+project Test_Piped_Processes
+is
    for Object_Dir use "build";
-   for   Exec_Dir use ".";
-
-   for Main use ("test_piped_processes.adb");
+   for Exec_Dir   use ".";
+   for Main       use ("test_piped_processes.adb");
 
    package Compiler renames Shared.Compiler;
 
 end Test_Piped_Processes;
-
