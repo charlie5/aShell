@@ -537,6 +537,20 @@ is
    end Interrupt;
 
 
+   procedure Pause (The_Command : in Command)
+   is
+   begin
+      Pause (The_Command.Process);
+   end Pause;
+
+
+   procedure Resume (The_Command : in Command)
+   is
+   begin
+      Resume (The_Command.Process);
+   end Resume;
+
+
    --- Controlled
    --
 

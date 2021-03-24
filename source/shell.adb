@@ -348,4 +348,21 @@ is
       Send_Signal (Process.Id, Signal_Interrupt);
    end Interrupt;
 
+
+   procedure Pause (Process : in Shell.Process)
+   is
+      use POSIX.Signals;
+   begin
+      Send_Signal (Process.Id, Signal_Stop);
+   end Pause;
+
+
+   procedure Resume (Process : in Shell.Process)
+   is
+      use POSIX.Signals;
+   begin
+      Send_Signal (Process.Id, Signal_Continue);
+   end Resume;
+
+
 end Shell;

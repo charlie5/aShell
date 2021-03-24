@@ -101,6 +101,8 @@ is
 
    procedure Kill      (Process : in Shell.Process);
    procedure Interrupt (Process : in Shell.Process);
+   procedure Pause     (Process : in Shell.Process);
+   procedure Resume    (Process : in Shell.Process);
 
 
 

@@ -94,6 +94,8 @@ is
 
    procedure Kill      (The_Command : in Command);
    procedure Interrupt (The_Command : in Command);
+   procedure Pause     (The_Command : in Command);
+   procedure Resume    (The_Command : in Command);
 
 
 
