@@ -56,6 +56,9 @@ is
 
    --- Run - Block until process completes.
    --
+   --  Any command which generates output or error data greater than the capacity of a pipe
+   --  (often 1 MiB on linux) will block forever. In this case, use 'Start' and periodically
+   --  read the output and/or error pipes.
 
    procedure Run (The_Command  : in out Command;
                   Input        : in     Data    := No_Data;
