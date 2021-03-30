@@ -67,6 +67,8 @@ is
 
       I : constant Natural := Index (Command_Line, " ");
    begin
+      The_Command.Copy_Count  := new Count' (1);
+
       if I = 0
       then
          The_Command.Name := +Command_Line;
