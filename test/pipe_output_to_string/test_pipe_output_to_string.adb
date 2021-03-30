@@ -18,7 +18,7 @@ begin
       ls_Pipe : constant Shell.Pipe := To_Pipe;
       ls      : Shell.Process       := Start (Program   => "ls",
                                               Arguments => (1 => +"-alhR",
-                                                            2 => +"/home"),
+                                                            2 => +"/etc"),
                                               Output    => ls_Pipe) with Unreferenced;
    begin
       for i in 1 .. 1000
@@ -31,7 +31,7 @@ begin
                exit;
             end if;
 
-            delay 1.0;                       -- Allow time to elapse so the process can pump the pipe with plenty of output.
+            delay 0.1;                       -- Allow time to elapse so the process can pump the pipe with plenty of output.
             Put_Line ("'" & Output & "'");   -- The 'To_String' function reads any output from the pipe as a String.
          end;
       end loop;
