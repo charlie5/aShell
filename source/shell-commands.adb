@@ -6,7 +6,6 @@ with
 
 package body Shell.Commands
 is
-
    --- Strings
    --
 
@@ -254,7 +253,8 @@ is
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := False)
    is
-      Input_Pipe : constant Shell.Pipe := (if Input = No_Data then The_Command.Input_Pipe else To_Pipe);
+      Input_Pipe : constant Shell.Pipe := (if Input = No_Data then The_Command.Input_Pipe
+                                                              else To_Pipe);
    begin
       The_Command.Input_Pipe := Input_Pipe;
 
@@ -277,7 +277,8 @@ is
                     Pipeline : in     Boolean := True)
    is
       First_Command :          Command renames Commands (Commands'First);
-      Input_Pipe    : constant Shell.Pipe   := (if Input = No_Data then First_Command.Input_Pipe else To_Pipe);
+      Input_Pipe    : constant Shell.Pipe   := (if Input = No_Data then First_Command.Input_Pipe
+                                                                   else To_Pipe);
    begin
       First_Command.Input_Pipe := Input_Pipe;
 
@@ -438,7 +439,7 @@ is
    is
       use Ada.Strings.Fixed;
       The_Index   : constant Natural := Index (Command_Line, " | ");
-      Is_Pipeline : constant Boolean := (if The_Index = 0 then False else True);
+      Is_Pipeline : constant Boolean := The_Index /= 0;
    begin
       if Is_Pipeline
       then
