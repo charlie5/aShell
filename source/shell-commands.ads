@@ -1,3 +1,7 @@
+private
+with
+     Ada.Containers.Indefinite_Vectors;
+
 package Shell.Commands
 --
 -- Any open pipes attached to a command will be automatically closed when the command goes out of scope.
@@ -56,9 +60,6 @@ is
 
    --- Run - Block until process completes.
    --
-   --  Any command which generates output or error data greater than the capacity of a pipe
-   --  (often 1 MiB on linux) will block forever. In this case, use 'Start' and periodically
-   --  read the output and/or error pipes.
 
    procedure Run (The_Command  : in out Command;
                   Input        : in     Data    := No_Data;
@@ -107,16 +108,25 @@ private
    type Count        is new Natural;
    type Count_Access is access all Count;
 
+   subtype Data_Index   is Data_Offset range 1 .. Data_Offset'Last;
+   package Data_Vectors is new Ada.Containers.Indefinite_Vectors (Data_Index, Data);
+   subtype Data_Vector  is Data_Vectors.Vector;
+
    type Command is new Ada.Finalization.Controlled
      with
          record
             Name        : Unbounded_String;
             Arguments   : String_Vector;
+
             Input_Pipe  : Pipe := Standard_Input;
             Output_Pipe : Pipe := Standard_Output;
             Error_Pipe  : Pipe := Standard_Error;
+
             Process     : aliased Shell.Process;
             Copy_Count  : Count_Access;
+
+            Output      : Data_Vector;
+            Errors      : Data_Vector;
          end record;
 
    overriding

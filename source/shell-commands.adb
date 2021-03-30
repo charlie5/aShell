@@ -321,16 +321,36 @@ is
    --- Run
    --
 
+   procedure gather_Results (The_Command : in out Command)
+   is
+      The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
+      The_Errors : constant Data := Output_Of (The_Command. Error_Pipe);
+   begin
+      if The_Output'Length /= 0
+      then
+         The_Command.Output.Append (The_Output);
+      end if;
+
+      if The_Errors'Length /= 0
+      then
+         The_Command.Errors.Append (The_Errors);
+      end if;
+   end gather_Results;
+
+
    procedure Run (The_Command : in out Command;
                   Input       : in     Data    := No_Data;
                   Raise_Error : in     Boolean := False)
    is
    begin
-      The_Command.Output_Pipe := To_Pipe;
-      The_Command. Error_Pipe := To_Pipe;
+      The_Command.Output_Pipe := To_Pipe (Blocking => False);
+      The_Command. Error_Pipe := To_Pipe (Blocking => False);
 
-      Start   (The_Command, Input);
-      Wait_On (The_Command.Process);
+      Start (The_Command, Input);
+      loop
+         gather_Results (The_Command);
+         exit when Has_Terminated (The_Command.Process);
+      end loop;
 
       if     not Normal_Exit (The_Command.Process)
         and then Raise_Error
@@ -366,26 +386,36 @@ is
 
       Start (The_Pipeline, Input);
 
-      for i in The_Pipeline'Range
-      loop
-         Wait_On (The_Pipeline (i).Process);
-
-         if not Normal_Exit (The_Pipeline (i).Process)
-         then
-            if Raise_Error
+      declare
+         i : Positive := 1;
+      begin
+         loop
+            if Has_Terminated (The_Pipeline (i).Process)
             then
-               declare
-                  Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                             & " '" & (+The_Pipeline (i).Name) & "' failed.";
-               begin
-                  raise Command_Error with Error;
-               end;
+               gather_Results (Last_Command);   -- Gather any final results.
+
+               if not Normal_Exit (The_Pipeline (i).Process)
+               then
+                  if Raise_Error
+                  then
+                     declare
+                        Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                                   & " '" & (+The_Pipeline (i).Name) & "' failed.";
+                     begin
+                        raise Command_Error with Error;
+                     end;
+                  end if;
+
+                  return;
+               end if;
+
+               i := i + 1;
+               exit when i > The_Pipeline'Last;
             end if;
 
-            return;
-         end if;
-      end loop;
-
+            gather_Results (Last_Command);   -- Gather on-going results.
+         end loop;
+      end;
    end Run;
 
 
@@ -498,13 +528,53 @@ is
 
 
       declare
-         Output : constant Data := Output_Of (The_Command.Output_Pipe);
-         Error  : constant Data := Output_Of (The_Command. Error_Pipe);
+         use Data_Vectors;
+
+         Output_Size : Data_Offset := 0;
+         Errors_Size : Data_Offset := 0;
       begin
-         return (Output_Size => Output'Length,
-                 Error_Size  => Error 'Length,
-                 Output      => Output,
-                 Errors      => Error);
+         for Each of The_Command.Output
+         loop
+            Output_Size := Output_Size + Each'Length;
+         end loop;
+
+         for Each of The_Command.Errors
+         loop
+            Errors_Size := Errors_Size + Each'Length;
+         end loop;
+
+         declare
+            Output : Data (1 .. Output_Size);
+            Errors : Data (1 .. Errors_Size);
+
+            procedure Set_Data (From : in     Data_Vector;
+                                To   :    out Data)
+            is
+               First : Data_Index := 1;
+               Last  : Data_Index;
+            begin
+               for Each of From
+               loop
+                  Last  := First + Each'Length - 1;
+                  To (First .. Last) := Each;
+                  First := Last + 1;
+               end loop;
+            end Set_Data;
+
+         begin
+            Set_Data (The_Command.Output, Output);
+            Set_Data (The_Command.Errors, Errors);
+
+            return (Output_Size => Output_Size,
+                    Error_Size  => Errors_Size,
+                    Output      => Output,
+                    Errors      => Errors);
+         end;
+
+      exception
+         when Storage_Error =>
+            raise Command_Error with "Command output exceeds stack capacity. "
+                                   & "Increase the stack limit via 'ulimit -s'.";
       end;
    end Results_Of;
 
