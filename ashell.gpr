@@ -2,12 +2,15 @@ with
      "florist",
      "shared";
 
-project Ashell
+library
+project aShell
 is
-   for Library_Name use "ashell";
+   for Create_Missing_Dirs use "True";
 
-   for Object_Dir  use "build";
-   for Source_Dirs use ("source");
+   for Library_Dir  use "lib";
+   for Object_Dir   use "build";
+   for Source_Dirs  use ("source");
+   for Library_Name use "aShell";
 
    package Compiler renames Shared.Compiler;
 
@@ -15,5 +18,4 @@ is
       for VCS_Kind use "Git";
    end IDE;
 
-end Ashell;
-
+end aShell;
