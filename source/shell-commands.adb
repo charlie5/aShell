@@ -529,6 +529,7 @@ is
          raise Command_Error with "Command error pipe is not readable.";
       end if;
 
+      gather_Results (The_Command);
 
       declare
          use Data_Vectors;
@@ -550,7 +551,7 @@ is
             Output : Data (1 .. Output_Size);
             Errors : Data (1 .. Errors_Size);
 
-            procedure Set_Data (From : in     Data_Vector;
+            procedure Set_Data (From : in out Data_Vector;
                                 To   :    out Data)
             is
                First : Data_Index := 1;
@@ -562,6 +563,8 @@ is
                   To (First .. Last) := Each;
                   First := Last + 1;
                end loop;
+
+               From.Clear;
             end Set_Data;
 
          begin
