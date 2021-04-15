@@ -58,7 +58,7 @@ is
    case Build_Mode 
    is
       when "debug" =>
-         Binder_Options   := Binder_Options   & "-E";
+         Binder_Options   := Binder_Options   & "-Es";
          Compiler_Options := Compiler_Options & "-gnato"
                                               & "-fstack-check"
                                               & "-g";
