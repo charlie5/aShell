@@ -39,10 +39,10 @@ is
    -- Conversion
 
    function To_String (From : in Data)   return String;
-   function To_Stream (From : in String) return Data;
+   function To_Data   (From : in String) return Data;
 
    function "+"       (From : in Data)   return String renames To_String;
-   function "+"       (From : in String) return Data   renames To_Stream;
+   function "+"       (From : in String) return Data   renames To_Data;
 
 
    --- Pipes

@@ -37,14 +37,14 @@ is
    end To_String;
 
 
-   function To_Stream (From : in String) return Data
+   function To_Data (From : in String) return Data
    is
       subtype  My_String is String (From'Range);
       subtype  My_Data   is Data   (0 .. From'Length - 1);
       function Convert   is new Ada.Unchecked_Conversion (My_String, My_Data);
    begin
       return Convert (From);
-   end To_Stream;
+   end To_Data;
 
 
    --- Pipes
