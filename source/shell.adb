@@ -1,9 +1,13 @@
 with
+     POSIX.Signals,
+     POSIX.Process_Primitives.Extensions,
+     POSIX.Event_Management,
+
+     Ada.Characters.Handling,
+     Ada.Exceptions,
      Ada.IO_Exceptions,
      Ada.Unchecked_Conversion,
-
-     POSIX.Signals,
-     POSIX.Process_Primitives.Extensions;
+     Ada.Task_Identification;
 
 package body Shell
 is
@@ -50,13 +54,50 @@ is
    --- Pipes
    --
 
+   protected
+   body  Safe_Pipes
+   is
+      procedure Open  (Pipe : out Shell.Pipe)
+      is
+         use POSIX.IO;
+      begin
+         Create_Pipe (Read_End  => Pipe.Read_End,
+                      Write_End => Pipe.Write_End);
+      end Open;
+
+
+      procedure Close (Pipe           : in out Shell.Pipe;
+                       Only_Write_End : in     Boolean := False;
+                       Only_Read_End  : in     Boolean := False)
+      is
+         use POSIX.IO;
+      begin
+         if    not  Only_Write_End
+           and then Pipe.Read_End /= Null_File_Descriptor
+           and then Is_Open (Pipe.Read_End)
+         then
+            Close (File => Pipe.Read_End);
+            Pipe.Read_End := Null_File_Descriptor;
+         end if;
+
+         if    not  Only_Read_End
+           and then Pipe.Write_End /= Null_File_Descriptor
+           and then Is_Open (Pipe.Write_End)
+         then
+            Close (File => Pipe.Write_End);
+            Pipe.Write_End := Null_File_Descriptor;
+         end if;
+      end Close;
+
+   end Safe_Pipes;
+
+
    function To_Pipe (Blocking : in Boolean := True) return Pipe
    is
       use POSIX.IO;
       The_Pipe : Pipe;
    begin
-      Create_Pipe (Read_End  => The_Pipe.Read_End,
-                   Write_End => The_Pipe.Write_End);
+      Safe_Pipes.Open (The_Pipe);
 
       if not Blocking
       then
@@ -66,6 +107,39 @@ is
 
       return The_Pipe;
    end To_Pipe;
+
+
+   procedure Close (Pipe           : in out Shell.Pipe;
+                    Only_Write_End : in     Boolean := False;
+                    Only_Read_End  : in     Boolean := False)
+   is
+      use POSIX.IO;
+   begin
+      if    Only_Write_End
+        and Only_Read_End
+      then
+         raise Program_Error with "Closing pipe: 'Only_Write_End' and 'Only_Read_End' options are mutually exclusive";
+      end if;
+
+      if    Pipe /= Standard_Input
+        and Pipe /= Standard_Output
+        and Pipe /= Standard_Error
+      then
+         Safe_Pipes.Close (Pipe, Only_Write_End, Only_Read_End);
+      end if;
+
+   end Close;
+
+
+   function Image (Pipe : in Shell.Pipe) return String
+   is
+   begin
+      return "(Write_End =>"
+           & Pipe.Write_End'Image
+           & ", Read_End =>"
+           & Pipe.Read_End'Image
+           & ")";
+   end Image;
 
 
    function Is_Readable (The_Pipe : in Pipe) return Boolean
@@ -85,66 +159,98 @@ is
 
 
    function Output_Of (The_Pipe : in Pipe) return Data
-
    is
-      use POSIX;
+      use Ada.Task_Identification,
+          Ada.Exceptions;
+
       Max_Process_Output : constant := 200 * 1024;
 
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset;
    begin
-      IO.Read (File   => The_Pipe.Read_End,
-               Buffer => Buffer,
-               Last   => Last);
+      if not Is_Readable (The_Pipe)
+      then
+         return No_Data;
+      end if;
+
+      declare
+         use POSIX.Event_Management,
+             POSIX.IO;
+
+         FDS_R   : File_Descriptor_Set;
+         FDS_W   : File_Descriptor_Set;
+         FDS_E   : File_Descriptor_Set;
+         Count : Natural;
+      begin
+         Make_Empty (FDS_R);
+         Make_Empty (FDS_W);
+         Make_Empty (FDS_E);
+
+         add (FDS_R, The_Pipe.Read_End);
+
+         Select_File (Read_Files     => FDS_R,
+                      Write_Files    => FDS_W,
+                      Except_Files   => FDS_E,
+                      Files_Selected => Count,
+                      Timeout        => 0.05);
+
+         if Count > 0
+         then
+            Read (File   => The_Pipe.Read_End,
+                  Buffer => Buffer,
+                  Last   => Last);
+         else
+            raise No_Output_Error with Image (Current_Task) & " 'Shell.Output_Of ()' ~ pipe read end =>" & The_Pipe.Read_End'Image;
+         end if;
+      end;
+
       return Buffer (1 .. Last);
 
    exception
-      when POSIX.POSIX_Error
-         | Ada.IO_Exceptions.End_Error =>
+      when E : POSIX.POSIX_Error =>
+         declare
+            use Ada.Characters.Handling;
+            Message : constant String := To_Upper (Exception_Message (E));
+         begin
+            if Message = "BAD_FILE_DESCRIPTOR"
+            then
+               return No_Data;
+            end if;
 
+            raise No_Output_Error with Image (Current_Task) & " " & Message & " ~ pipe read end =>" & The_Pipe.Read_End'Image;
+         end;
+
+      when Ada.IO_Exceptions.End_Error =>
          return No_Data;
    end Output_Of;
 
 
    procedure Write_To (The_Pipe : in Pipe;   Input : in Data)
    is
-      subtype   My_Data is Data (Input'Range);
-      procedure Write   is new POSIX.IO.Generic_Write (My_Data);
    begin
-      Write (The_Pipe.Write_End, Input);
+      if Input'Length > 0
+      then
+         declare
+            subtype   My_Data is Data (Input'Range);
+            procedure Write   is new POSIX.IO.Generic_Write (My_Data);
+         begin
+            Write (The_Pipe.Write_End, Input);
+         end;
+      end if;
    end Write_To;
 
 
-   procedure Close (The_Pipe : in Pipe)
-   is
-      use POSIX.IO;
-   begin
-      if    The_Pipe /= Standard_Input
-        and The_Pipe /= Standard_Output
-        and The_Pipe /= Standard_Error
-      then
-         if Is_Open (The_Pipe.Read_End) then
-            Close (File => The_Pipe.Read_End);
-         end if;
-
-         if Is_Open (The_Pipe.Write_End) then
-            Close (File => The_Pipe.Write_End);
-         end if;
-      end if;
-   end Close;
-
-
-   procedure Close_Write_End (The_Pipe : in Pipe)
+   procedure Close_Write_End (The_Pipe : in out Pipe)
    is
    begin
-      POSIX.IO.Close (The_Pipe.Write_End);
+      Safe_Pipes.Close (The_Pipe, Only_Write_End => True);
    end Close_Write_End;
 
 
-   function Close_Write_End (The_Pipe : in Pipe) return Boolean
+   function Close_Write_End (The_Pipe : in out Pipe) return Boolean
    is
    begin
-      Close_Write_End (The_Pipe);
+      Safe_Pipes.Close (The_Pipe, Only_Write_End => True);
       return True;
    end Close_Write_End;
 
@@ -180,13 +286,13 @@ is
    --- Processes
    --
 
-   function Start (Program           : in String;
-                   Arguments         : in String_Array := Nil_Strings;
-                   Working_Directory : in String       := ".";
-                   Input             : in Pipe         := Standard_Input;
-                   Output            : in Pipe         := Standard_Output;
-                   Errors            : in Pipe         := Standard_Error;
-                   Pipeline          : in Boolean      := False) return Process
+   function Start (Program           : in     String;
+                   Arguments         : in     String_Array := Nil_Strings;
+                   Working_Directory : in     String       := ".";
+                   Input             : in out Pipe;
+                   Output            : in out Pipe;
+                   Errors            : in out Pipe;
+                   Pipeline          : in     Boolean := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -196,8 +302,8 @@ is
       The_Process    : Process;
       The_Process_Id : Process_Id;
 
-      Args  :          POSIX_String_List;
-      Name  : constant POSIX_String     := To_POSIX_String (Program);
+      Args :          POSIX_String_List;
+      Name : constant POSIX_String     := To_POSIX_String (Program);
 
    begin
       Open_Template (The_Template);
@@ -244,7 +350,7 @@ is
 
       if Input /= Standard_Input
       then
-         POSIX.IO.Close (Input.Read_End);
+         Safe_Pipes.Close (Input, Only_Read_End => True);
       end if;
 
       -- When in a pipeline of processes, the write ends of The_Process's 'Output' & 'Errors' pipes must remain open, in
@@ -254,12 +360,12 @@ is
       then
          if Output /= Standard_Output
          then
-            POSIX.IO.Close (Output.Write_End);
+            Safe_Pipes.Close (Output, Only_Write_End => True);
          end if;
 
          if Errors /= Standard_Error
          then
-            POSIX.IO.Close (Errors.Write_End);
+            Safe_Pipes.Close (Errors, Only_Write_End => True);
          end if;
       end if;
 
@@ -268,12 +374,12 @@ is
    end Start;
 
 
-   function Start (Command           : in String;
-                   Working_Directory : in String  := ".";
-                   Input             : in Pipe    := Standard_Input;
-                   Output            : in Pipe    := Standard_Output;
-                   Errors            : in Pipe    := Standard_Error;
-                   Pipeline          : in Boolean := False) return Process
+   function Start (Command           : in     String;
+                   Working_Directory : in     String := ".";
+                   Input             : in out Pipe;
+                   Output            : in out Pipe;
+                   Errors            : in out Pipe;
+                   Pipeline          : in     Boolean := False) return Process
    is
    begin
       return Start (Program           => "/bin/sh",

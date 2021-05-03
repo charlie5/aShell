@@ -17,10 +17,13 @@ is
                          Output       : in Pipe  := Standard_Output;
                          Errors       : in Pipe  := Standard_Error) return Command;
 
-   function To_Commands (Pipeline     : in String) return Command_Array;  -- An example 'Pipeline'     is "ps -A | grep bash | wc".
+   function To_Commands (Pipeline      : in String;
+                         Expect_Output : in Boolean := True) return Command_Array;   -- An example 'Pipeline' is "ps -A | grep bash | wc".
 
    function "+"         (Command_Line : in String) return Command;
-   function "+"         (Pipeline     : in String) return Command_Array renames To_Commands;
+   function "+"         (Pipeline     : in String) return Command_Array;   -- Calls 'To_Commands' with 'Expect_Output' set to 'True'.
+
+   function  Image      (The_Command : in Command) return String;
 
    procedure Connect (From, To : in out Command);        -- Connects 'From's output to 'To's input via a pipe.
    procedure Connect (Commands : in out Command_Array);  -- Connects each command in a pipeline.
@@ -122,17 +125,23 @@ private
             Output_Pipe : Pipe := Standard_Output;
             Error_Pipe  : Pipe := Standard_Error;
 
-            Process     : aliased Shell.Process;
-            Copy_Count  : Count_Access;
+            Owns_Output_Pipe : Boolean := False;
+            Owns_Input_Pipe  : Boolean := False;
 
-            Output      : Data_Vector;
-            Errors      : Data_Vector;
+            Process    : aliased Shell.Process;
+            Copy_Count : Count_Access;
+
+            Expect_Output : Boolean    := False;
+            Output        : Data_Vector;
+            Errors        : Data_Vector;
+
+            Error_Count : Natural := 0;
          end record;
 
    overriding
-   procedure Adjust     (The_Command : in out Command);
+   procedure Adjust   (The_Command : in out Command);
    overriding
-   procedure Finalize   (The_Command : in out Command);
+   procedure Finalize (The_Command : in out Command);
 
 
    type Command_Results (Output_Size : Data_Offset;

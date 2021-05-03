@@ -51,16 +51,23 @@ is
 
    function  To_Pipe (Blocking : in Boolean := True) return Pipe;
 
+   function  Image   (Pipe : in Shell.Pipe) return String;
+
    function  Is_Readable  (The_Pipe : in Pipe) return Boolean;
    function  Is_Writeable (The_Pipe : in Pipe) return Boolean;
+
+   No_Output_Error   : exception;
+   Pipe_Not_Readable : exception;
 
    function  Output_Of (The_Pipe : in Pipe)       return Data;   -- Returns available output from the 'read end'.
    procedure Write_To  (The_Pipe : in Pipe;   Input : in Data);
 
-   procedure Close     (The_Pipe : in Pipe);
+   procedure Close (Pipe           : in out Shell.Pipe;
+                    Only_Write_End : in     Boolean := False;
+                    Only_Read_End  : in     Boolean := False);
 
-   procedure Close_Write_End (The_Pipe : in Pipe);
-   function  Close_Write_End (The_Pipe : in Pipe) return Boolean;
+   procedure Close_Write_End (The_Pipe : in out Pipe);
+   function  Close_Write_End (The_Pipe : in out Pipe) return Boolean;
 
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
@@ -78,20 +85,20 @@ is
    -- For 'Start', when pipeline is true, closing the write ends of any
    -- non-standard 'Output' and 'Errors' pipes becomes the callers responsibility.
 
-   function Start (Program           : in String;
-                   Arguments         : in String_Array := Nil_Strings;
-                   Working_Directory : in String       := ".";
-                   Input             : in Pipe         := Standard_Input;
-                   Output            : in Pipe         := Standard_Output;
-                   Errors            : in Pipe         := Standard_Error;
-                   Pipeline          : in Boolean      := False) return Process;
+   function Start (Program           : in     String;
+                   Arguments         : in     String_Array := Nil_Strings;
+                   Working_Directory : in     String       := ".";
+                   Input             : in out Pipe;
+                   Output            : in out Pipe;
+                   Errors            : in out Pipe;
+                   Pipeline          : in     Boolean      := False) return Process;
 
    function Start (Command           : in String;
-                   Working_Directory : in String       := ".";
-                   Input             : in Pipe         := Standard_Input;
-                   Output            : in Pipe         := Standard_Output;
-                   Errors            : in Pipe         := Standard_Error;
-                   Pipeline          : in Boolean      := False) return Process;
+                   Working_Directory : in String  := ".";
+                   Input             : in out Pipe;
+                   Output            : in out Pipe;
+                   Errors            : in out Pipe;
+                   Pipeline          : in Boolean := False) return Process;
 
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
@@ -112,7 +119,7 @@ private
    subtype File_Descriptor  is POSIX.IO.File_Descriptor;
    subtype Process_ID       is POSIX.Process_Identification.Process_ID;
 
-   Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;   -- TODO: Better way to define a null file descriptor ?
+   Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;
 
    No_Data     : constant Data (1 .. 0) := (others => <>);
    Nil_Strings : constant String_Array  := (1 .. 0 => <>);
@@ -125,9 +132,9 @@ private
    --
 
    type Pipe is
-      record
-         Write_End,
-         Read_End : File_Descriptor := Null_File_Descriptor;
+         record
+            Write_End,
+            Read_End : File_Descriptor := Null_File_Descriptor;
       end record;
 
    Standard_Input  : constant Pipe := (Write_End => Null_File_Descriptor,
@@ -138,6 +145,14 @@ private
 
    Standard_Error  : constant Pipe := (Write_End => POSIX.IO.Standard_Error,
                                        Read_End  => Null_File_Descriptor);
+
+   protected Safe_Pipes
+   is
+      procedure Open  (Pipe           : out    Shell.Pipe);
+      procedure Close (Pipe           : in out Shell.Pipe;
+                       Only_Write_End : in     Boolean := False;
+                       Only_Read_End  : in     Boolean := False);
+   end Safe_Pipes;
 
 
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with

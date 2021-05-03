@@ -2,7 +2,12 @@ with
      GNAT.OS_Lib,
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
-     Ada.Unchecked_Deallocation;
+     Ada.Unchecked_Deallocation,
+     Ada.Unchecked_Conversion,
+     Ada.Text_IO,
+     Ada.Task_Identification,
+     Ada.Characters.Handling,
+     Ada.Exceptions;
 
 package body Shell.Commands
 is
@@ -43,8 +48,8 @@ is
       Command_Name : constant String      := "Command_Name";     -- Argument_String_To_List expects the command name to be the 1st piece
                                                                  -- of the string, so we provide a dummy name.
       Arguments    : Argument_List_Access := Argument_String_To_List (  Command_Name
-                                                                       & " "
-                                                                       & All_Arguments);
+                                                                      & " "
+                                                                      & All_Arguments);
       Result       : String_Array (1 .. Arguments'Length - 1);
    begin
       for i in Result'Range
@@ -59,6 +64,30 @@ is
 
    --- Commands
    --
+
+   function Image (The_Command : in Command) return String
+   is
+      use String_Vectors;
+      Result : Unbounded_String;
+   begin
+      Append (Result, "(" & The_Command.Name & ", (");
+
+      for Each of The_Command.Arguments
+      loop
+         Append (Result, Each);
+
+         if Each = Last_Element (The_Command.Arguments)
+         then
+            Append (Result, ")");
+         else
+            Append (Result, ", ");
+         end if;
+      end loop;
+
+      Append (Result, ")");
+      return To_String (Result);
+   end Image;
+
 
    procedure define (The_Command : out Command;   Command_Line : in String)
    is
@@ -99,11 +128,11 @@ is
          do
             Result.Name := +Command_Line;
 
-            Result.Input_Pipe  :=  Input;
+            Result. Input_Pipe :=  Input;
             Result.Output_Pipe :=  Output;
-            Result.Error_Pipe  :=  Errors;
+            Result. Error_Pipe :=  Errors;
 
-            Result.Copy_Count  := new Count' (1);
+            Result.Copy_Count := new Count' (1);
          end return;
       end if;
 
@@ -116,11 +145,11 @@ is
             Result.Name      := +(Name);
             Result.Arguments := To_String_Vector (Arguments);
 
-            Result.Input_Pipe  :=  Input;
+            Result. Input_Pipe :=  Input;
             Result.Output_Pipe :=  Output;
-            Result.Error_Pipe  :=  Errors;
+            Result. Error_Pipe :=  Errors;
 
-            Result.Copy_Count  := new Count' (1);
+            Result.Copy_Count := new Count' (1);
          end return;
       end;
    end to_Command;
@@ -133,7 +162,8 @@ is
    end "+";
 
 
-   function To_Commands (Pipeline : in String) return Command_Array
+   function To_Commands (Pipeline      : in String;
+                         Expect_Output : in Boolean := True) return Command_Array
    is
       use Ada.Strings.Fixed;
 
@@ -168,6 +198,8 @@ is
 
       return Result : Command_Array (1 .. Count)
       do
+         Result (Count).Expect_Output := Expect_Output;
+
          for I in 1 .. Count
          loop
             define (Result (I), +All_Commands (I));
@@ -176,12 +208,22 @@ is
    end To_Commands;
 
 
+   function "+" (Pipeline : in String) return Command_Array
+   is
+   begin
+      return To_Commands (Pipeline, Expect_Output => True);
+   end "+";
+
+
    procedure Connect (From, To : in out Command)
    is
-      Pipe : constant Shell.Pipe := to_Pipe;
+      Pipe : constant Shell.Pipe := To_Pipe;
    begin
       From.Output_Pipe := Pipe;
       To.Input_Pipe    := Pipe;
+
+      From.Owns_Input_Pipe := True;
+      To.Owns_Output_Pipe  := True;
    end Connect;
 
 
@@ -196,7 +238,7 @@ is
    end Connect;
 
 
-   procedure Close_Pipe_Write_Ends (The_Command : in Command)
+   procedure Close_Pipe_Write_Ends (The_Command : in out Command)
    is
    begin
       if The_Command.Output_Pipe /= Standard_Output
@@ -309,15 +351,12 @@ is
          --
          if I /= Commands'First
          then
-            Close_Pipe_Write_Ends (Commands (I - 1));          -- Close ends for the prior command.
+            Close_Pipe_Write_Ends (Commands (I - 1));   -- Close ends for the prior command.
          end if;
 
-         if I = Commands'Last
-         then
-            Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
-         end if;
       end loop;
 
+      Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
    end Start;
 
 
@@ -326,18 +365,34 @@ is
 
    procedure gather_Results (The_Command : in out Command)
    is
-      The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
-      The_Errors : constant Data := Output_Of (The_Command. Error_Pipe);
    begin
-      if The_Output'Length /= 0
-      then
-         The_Command.Output.Append (The_Output);
-      end if;
+      begin
+         declare
+            The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
+         begin
+            if The_Output'Length /= 0
+            then
+               The_Command.Output.Append (The_Output);
+            end if;
+         end;
+      exception
+         when No_Output_Error =>
+            The_Command.Error_Count := The_Command.Error_Count + 1;
+      end;
 
-      if The_Errors'Length /= 0
-      then
-         The_Command.Errors.Append (The_Errors);
-      end if;
+      begin
+         declare
+            The_Errors : constant Data := Output_Of (The_Command.Error_Pipe);
+         begin
+            if The_Errors'Length /= 0
+            then
+               The_Command.Errors.Append (The_Errors);
+            end if;
+         end;
+      exception
+         when No_Output_Error =>
+            The_Command.Error_Count := The_Command.Error_Count + 1;
+      end;
    end gather_Results;
 
 
@@ -355,8 +410,8 @@ is
          exit when Has_Terminated (The_Command.Process);
       end loop;
 
-      if     not Normal_Exit (The_Command.Process)
-        and then Raise_Error
+      if not Normal_Exit (The_Command.Process)
+         and Raise_Error
       then
          declare
             Error : constant String := +Output_Of (The_Command.Error_Pipe);
@@ -382,6 +437,8 @@ is
                   Input        : in     Data    := No_Data;
                   Raise_Error  : in     Boolean := False)
    is
+      use Ada.Characters.Handling,
+          Ada.Exceptions;
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
    begin
       Last_Command.Output_Pipe := To_Pipe;
@@ -390,34 +447,114 @@ is
       Start (The_Pipeline, Input);
 
       declare
-         i : Positive := 1;
+         use Data_Vectors,
+             Ada.Task_Identification,
+             Ada.Text_IO;
+         Restart_Pipeline : Boolean  := False;
+         i                : Positive := 1;
       begin
          loop
-            if Has_Terminated (The_Pipeline (i).Process)
-            then
-               gather_Results (Last_Command);   -- Gather any final results.
+            begin
+               gather_Results (Last_Command);   -- Gather on-going results.
 
-               if not Normal_Exit (The_Pipeline (i).Process)
+               if   Last_Command.Error_Count > 3
+                 or Restart_Pipeline
                then
-                  if Raise_Error
-                  then
-                     declare
-                        Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                                   & " '" & (+The_Pipeline (i).Name) & "' failed.";
-                     begin
-                        raise Command_Error with Error;
-                     end;
-                  end if;
+                  Restart_Pipeline         := False;
+                  Last_Command.Error_Count := 0;
 
-                  return;
+                  Clear (Last_Command.Output);
+                  Clear (Last_Command.Errors);
+
+                  for Each of The_Pipeline
+                  loop
+                     begin
+                        Close (Each. Input_Pipe);
+                        Close (Each.Output_Pipe);
+                        Close (Each. Error_Pipe);
+
+                        begin
+                           Kill (Each);
+                        exception
+                           when E : POSIX.POSIX_Error =>
+                              if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"
+                              then
+                                 Put_Line (Image (Current_Task) & " ~ Unable to kill process" & Image (Each.Process));
+                                 raise;
+                              end if;
+                        end;
+
+                        begin
+                           Wait_On (Each.Process);   -- Reap zombies.
+                        exception
+                           when E : POSIX.POSIX_Error =>
+                              if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
+                              then
+                                 Put_Line (Image (Current_Task) & " ~ Unable to wait on process" & Image (Each.Process));
+                                 raise;
+                              end if;
+                        end;
+                     end;
+                  end loop;
+
+                  Last_Command.Output_Pipe := To_Pipe;
+                  Last_Command. Error_Pipe := To_Pipe;
+
+                  Start (The_Pipeline, Input);
+
+                  i := 1;
                end if;
 
-               i := i + 1;
-               exit when i > The_Pipeline'Last;
-            end if;
+               if Has_Terminated (The_Pipeline (i).Process)
+               then
+                  if not Normal_Exit (The_Pipeline (i).Process)
+                  then
+                     if Raise_Error
+                     then
+                        declare
+                           Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                                      & " '" & (+The_Pipeline (i).Name) & "' failed.";
+                        begin
+                           raise Command_Error with Error;
+                        end;
+                     end if;
 
-            gather_Results (Last_Command);   -- Gather on-going results.
+                     Restart_Pipeline := True;
+                  else
+                     i := i + 1;
+
+                     if i > The_Pipeline'Last
+                     then
+                        if (    Last_Command.Expect_Output
+                            and Is_Empty (Last_Command.Output))
+                          or not Is_Readable (Last_Command.Output_Pipe)
+                          or not Is_Readable (Last_Command.Error_Pipe)
+                        then
+                           Restart_Pipeline := True;
+                        else
+                           gather_Results (Last_Command);   -- Gather any final results.
+                           exit;
+                        end if;
+                     end if;
+                  end if;
+
+               end if;
+
+            exception
+               when E : POSIX.POSIX_Error =>
+                  if To_Upper (Exception_Message (E)) = "INVALID_ARGUMENT"
+                  then
+                     Restart_Pipeline := True;
+                  else
+                     raise;
+                  end if;
+
+               when E : others =>
+                  Put_Line (Image (Current_Task) & "   "  & Exception_Information (E));
+                  raise;
+            end;
          end loop;
+
       end;
    end Run;
 
@@ -517,16 +654,6 @@ is
       elsif The_Command.Error_Pipe  = Standard_Error
       then
          raise Command_Error with "Attempt to read the Standard_Error pipe.";
-      end if;
-
-
-      if    not Is_Readable (The_Command.Output_Pipe)
-      then
-         raise Command_Error with "Command output pipe is not readable.";
-
-      elsif not Is_Readable (The_Command.Error_Pipe)
-      then
-         raise Command_Error with "Command error pipe is not readable.";
       end if;
 
       gather_Results (The_Command);
@@ -641,18 +768,30 @@ is
    overriding
    procedure Finalize (The_Command : in out Command)
    is
-      procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
    begin
-      The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
+      declare
+         procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
+      begin
+         The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
 
-      if The_Command.Copy_Count.all = 0
-      then
-         Close (The_Command. Input_Pipe);
-         Close (The_Command.Output_Pipe);
-         Close (The_Command. Error_Pipe);
+         if The_Command.Copy_Count.all = 0
+         then
+            if The_Command.Owns_Input_Pipe
+            then
+               Close (The_Command. Input_Pipe);
+            end if;
 
-         Deallocate (The_Command.Copy_Count);
-      end if;
+            if The_Command.Owns_Output_Pipe
+            then
+               Close (The_Command.Output_Pipe);
+            end if;
+
+            Close (The_Command. Error_Pipe);
+
+            Deallocate (The_Command.Copy_Count);
+         end if;
+      end;
+
    end Finalize;
 
 
