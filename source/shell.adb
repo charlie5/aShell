@@ -54,10 +54,9 @@ is
    --- Pipes
    --
 
-   protected
-   body  Safe_Pipes
+   protected body Safe_Pipes
    is
-      procedure Open  (Pipe : out Shell.Pipe)
+      procedure Open (Pipe : out Shell.Pipe)
       is
          use POSIX.IO;
       begin
@@ -142,23 +141,23 @@ is
    end Image;
 
 
-   function Is_Readable (The_Pipe : in Pipe) return Boolean
+   function Is_Readable (Pipe : in Shell.Pipe) return Boolean
    is
       use POSIX.IO;
    begin
-      return Is_Open (The_Pipe.Read_End);
+      return Is_Open (Pipe.Read_End);
    end Is_Readable;
 
 
-   function Is_Writeable (The_Pipe : in Pipe) return Boolean
+   function Is_Writeable (Pipe : in Shell.Pipe) return Boolean
    is
       use POSIX.IO;
    begin
-      return Is_Open (The_Pipe.Write_End);
+      return Is_Open (Pipe.Write_End);
    end Is_Writeable;
 
 
-   function Output_Of (The_Pipe : in Pipe) return Data
+   function Output_Of (Pipe : in Shell.Pipe) return Data
    is
       use Ada.Task_Identification,
           Ada.Exceptions;
@@ -168,7 +167,7 @@ is
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset;
    begin
-      if not Is_Readable (The_Pipe)
+      if not Is_Readable (Pipe)
       then
          return No_Data;
       end if;
@@ -176,17 +175,16 @@ is
       declare
          use POSIX.Event_Management,
              POSIX.IO;
-
-         FDS_R   : File_Descriptor_Set;
-         FDS_W   : File_Descriptor_Set;
-         FDS_E   : File_Descriptor_Set;
+         FDS_R : File_Descriptor_Set;
+         FDS_W : File_Descriptor_Set;
+         FDS_E : File_Descriptor_Set;
          Count : Natural;
       begin
          Make_Empty (FDS_R);
          Make_Empty (FDS_W);
          Make_Empty (FDS_E);
 
-         add (FDS_R, The_Pipe.Read_End);
+         add (FDS_R, Pipe.Read_End);
 
          Select_File (Read_Files     => FDS_R,
                       Write_Files    => FDS_W,
@@ -196,11 +194,11 @@ is
 
          if Count > 0
          then
-            Read (File   => The_Pipe.Read_End,
+            Read (File   => Pipe.Read_End,
                   Buffer => Buffer,
                   Last   => Last);
          else
-            raise No_Output_Error with Image (Current_Task) & " 'Shell.Output_Of ()' ~ pipe read end =>" & The_Pipe.Read_End'Image;
+            raise No_Output_Error with Image (Current_Task) & " 'Shell.Output_Of ()' ~ pipe read end =>" & Pipe.Read_End'Image;
          end if;
       end;
 
@@ -217,7 +215,7 @@ is
                return No_Data;
             end if;
 
-            raise No_Output_Error with Image (Current_Task) & " " & Message & " ~ pipe read end =>" & The_Pipe.Read_End'Image;
+            raise No_Output_Error with Image (Current_Task) & " " & Message & " ~ pipe read end =>" & Pipe.Read_End'Image;
          end;
 
       when Ada.IO_Exceptions.End_Error =>
@@ -225,7 +223,7 @@ is
    end Output_Of;
 
 
-   procedure Write_To (The_Pipe : in Pipe;   Input : in Data)
+   procedure Write_To (Pipe : in Shell.Pipe;   Input : in Data)
    is
    begin
       if Input'Length > 0
@@ -234,7 +232,7 @@ is
             subtype   My_Data is Data (Input'Range);
             procedure Write   is new POSIX.IO.Generic_Write (My_Data);
          begin
-            Write (The_Pipe.Write_End, Input);
+            Write (Pipe.Write_End, Input);
          end;
       end if;
    end Write_To;
@@ -419,11 +417,13 @@ is
    is
       use POSIX.Process_Primitives;
    begin
-      if not Status_Available (Process.Status) then
+      if not Status_Available (Process.Status)
+      then
          return False;
       end if;
 
-      if Exit_Status_Of (Process.Status) = POSIX.Process_Primitives.Normal_Exit then
+      if Exit_Status_Of (Process.Status) = POSIX.Process_Primitives.Normal_Exit
+      then
          return True;
       end if;
 

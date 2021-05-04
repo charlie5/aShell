@@ -53,21 +53,21 @@ is
 
    function  Image   (Pipe : in Shell.Pipe) return String;
 
-   function  Is_Readable  (The_Pipe : in Pipe) return Boolean;
-   function  Is_Writeable (The_Pipe : in Pipe) return Boolean;
+   function  Is_Readable  (Pipe : in Shell.Pipe) return Boolean;
+   function  Is_Writeable (Pipe : in Shell.Pipe) return Boolean;
 
    No_Output_Error   : exception;
    Pipe_Not_Readable : exception;
 
-   function  Output_Of (The_Pipe : in Pipe)       return Data;   -- Returns available output from the 'read end'.
-   procedure Write_To  (The_Pipe : in Pipe;   Input : in Data);
+   function  Output_Of (Pipe : in Shell.Pipe)       return Data;   -- Returns available output from the 'read end'.
+   procedure Write_To  (Pipe : in Shell.Pipe;   Input : in Data);
 
    procedure Close (Pipe           : in out Shell.Pipe;
                     Only_Write_End : in     Boolean := False;
                     Only_Read_End  : in     Boolean := False);
 
-   procedure Close_Write_End (The_Pipe : in out Pipe);
-   function  Close_Write_End (The_Pipe : in out Pipe) return Boolean;
+   procedure Close_Write_End (The_Pipe : in out Shell.Pipe);
+   function  Close_Write_End (The_Pipe : in out Shell.Pipe) return Boolean;
 
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
@@ -91,14 +91,14 @@ is
                    Input             : in out Pipe;
                    Output            : in out Pipe;
                    Errors            : in out Pipe;
-                   Pipeline          : in     Boolean      := False) return Process;
+                   Pipeline          : in     Boolean := False) return Process;
 
-   function Start (Command           : in String;
-                   Working_Directory : in String  := ".";
+   function Start (Command           : in     String;
+                   Working_Directory : in     String := ".";
                    Input             : in out Pipe;
                    Output            : in out Pipe;
                    Errors            : in out Pipe;
-                   Pipeline          : in Boolean := False) return Process;
+                   Pipeline          : in     Boolean := False) return Process;
 
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
@@ -150,8 +150,8 @@ private
    is
       procedure Open  (Pipe           : out    Shell.Pipe);
       procedure Close (Pipe           : in out Shell.Pipe;
-                       Only_Write_End : in     Boolean := False;
-                       Only_Read_End  : in     Boolean := False);
+                       Only_Write_End : in     Boolean   := False;
+                       Only_Read_End  : in     Boolean   := False);
    end Safe_Pipes;
 
 

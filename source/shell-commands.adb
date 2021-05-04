@@ -33,9 +33,9 @@ is
       use String_Vectors;
       The_Array : String_Array (1 .. Natural (Strings.Length));
    begin
-      for I in The_Array'Range
+      for i in The_Array'Range
       loop
-         The_Array (I) := Strings.Element (I);
+         The_Array (i) := Strings.Element (i);
       end loop;
 
       return The_Array;
@@ -45,11 +45,9 @@ is
    function To_Arguments (All_Arguments : in String) return String_Array
    is
       use GNAT.OS_Lib;
-      Command_Name : constant String      := "Command_Name";     -- Argument_String_To_List expects the command name to be the 1st piece
-                                                                 -- of the string, so we provide a dummy name.
-      Arguments    : Argument_List_Access := Argument_String_To_List (  Command_Name
-                                                                      & " "
-                                                                      & All_Arguments);
+      Command_Name : constant String      := "Command_Name";     -- 'Argument_String_To_List' expects the command name to be
+                                                                 -- the 1st piece of the string, so we provide a dummy name.
+      Arguments    : Argument_List_Access := Argument_String_To_List (Command_Name & " " & All_Arguments);
       Result       : String_Array (1 .. Arguments'Length - 1);
    begin
       for i in Result'Range
@@ -89,7 +87,7 @@ is
    end Image;
 
 
-   procedure define (The_Command : out Command;   Command_Line : in String)
+   procedure Define (The_Command : out Command;   Command_Line : in String)
    is
       use Ada.Strings.Fixed;
 
@@ -110,7 +108,7 @@ is
          The_Command.Name      := +(Name);
          The_Command.Arguments := To_String_Vector (Arguments);
       end;
-   end define;
+   end Define;
 
 
    function To_Command (Command_Line : in String;
@@ -128,9 +126,9 @@ is
          do
             Result.Name := +Command_Line;
 
-            Result. Input_Pipe :=  Input;
-            Result.Output_Pipe :=  Output;
-            Result. Error_Pipe :=  Errors;
+            Result. Input_Pipe := Input;
+            Result.Output_Pipe := Output;
+            Result. Error_Pipe := Errors;
 
             Result.Copy_Count := new Count' (1);
          end return;
@@ -145,9 +143,9 @@ is
             Result.Name      := +(Name);
             Result.Arguments := To_String_Vector (Arguments);
 
-            Result. Input_Pipe :=  Input;
-            Result.Output_Pipe :=  Output;
-            Result. Error_Pipe :=  Errors;
+            Result. Input_Pipe := Input;
+            Result.Output_Pipe := Output;
+            Result. Error_Pipe := Errors;
 
             Result.Copy_Count := new Count' (1);
          end return;
@@ -200,9 +198,10 @@ is
       do
          Result (Count).Expect_Output := Expect_Output;
 
-         for I in 1 .. Count
+         for i in 1 .. Count
          loop
-            define (Result (I), +All_Commands (I));
+            Define ( Result (i),
+                    +All_Commands (i));
          end loop;
       end return;
    end To_Commands;
@@ -220,20 +219,20 @@ is
       Pipe : constant Shell.Pipe := To_Pipe;
    begin
       From.Output_Pipe := Pipe;
-      To.Input_Pipe    := Pipe;
+      To.   Input_Pipe := Pipe;
 
-      From.Owns_Input_Pipe := True;
-      To.Owns_Output_Pipe  := True;
+      From.Owns_Input_Pipe  := True;
+      To.  Owns_Output_Pipe := True;
    end Connect;
 
 
    procedure Connect (Commands : in out Command_Array)
    is
    begin
-      for I in Commands'First .. Commands'Last - 1
+      for i in Commands'First .. Commands'Last - 1
       loop
-         Connect (From => Commands (I),
-                  To   => Commands (I + 1));
+         Connect (From => Commands (i),
+                  To   => Commands (i + 1));
       end loop;
    end Connect;
 
@@ -331,9 +330,9 @@ is
 
       if not Pipeline
       then
-         for I in Commands'Range
+         for Each of Commands
          loop
-            Start (Commands (I));
+            Start (Each);
          end loop;
 
          return;
@@ -341,17 +340,17 @@ is
 
       Connect (Commands);
 
-      for I in Commands'Range
+      for i in Commands'Range
       loop
-         Start (Commands (I),
+         Start (Commands (i),
                 Pipeline => True);
 
          -- Since we are making a pipeline, we need to close the write ends of
          -- the Output & Errors pipes ourselves.
          --
-         if I /= Commands'First
+         if i /= Commands'First
          then
-            Close_Pipe_Write_Ends (Commands (I - 1));   -- Close ends for the prior command.
+            Close_Pipe_Write_Ends (Commands (i - 1));    -- Close ends for the prior command.
          end if;
 
       end loop;
@@ -363,7 +362,7 @@ is
    --- Run
    --
 
-   procedure gather_Results (The_Command : in out Command)
+   procedure Gather_Results (The_Command : in out Command)
    is
    begin
       begin
@@ -393,7 +392,7 @@ is
          when No_Output_Error =>
             The_Command.Error_Count := The_Command.Error_Count + 1;
       end;
-   end gather_Results;
+   end Gather_Results;
 
 
    procedure Run (The_Command : in out Command;
@@ -406,7 +405,7 @@ is
 
       Start (The_Command, Input);
       loop
-         gather_Results (The_Command);
+         Gather_Results (The_Command);
          exit when Has_Terminated (The_Command.Process);
       end loop;
 
@@ -455,7 +454,7 @@ is
       begin
          loop
             begin
-               gather_Results (Last_Command);   -- Gather on-going results.
+               Gather_Results (Last_Command);   -- Gather on-going results.
 
                if   Last_Command.Error_Count > 3
                  or Restart_Pipeline
@@ -532,7 +531,7 @@ is
                         then
                            Restart_Pipeline := True;
                         else
-                           gather_Results (Last_Command);   -- Gather any final results.
+                           Gather_Results (Last_Command);   -- Gather any final results.
                            exit;
                         end if;
                      end if;
@@ -656,7 +655,7 @@ is
          raise Command_Error with "Attempt to read the Standard_Error pipe.";
       end if;
 
-      gather_Results (The_Command);
+      Gather_Results (The_Command);
 
       declare
          use Data_Vectors;
@@ -768,29 +767,25 @@ is
    overriding
    procedure Finalize (The_Command : in out Command)
    is
+      procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
    begin
-      declare
-         procedure Deallocate is new Ada.Unchecked_Deallocation (Count, Count_Access);
-      begin
-         The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
+      The_Command.Copy_Count.all := The_Command.Copy_Count.all - 1;
 
-         if The_Command.Copy_Count.all = 0
+      if The_Command.Copy_Count.all = 0
+      then
+         if The_Command.Owns_Input_Pipe
          then
-            if The_Command.Owns_Input_Pipe
-            then
-               Close (The_Command. Input_Pipe);
-            end if;
-
-            if The_Command.Owns_Output_Pipe
-            then
-               Close (The_Command.Output_Pipe);
-            end if;
-
-            Close (The_Command. Error_Pipe);
-
-            Deallocate (The_Command.Copy_Count);
+            Close (The_Command.Input_Pipe);
          end if;
-      end;
+
+         if The_Command.Owns_Output_Pipe
+         then
+            Close (The_Command.Output_Pipe);
+         end if;
+
+         Close      (The_Command.Error_Pipe);
+         Deallocate (The_Command.Copy_Count);
+      end if;
 
    end Finalize;
 
