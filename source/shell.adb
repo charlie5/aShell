@@ -236,17 +236,17 @@ is
    end Write_To;
 
 
-   procedure Close_Write_End (The_Pipe : in out Pipe)
+   procedure Close_Write_End (Pipe : in Shell.Pipe)
    is
    begin
-      Safe_Pipes.Close (The_Pipe, Only_Write_End => True);
+      Safe_Pipes.Close (Pipe, Only_Write_End => True);
    end Close_Write_End;
 
 
-   function Close_Write_End (The_Pipe : in out Pipe) return Boolean
+   function Close_Write_End (Pipe : in Shell.Pipe) return Boolean
    is
    begin
-      Safe_Pipes.Close (The_Pipe, Only_Write_End => True);
+      Safe_Pipes.Close (Pipe, Only_Write_End => True);
       return True;
    end Close_Write_End;
 
