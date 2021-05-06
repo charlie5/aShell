@@ -506,20 +506,8 @@ is
 
                if Has_Terminated (The_Pipeline (i).Process)
                then
-                  if not Normal_Exit (The_Pipeline (i).Process)
+                  if Normal_Exit (The_Pipeline (i).Process)
                   then
-                     if Raise_Error
-                     then
-                        declare
-                           Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                                      & " '" & (+The_Pipeline (i).Name) & "' failed.";
-                        begin
-                           raise Command_Error with Error;
-                        end;
-                     end if;
-
-                     Restart_Pipeline := True;
-                  else
                      i := i + 1;
 
                      if i > The_Pipeline'Last
@@ -534,6 +522,24 @@ is
                            Gather_Results (Last_Command);   -- Gather any final results.
                            exit;
                         end if;
+                     end if;
+                  else
+                     if Raise_Error
+                     then
+                        declare
+                           Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                                      & " '" & (+The_Pipeline (i).Name) & "' failed.";
+                        begin
+                           raise Command_Error with Error;
+                        end;
+                     end if;
+
+                     if    Last_Command.Expect_Output
+                       and Is_Empty (Last_Command.Output)
+                     then
+                        Restart_Pipeline := True;
+                     else
+                        return;
                      end if;
                   end if;
 
