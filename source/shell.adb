@@ -65,9 +65,9 @@ is
       end Open;
 
 
-      procedure Close (Pipe           : in out Shell.Pipe;
-                       Only_Write_End : in     Boolean := False;
-                       Only_Read_End  : in     Boolean := False)
+      procedure Close (Pipe           : in Shell.Pipe;
+                       Only_Write_End : in Boolean := False;
+                       Only_Read_End  : in Boolean := False)
       is
          use POSIX.IO;
       begin
@@ -76,7 +76,6 @@ is
            and then Is_Open (Pipe.Read_End)
          then
             Close (File => Pipe.Read_End);
-            Pipe.Read_End := Null_File_Descriptor;
          end if;
 
          if    not  Only_Read_End
@@ -84,7 +83,6 @@ is
            and then Is_Open (Pipe.Write_End)
          then
             Close (File => Pipe.Write_End);
-            Pipe.Write_End := Null_File_Descriptor;
          end if;
       end Close;
 
@@ -108,9 +106,9 @@ is
    end To_Pipe;
 
 
-   procedure Close (Pipe           : in out Shell.Pipe;
-                    Only_Write_End : in     Boolean := False;
-                    Only_Read_End  : in     Boolean := False)
+   procedure Close (Pipe           : in Shell.Pipe;
+                    Only_Write_End : in Boolean := False;
+                    Only_Read_End  : in Boolean := False)
    is
       use POSIX.IO;
    begin
@@ -284,13 +282,13 @@ is
    --- Processes
    --
 
-   function Start (Program           : in     String;
-                   Arguments         : in     String_Array := Nil_Strings;
-                   Working_Directory : in     String       := ".";
-                   Input             : in out Pipe;
-                   Output            : in out Pipe;
-                   Errors            : in out Pipe;
-                   Pipeline          : in     Boolean := False) return Process
+   function Start (Program           : in String;
+                   Arguments         : in String_Array := Nil_Strings;
+                   Working_Directory : in String  := ".";
+                   Input             : in Pipe    := Standard_Input;
+                   Output            : in Pipe    := Standard_Output;
+                   Errors            : in Pipe    := Standard_Error;
+                   Pipeline          : in Boolean := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -372,12 +370,12 @@ is
    end Start;
 
 
-   function Start (Command           : in     String;
-                   Working_Directory : in     String := ".";
-                   Input             : in out Pipe;
-                   Output            : in out Pipe;
-                   Errors            : in out Pipe;
-                   Pipeline          : in     Boolean := False) return Process
+   function Start (Command           : in String;
+                   Working_Directory : in String  := ".";
+                   Input             : in Pipe    := Standard_Input;
+                   Output            : in Pipe    := Standard_Output;
+                   Errors            : in Pipe    := Standard_Error;
+                   Pipeline          : in Boolean := False) return Process
    is
    begin
       return Start (Program           => "/bin/sh",

@@ -62,12 +62,12 @@ is
    function  Output_Of (Pipe : in Shell.Pipe)       return Data;   -- Returns available output from the 'read end'.
    procedure Write_To  (Pipe : in Shell.Pipe;   Input : in Data);
 
-   procedure Close (Pipe           : in out Shell.Pipe;
-                    Only_Write_End : in     Boolean := False;
-                    Only_Read_End  : in     Boolean := False);
+   procedure Close (Pipe           : in Shell.Pipe;
+                    Only_Write_End : in Boolean := False;
+                    Only_Read_End  : in Boolean := False);
 
-   procedure Close_Write_End (The_Pipe : in out Shell.Pipe);
-   function  Close_Write_End (The_Pipe : in out Shell.Pipe) return Boolean;
+   procedure Close_Write_End (Pipe : in Shell.Pipe);
+   function  Close_Write_End (Pipe : in Shell.Pipe) return Boolean;
 
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
@@ -85,20 +85,20 @@ is
    -- For 'Start', when pipeline is true, closing the write ends of any
    -- non-standard 'Output' and 'Errors' pipes becomes the callers responsibility.
 
-   function Start (Program           : in     String;
-                   Arguments         : in     String_Array := Nil_Strings;
-                   Working_Directory : in     String       := ".";
-                   Input             : in out Pipe;
-                   Output            : in out Pipe;
-                   Errors            : in out Pipe;
-                   Pipeline          : in     Boolean := False) return Process;
+   function Start (Program           : in String;
+                   Arguments         : in String_Array := Nil_Strings;
+                   Working_Directory : in String  := ".";
+                   Input             : in Pipe    := Standard_Input;
+                   Output            : in Pipe    := Standard_Output;
+                   Errors            : in Pipe    := Standard_Error;
+                   Pipeline          : in Boolean := False) return Process;
 
-   function Start (Command           : in     String;
-                   Working_Directory : in     String := ".";
-                   Input             : in out Pipe;
-                   Output            : in out Pipe;
-                   Errors            : in out Pipe;
-                   Pipeline          : in     Boolean := False) return Process;
+   function Start (Command           : in String;
+                   Working_Directory : in String  := ".";
+                   Input             : in Pipe    := Standard_Input;
+                   Output            : in Pipe    := Standard_Output;
+                   Errors            : in Pipe    := Standard_Error;
+                   Pipeline          : in Boolean := False) return Process;
 
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
@@ -148,10 +148,10 @@ private
 
    protected Safe_Pipes
    is
-      procedure Open  (Pipe           : out    Shell.Pipe);
-      procedure Close (Pipe           : in out Shell.Pipe;
-                       Only_Write_End : in     Boolean   := False;
-                       Only_Read_End  : in     Boolean   := False);
+      procedure Open  (Pipe           : out Shell.Pipe);
+      procedure Close (Pipe           : in  Shell.Pipe;
+                       Only_Write_End : in  Boolean := False;
+                       Only_Read_End  : in  Boolean := False);
    end Safe_Pipes;
 
 
