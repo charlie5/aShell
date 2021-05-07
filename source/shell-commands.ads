@@ -6,6 +6,9 @@ package Shell.Commands
 --
 -- Any open pipes attached to a command will be automatically closed when the command goes out of scope.
 --
+-- Commands run simultaneously in different tasks will sometimes (rarely) fail. The 'Expect_Output'
+-- and 'Retry' parameters are present to help manage this issue.
+--
 is
    Command_Error : exception;
 
@@ -19,6 +22,8 @@ is
 
    function To_Commands (Pipeline      : in String;
                          Expect_Output : in Boolean := True) return Command_Array;   -- An example 'Pipeline' is "ps -A | grep bash | wc".
+   --
+   -- If 'Expect_Output' is true, the pipeline will repeat until output is detected.
 
    function "+"         (Command_Line  : in String) return Command;
    function "+"         (Pipeline      : in String) return Command_Array;            -- Calls 'To_Commands' with 'Expect_Output' set to 'True'.
@@ -76,6 +81,8 @@ is
                   Input        : in     Data    := No_Data;
                   Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False);
+   --
+   -- If the pipeline fails, it will repeat up to 'Retry' times.
 
    function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
