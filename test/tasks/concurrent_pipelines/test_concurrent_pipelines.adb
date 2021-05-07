@@ -3,7 +3,7 @@ with
      Ada.Text_IO,
      Ada.Exceptions;
 
-procedure Test_Tasks
+procedure Test_Concurrent_Pipelines
 is
    use Ada.Text_IO,
        Ada.Exceptions;
@@ -17,7 +17,7 @@ is
          declare
             use Shell,
                 Shell.Commands;
-            Commands : Command_Array   :=  To_Commands ("ls -alh | grep test_task");
+            Commands : Command_Array   :=  To_Commands ("ls -alh | grep test_concurrent_pipelines");
          begin
             declare
                Output : constant String := +Output_Of (Run (Commands, Retry => Natural'Last));
@@ -49,7 +49,7 @@ is
          declare
             use Shell,
                 Shell.Commands;
-            Commands : Command_Array   :=  To_Commands ("ps -A | grep test_task");
+            Commands : Command_Array   :=  To_Commands ("ps -Af | grep test_concurrent_pipelines");
             Output   : constant String := +Output_Of (Run (Commands, Retry => Natural'Last));
          begin
             Put_Line ("Task 2   i =" & i'Image & " =>");
@@ -73,7 +73,7 @@ begin
    declare
       use Shell,
           Shell.Commands;
-      Commands : Command_Array   :=  To_Commands ("ls -alh | grep test_task");
+      Commands : Command_Array   :=  To_Commands ("ls -alh | grep test_concurrent_pipelines");
       Output   : constant String := +Output_Of (Run (Commands, Retry => Natural'Last));
    begin
       Put_Line ("Main Task =>");
@@ -82,4 +82,4 @@ begin
 
    delay 5.0 * 60.0;   -- Allow time to check for open pipes and zombie processes.
 
-end Test_Tasks;
+end Test_Concurrent_Pipelines;
