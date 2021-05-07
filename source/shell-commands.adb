@@ -434,6 +434,7 @@ is
 
    procedure Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
+                  Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False)
    is
       use Ada.Characters.Handling,
@@ -450,6 +451,7 @@ is
              Ada.Task_Identification,
              Ada.Text_IO;
          Restart_Pipeline : Boolean  := False;
+         Retry_Count      : Natural  := 0;
          i                : Positive := 1;
       begin
          loop
@@ -459,6 +461,7 @@ is
                if   Last_Command.Error_Count > 3
                  or Restart_Pipeline
                then
+                  Retry_Count              := Retry_Count + 1;
                   Restart_Pipeline         := False;
                   Last_Command.Error_Count := 0;
 
@@ -523,8 +526,13 @@ is
                            exit;
                         end if;
                      end if;
+
                   else
-                     if Raise_Error
+                     if Retry_Count < Retry
+                     then
+                        Restart_Pipeline := True;
+
+                     elsif Raise_Error
                      then
                         declare
                            Error : constant String :=   "Pipeline command" & Integer'Image (i)
@@ -532,14 +540,9 @@ is
                         begin
                            raise Command_Error with Error;
                         end;
-                     end if;
 
-                     if    Last_Command.Expect_Output
-                       and Is_Empty (Last_Command.Output)
-                     then
-                        Restart_Pipeline := True;
                      else
-                        return;
+                        exit;
                      end if;
                   end if;
 
@@ -566,11 +569,12 @@ is
 
    function Run (The_Pipeline : in out Command_Array;
                  Input        : in     Data    := No_Data;
+                 Retry        : in     Natural := 0;
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
    begin
-      Run (The_Pipeline, Input, Raise_Error);
+      Run (The_Pipeline, Input, Retry, Raise_Error);
 
       return Results_Of (Last_Command);
    end Run;

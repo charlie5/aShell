@@ -74,10 +74,12 @@ is
 
    procedure Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
+                  Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False);
 
    function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
+                  Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False) return Command_Results;
 
 
