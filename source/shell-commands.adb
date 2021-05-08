@@ -3,11 +3,7 @@ with
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
      Ada.Unchecked_Deallocation,
-     Ada.Unchecked_Conversion,
-     Ada.Text_IO,
-     Ada.Task_Identification,
-     Ada.Characters.Handling,
-     Ada.Exceptions;
+     Ada.Unchecked_Conversion;
 
 package body Shell.Commands
 is
@@ -160,8 +156,7 @@ is
    end "+";
 
 
-   function To_Commands (Pipeline      : in String;
-                         Expect_Output : in Boolean := True) return Command_Array
+   function To_Commands (Pipeline : in String) return Command_Array
    is
       use Ada.Strings.Fixed;
 
@@ -196,8 +191,6 @@ is
 
       return Result : Command_Array (1 .. Count)
       do
-         Result (Count).Expect_Output := Expect_Output;
-
          for i in 1 .. Count
          loop
             Define ( Result (i),
@@ -210,7 +203,7 @@ is
    function "+" (Pipeline : in String) return Command_Array
    is
    begin
-      return To_Commands (Pipeline, Expect_Output => True);
+      return To_Commands (Pipeline);
    end "+";
 
 
@@ -434,11 +427,8 @@ is
 
    procedure Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
-                  Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False)
    is
-      use Ada.Characters.Handling,
-          Ada.Exceptions;
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
    begin
       Last_Command.Output_Pipe := To_Pipe;
@@ -447,65 +437,11 @@ is
       Start (The_Pipeline, Input);
 
       declare
-         use Data_Vectors,
-             Ada.Task_Identification,
-             Ada.Text_IO;
-         Restart_Pipeline : Boolean  := False;
-         Retry_Count      : Natural  := 0;
-         i                : Positive := 1;
+         i : Positive := 1;
       begin
          loop
             begin
                Gather_Results (Last_Command);   -- Gather on-going results.
-
-               if   Last_Command.Error_Count > 3
-                 or Restart_Pipeline
-               then
-                  Retry_Count              := Retry_Count + 1;
-                  Restart_Pipeline         := False;
-                  Last_Command.Error_Count := 0;
-
-                  Clear (Last_Command.Output);
-                  Clear (Last_Command.Errors);
-
-                  for Each of The_Pipeline
-                  loop
-                     begin
-                        Close (Each. Input_Pipe);
-                        Close (Each.Output_Pipe);
-                        Close (Each. Error_Pipe);
-
-                        begin
-                           Kill (Each);
-                        exception
-                           when E : POSIX.POSIX_Error =>
-                              if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"
-                              then
-                                 Put_Line (Image (Current_Task) & " ~ Unable to kill process" & Image (Each.Process));
-                                 raise;
-                              end if;
-                        end;
-
-                        begin
-                           Wait_On (Each.Process);   -- Reap zombies.
-                        exception
-                           when E : POSIX.POSIX_Error =>
-                              if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
-                              then
-                                 Put_Line (Image (Current_Task) & " ~ Unable to wait on process" & Image (Each.Process));
-                                 raise;
-                              end if;
-                        end;
-                     end;
-                  end loop;
-
-                  Last_Command.Output_Pipe := To_Pipe;
-                  Last_Command. Error_Pipe := To_Pipe;
-
-                  Start (The_Pipeline, Input);
-
-                  i := 1;
-               end if;
 
                if Has_Terminated (The_Pipeline (i).Process)
                then
@@ -515,66 +451,33 @@ is
 
                      if i > The_Pipeline'Last
                      then
-                        if (    Last_Command.Expect_Output
-                            and Is_Empty (Last_Command.Output))
-                          or not Is_Readable (Last_Command.Output_Pipe)
-                          or not Is_Readable (Last_Command.Error_Pipe)
-                        then
-                           Restart_Pipeline := True;
-                        else
-                           Gather_Results (Last_Command);   -- Gather any final results.
-                           exit;
-                        end if;
-                     end if;
-
-                  else
-                     if Retry_Count < Retry
-                     then
-                        Restart_Pipeline := True;
-
-                     elsif Raise_Error
-                     then
-                        declare
-                           Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                                      & " '" & (+The_Pipeline (i).Name) & "' failed.";
-                        begin
-                           raise Command_Error with Error;
-                        end;
-
-                     else
+                        Gather_Results (Last_Command);   -- Gather any final results.
                         exit;
                      end if;
-                  end if;
 
-               end if;
-
-            exception
-               when E : POSIX.POSIX_Error =>
-                  if To_Upper (Exception_Message (E)) = "INVALID_ARGUMENT"
+                  elsif Raise_Error
                   then
-                     Restart_Pipeline := True;
-                  else
-                     raise;
+                     declare
+                        Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                                   & " '" & (+The_Pipeline (i).Name) & "' failed.";
+                     begin
+                        raise Command_Error with Error;
+                     end;
                   end if;
-
-               when E : others =>
-                  Put_Line (Image (Current_Task) & "   "  & Exception_Information (E));
-                  raise;
+               end if;
             end;
          end loop;
-
       end;
    end Run;
 
 
    function Run (The_Pipeline : in out Command_Array;
                  Input        : in     Data    := No_Data;
-                 Retry        : in     Natural := 0;
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
    begin
-      Run (The_Pipeline, Input, Retry, Raise_Error);
+      Run (The_Pipeline, Input, Raise_Error);
 
       return Results_Of (Last_Command);
    end Run;

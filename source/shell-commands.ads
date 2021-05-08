@@ -20,10 +20,7 @@ is
                          Output        : in Pipe  := Standard_Output;
                          Errors        : in Pipe  := Standard_Error) return Command;
 
-   function To_Commands (Pipeline      : in String;
-                         Expect_Output : in Boolean := True) return Command_Array;   -- An example 'Pipeline' is "ps -A | grep bash | wc".
-   --
-   -- If 'Expect_Output' is true, the pipeline will repeat until output is detected.
+   function To_Commands (Pipeline      : in String) return Command_Array;             -- An example 'Pipeline' is "ps -A | grep bash | wc".
 
    function "+"         (Command_Line  : in String) return Command;
    function "+"         (Pipeline      : in String) return Command_Array;            -- Calls 'To_Commands' with 'Expect_Output' set to 'True'.
@@ -79,14 +76,12 @@ is
 
    procedure Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
-                  Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False);
    --
    -- If the pipeline fails, it will repeat up to 'Retry' times.
 
    function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
-                  Retry        : in     Natural := 0;
                   Raise_Error  : in     Boolean := False) return Command_Results;
 
 
@@ -143,8 +138,8 @@ private
             Output      : Data_Vector;
             Errors      : Data_Vector;
 
-            Expect_Output : Boolean := False;
-            Error_Count   : Natural := 0;
+            Expect_Output : Boolean := False;     -- Used in the task safe child package.
+            Error_Count   : Natural := 0;         --
          end record;
 
    overriding
