@@ -1,8 +1,11 @@
 package Shell.Commands.Safe
 --
 -- Commands run simultaneously in different tasks will sometimes (rarely) fail. The 'Expect_Output'
--- and 'Retry' parameters are present to help manage this issue.
+-- and 'Retry' parameters are present to help manage this issue. The defaults are usually sufficient.
 --
+-- If a command or pipeline fail, it will repeat up to 'Retry' times.
+-- Set 'Expect_Output' to false if a command or pipeline may produce no output.
+
 is
    --- Run - Block until process completes.
    --
@@ -24,8 +27,6 @@ is
                   Raise_Error   : in     Boolean := False;
                   Retry         : in     Natural := Natural'Last;
                   Expect_Output : in     Boolean := True);
-   --
-   -- If the pipeline fails, it will repeat up to 'Retry' times.
 
    function  Run (The_Pipeline  : in out Command_Array;
                   Input         : in     Data    := No_Data;
