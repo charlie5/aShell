@@ -110,91 +110,98 @@ is
    end Define;
 
 
-   function To_Command (Command_Line : in String) return Command
+
+   package body Forge
    is
-      use Ada.Strings.Fixed;
 
-      I : constant Natural := Index (Command_Line, " ");
-   begin
-      if I = 0
-      then
-         return Result : Command
-         do
-            Result.Name       := +Command_Line;
-            Result.Copy_Count := new Count' (1);
-         end return;
-      end if;
+      function To_Command (Command_Line : in String) return Command
+      is
+         use Ada.Strings.Fixed;
 
-      declare
-         Name      : constant String       :=               Command_Line (Command_Line'First .. I - 1);
-         Arguments : constant String_Array := To_Arguments (Command_Line (I + 1              .. Command_Line'Last));
+         I : constant Natural := Index (Command_Line, " ");
       begin
-         return Result : Command
-         do
-            Result.Name       := +(Name);
-            Result.Arguments  := To_String_Vector (Arguments);
-            Result.Copy_Count := new Count' (1);
-         end return;
-      end;
-   end to_Command;
+         if I = 0
+         then
+            return Result : Command
+            do
+               Result.Name       := +Command_Line;
+               Result.Copy_Count := new Count' (1);
+            end return;
+         end if;
 
-
-   function "+" (Command_Line : in String) return Command
-   is
-   begin
-      return To_Command (Command_Line);
-   end "+";
-
-
-   function To_Commands (Pipeline : in String) return Command_Array
-   is
-      use Ada.Strings.Fixed;
-
-      Cursor : Positive := Pipeline'First;
-      First,
-      Last   : Positive;
-      Count  : Natural := 0;
-
-      Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
-
-      All_Commands : String_Array (1 .. Max_Commands_In_Pipeline);
-   begin
-      loop
-         Find_Token (Source => Pipeline,
-                     Set    => Ada.Strings.Maps.To_Set ('|'),
-                     From   => Cursor,
-                     Test   => Ada.Strings.Outside,
-                     First  => First,
-                     Last   => Last);
          declare
-            Full_Command : constant String := Trim (Pipeline (First .. Last),
-                                                    Ada.Strings.Both);
+            Name      : constant String       :=               Command_Line (Command_Line'First .. I - 1);
+            Arguments : constant String_Array := To_Arguments (Command_Line (I + 1              .. Command_Line'Last));
          begin
-            Count                :=  Count + 1;
-            All_Commands (Count) := +Full_Command;
+            return Result : Command
+            do
+               Result.Name       := +(Name);
+               Result.Arguments  := To_String_Vector (Arguments);
+               Result.Copy_Count := new Count' (1);
+            end return;
          end;
+      end to_Command;
 
-         exit when Last = Pipeline'Last;
 
-         Cursor := Last + 1;
-      end loop;
+      function "+" (Command_Line : in String) return Command
+      is
+      begin
+         return To_Command (Command_Line);
+      end "+";
 
-      return Result : Command_Array (1 .. Count)
-      do
-         for i in 1 .. Count
+
+      function To_Commands (Pipeline : in String) return Command_Array
+      is
+         use Ada.Strings.Fixed;
+
+         Cursor : Positive := Pipeline'First;
+         First,
+         Last   : Positive;
+         Count  : Natural := 0;
+
+         Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
+
+         All_Commands : String_Array (1 .. Max_Commands_In_Pipeline);
+      begin
          loop
-            Define ( Result (i),
-                    +All_Commands (i));
+            Find_Token (Source => Pipeline,
+                        Set    => Ada.Strings.Maps.To_Set ('|'),
+                        From   => Cursor,
+                        Test   => Ada.Strings.Outside,
+                        First  => First,
+                        Last   => Last);
+            declare
+               Full_Command : constant String := Trim (Pipeline (First .. Last),
+                                                       Ada.Strings.Both);
+            begin
+               Count                :=  Count + 1;
+               All_Commands (Count) := +Full_Command;
+            end;
+
+            exit when Last = Pipeline'Last;
+
+            Cursor := Last + 1;
          end loop;
-      end return;
-   end To_Commands;
+
+         return Result : Command_Array (1 .. Count)
+         do
+            for i in 1 .. Count
+            loop
+               Define ( Result (i),
+                        +All_Commands (i));
+            end loop;
+         end return;
+      end To_Commands;
 
 
-   function "+" (Pipeline : in String) return Command_Array
-   is
-   begin
-      return To_Commands (Pipeline);
-   end "+";
+      function "+" (Pipeline : in String) return Command_Array
+      is
+      begin
+         return To_Commands (Pipeline);
+      end "+";
+
+   end Forge;
+
 
 
    procedure Connect (From, To : in out Command)
@@ -480,7 +487,8 @@ is
    function Run (Command_Line : in String;
                  Input        : in Data  := No_Data) return Command_Results
    is
-      use Ada.Strings.Fixed;
+      use Ada.Strings.Fixed,
+          Shell.Commands.Forge;
       The_Index   : constant Natural := Index (Command_Line, " | ");
       Is_Pipeline : constant Boolean := The_Index /= 0;
    begin

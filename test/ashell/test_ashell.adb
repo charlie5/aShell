@@ -16,7 +16,8 @@ begin
    Test_1:
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       The_Command : Command := To_Command ("ls -alh");
    begin
       Start (The_Command);
@@ -29,7 +30,8 @@ begin
    Test_2:
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       Piped_Commands : Command_Array := To_Commands ("ls -alh | wc");
       Last_Command   : Command  renames Piped_Commands (Piped_Commands'Last);
    begin
@@ -48,7 +50,8 @@ begin
    Test_3:
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       The_Command : Command := To_Command ("sleep 3");
    begin
       Start (The_Command);
@@ -62,7 +65,8 @@ begin
    Test_4:
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       The_Commands : Command_Array := To_Commands ("sleep 3 | sleep 3");
    begin
       Start (The_Commands, Pipeline => False);

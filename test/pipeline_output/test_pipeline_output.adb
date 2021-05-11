@@ -11,7 +11,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       Commands : Command_Array   :=  To_Commands ("ps -A | grep bash | wc");
       Output   : constant String := +Output_Of (Run (Commands));
    begin

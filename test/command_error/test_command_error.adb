@@ -11,7 +11,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       The_Command : Command := To_Command ("ls /non_existent_file");
    begin
       Run (The_Command);
@@ -26,7 +27,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       The_Command : Command := To_Command ("ls /non_existent_file");
    begin
       Run (The_Command, Raise_Error => True);

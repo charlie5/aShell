@@ -13,7 +13,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       Commands : Command_Array := To_Commands ("ls /non_existent_file | cat");
    begin
       Run (Commands);
@@ -37,7 +38,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       Commands : Command_Array := To_Commands ("ls /non_existent_file | cat");
    begin
       Run (Commands, Raise_Error => True);

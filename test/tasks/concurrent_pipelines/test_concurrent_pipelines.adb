@@ -16,7 +16,8 @@ is
       loop
          declare
             use Shell,
-                Shell.Commands;
+                Shell.Commands,
+                Shell.Commands.Forge;
             Commands : Command_Array :=  To_Commands ("ls -alh | grep test_concurrent_pipelines");
          begin
             declare
@@ -48,7 +49,8 @@ is
       loop
          declare
             use Shell,
-                Shell.Commands;
+                Shell.Commands,
+                Shell.Commands.Forge;
             Commands : Command_Array   :=  To_Commands ("ps -Af | grep test_concurrent_pipelines");
             Output   : constant String := +Output_Of (Safe.Run (Commands));
          begin

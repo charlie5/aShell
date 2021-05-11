@@ -280,7 +280,8 @@ is
    function Run (Command_Line : in String;
                  Input        : in Data  := No_Data) return Command_Results
    is
-      use Ada.Strings.Fixed;
+      use Ada.Strings.Fixed,
+          Shell.Commands.Forge;
       The_Index   : constant Natural := Index (Command_Line, " | ");
       Is_Pipeline : constant Boolean := The_Index /= 0;
    begin

@@ -19,7 +19,8 @@ begin
       Expected : constant String := Name & "=" & Value;
 
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
       Put_Line ("Test 1 ~ Run piped commands => '" & Commands & "'");
@@ -50,7 +51,8 @@ begin
       Expected : constant String := Name & "=" & Value;
 
       use Shell,
-          Shell.Commands;
+          Shell.Commands,
+          Shell.Commands.Forge;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
       Put_Line ("Test 2 ~ Run piped commands => '" & Commands & "'");

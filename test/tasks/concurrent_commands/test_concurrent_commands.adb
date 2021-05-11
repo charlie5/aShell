@@ -16,8 +16,9 @@ is
       loop
          declare
             use Shell,
-                Shell.Commands;
-            The_Command :          Command := To_Command ("ls /home");   -- , Expect_Output => False);
+                Shell.Commands,
+                Shell.Commands.Forge;
+            The_Command :          Command := To_Command ("ls /home");
             Output      : constant String  := +Output_Of (Safe.Run (The_Command, Retry => Natural'Last));
          begin
             Put_Line ("Task 1   i =" & i'Image & " =>");
@@ -45,7 +46,8 @@ is
       loop
          declare
             use Shell,
-                Shell.Commands;
+                Shell.Commands,
+                Shell.Commands.Forge;
             The_Command :          Command :=  To_Command ("pwd");
             Output      : constant String  := +Output_Of (Safe.Run (The_Command, Retry => Natural'Last));
          begin
