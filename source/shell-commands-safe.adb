@@ -48,10 +48,6 @@ is
                   Clear (The_Command.Output);
                   Clear (The_Command.Errors);
 
-                  Close (The_Command. Input_Pipe);
-                  Close (The_Command.Output_Pipe);
-                  Close (The_Command. Error_Pipe);
-
                   Stop (The_Command);
 
                   The_Command.Output_Pipe := To_Pipe;
@@ -164,13 +160,7 @@ is
 
                   for Each of The_Pipeline
                   loop
-                     begin
-                        Close (Each. Input_Pipe);
-                        Close (Each.Output_Pipe);
-                        Close (Each. Error_Pipe);
-
-                        Stop (Each);
-                     end;
+                     Stop (Each);
                   end loop;
 
                   Last_Command.Output_Pipe := To_Pipe;

@@ -510,6 +510,10 @@ is
           Ada.Exceptions,
           Ada.Text_IO;
    begin
+      Close (The_Command. Input_Pipe);
+      Close (The_Command.Output_Pipe);
+      Close (The_Command. Error_Pipe);
+
       begin
          Kill (The_Command);
       exception
