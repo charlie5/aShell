@@ -169,27 +169,7 @@ is
                         Close (Each.Output_Pipe);
                         Close (Each. Error_Pipe);
 
-                        begin
-                           Kill (Each);
-                        exception
-                           when E : POSIX.POSIX_Error =>
-                              if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"
-                              then
-                                 Put_Line (Image (Current_Task) & " ~ Unable to kill process" & Image (Each.Process));
-                                 raise;
-                              end if;
-                        end;
-
-                        begin
-                           Wait_On (Each.Process);   -- Reap zombies.
-                        exception
-                           when E : POSIX.POSIX_Error =>
-                              if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
-                              then
-                                 Put_Line (Image (Current_Task) & " ~ Unable to wait on process" & Image (Each.Process));
-                                 raise;
-                              end if;
-                        end;
+                        Stop (Each);
                      end;
                   end loop;
 
