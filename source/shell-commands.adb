@@ -312,6 +312,8 @@ is
 
       for i in Commands'Range
       loop
+         Commands (i).Error_Pipe := To_Pipe;
+
          if i = Commands'First
          then
             Start (Commands (i),
@@ -418,7 +420,6 @@ is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
    begin
       Last_Command.Output_Pipe := To_Pipe;
-      Last_Command. Error_Pipe := To_Pipe;
 
       Start (The_Pipeline, Input);
 
