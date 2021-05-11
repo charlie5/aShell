@@ -15,12 +15,8 @@ is
    type Command       is tagged private;
    type Command_Array is array (Positive range <>) of Command;
 
-   function To_Command  (Command_Line  : in String;                                   -- An example 'Command_Line' is "ps -A".
-                         Input         : in Pipe  := Standard_Input;
-                         Output        : in Pipe  := Standard_Output;
-                         Errors        : in Pipe  := Standard_Error) return Command;
-
-   function To_Commands (Pipeline      : in String) return Command_Array;             -- An example 'Pipeline' is "ps -A | grep bash | wc".
+   function To_Command  (Command_Line  : in String) return Command;                  -- An example 'Command_Line' is "ps -A".
+   function To_Commands (Pipeline      : in String) return Command_Array;            -- An example 'Pipeline' is "ps -A | grep bash | wc".
 
    function "+"         (Command_Line  : in String) return Command;
    function "+"         (Pipeline      : in String) return Command_Array;            -- Calls 'To_Commands' with 'Expect_Output' set to 'True'.
@@ -138,8 +134,7 @@ private
             Output      : Data_Vector;
             Errors      : Data_Vector;
 
-            Expect_Output : Boolean := False;     -- Used in the task safe child package.
-            Error_Count   : Natural := 0;         --
+            Error_Count : Natural := 0;     -- Used in the task safe child package.
          end record;
 
    overriding
@@ -147,6 +142,7 @@ private
    overriding
    procedure Finalize (The_Command : in out Command);
 
+   procedure Gather_Results (The_Command : in out Command);
 
    type Command_Results (Output_Size : Data_Offset;
                          Error_Size  : Data_Offset) is

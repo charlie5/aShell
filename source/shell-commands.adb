@@ -107,10 +107,7 @@ is
    end Define;
 
 
-   function To_Command (Command_Line : in String;
-                        Input        : in Pipe  := Standard_Input;
-                        Output       : in Pipe  := Standard_Output;
-                        Errors       : in Pipe  := Standard_Error) return Command
+   function To_Command (Command_Line : in String) return Command
    is
       use Ada.Strings.Fixed;
 
@@ -120,12 +117,7 @@ is
       then
          return Result : Command
          do
-            Result.Name := +Command_Line;
-
-            Result. Input_Pipe := Input;
-            Result.Output_Pipe := Output;
-            Result. Error_Pipe := Errors;
-
+            Result.Name       := +Command_Line;
             Result.Copy_Count := new Count' (1);
          end return;
       end if;
@@ -136,13 +128,8 @@ is
       begin
          return Result : Command
          do
-            Result.Name      := +(Name);
-            Result.Arguments := To_String_Vector (Arguments);
-
-            Result. Input_Pipe := Input;
-            Result.Output_Pipe := Output;
-            Result. Error_Pipe := Errors;
-
+            Result.Name       := +(Name);
+            Result.Arguments  := To_String_Vector (Arguments);
             Result.Copy_Count := new Count' (1);
          end return;
       end;
@@ -287,14 +274,11 @@ is
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := False)
    is
-      Input_Pipe : constant Shell.Pipe := (if Input = No_Data then The_Command.Input_Pipe
-                                                              else To_Pipe);
    begin
-      The_Command.Input_Pipe := Input_Pipe;
-
-      if Input_Pipe /= Standard_Input
+      if Input /= No_Data
       then
-         Write_To (Input_Pipe, Input);
+         The_Command.Input_Pipe := To_Pipe;
+         Write_To (The_Command.Input_Pipe, Input);
       end if;
 
       The_Command.Process := Start (Program   => +The_Command.Name,
@@ -310,22 +294,12 @@ is
                     Input    : in     Data    := No_Data;
                     Pipeline : in     Boolean := True)
    is
-      First_Command :          Command renames Commands (Commands'First);
-      Input_Pipe    : constant Shell.Pipe   := (if Input = No_Data then First_Command.Input_Pipe
-                                                                   else To_Pipe);
    begin
-      First_Command.Input_Pipe := Input_Pipe;
-
-      if Input_Pipe /= Standard_Input
-      then
-         Write_To (Input_Pipe, Input);
-      end if;
-
       if not Pipeline
       then
          for Each of Commands
          loop
-            Start (Each);
+            Start (Each, Input);
          end loop;
 
          return;
@@ -335,8 +309,15 @@ is
 
       for i in Commands'Range
       loop
-         Start (Commands (i),
-                Pipeline => True);
+         if i = Commands'First
+         then
+            Start (Commands (i),
+                   Input,
+                   Pipeline => True);
+         else
+            Start (Commands (i),
+                   Pipeline => True);
+         end if;
 
          -- Since we are making a pipeline, we need to close the write ends of
          -- the Output & Errors pipes ourselves.
@@ -393,6 +374,8 @@ is
                   Raise_Error : in     Boolean := False)
    is
    begin
+      The_Command.Owns_Output_Pipe := True;
+
       The_Command.Output_Pipe := To_Pipe (Blocking => False);
       The_Command. Error_Pipe := To_Pipe (Blocking => False);
 
