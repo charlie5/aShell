@@ -138,8 +138,6 @@ is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
    begin
       Last_Command.Output_Pipe := To_Pipe;
-      Last_Command. Error_Pipe := To_Pipe;
-
       Start (The_Pipeline, Input);
 
       declare
@@ -196,10 +194,7 @@ is
                   end loop;
 
                   Last_Command.Output_Pipe := To_Pipe;
-                  Last_Command. Error_Pipe := To_Pipe;
-
                   Start (The_Pipeline, Input);
-
                   i := 1;
                end if;
 
