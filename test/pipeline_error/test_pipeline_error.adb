@@ -9,6 +9,8 @@ begin
    Put_Line ("Begin 'Pipeline_Error' test.");
    New_Line (2);
 
+   Put_Line ("Test 1 =>");
+
    declare
       use Shell,
           Shell.Commands;
@@ -19,16 +21,19 @@ begin
       if Failed (Commands)
       then
          declare
-            Which : constant Natural := Which_Failed (Commands);
+            Which : constant Natural :=  Which_Failed (Commands);
+            Error : constant String  := +Errors_Of (Results_Of (Commands (Which)));
          begin
             Put_Line (  "Pipeline failed as expected.");
             Put_Line (  "Failed on command" & Natural'Image (Which)
                       & " '" & Name_of (Commands (Which)) & "'.");
+            Put_Line (  "Error message => '" & Error & "'");
          end;
       end if;
    end;
 
    New_Line (2);
+   Put_Line ("Test 2 =>");
 
    declare
       use Shell,
@@ -40,11 +45,13 @@ begin
    exception
       when Command_Error =>
          declare
-            Which : constant Natural := Which_Failed (Commands);
+            Which : constant Natural :=  Which_Failed (Commands);
+            Error : constant String  := +Errors_Of (Results_Of (Commands (Which)));
          begin
             Put_Line (  "Pipeline failed and raised an exception, as expected.");
             Put_Line (  "Failed on command" & Natural'Image (Which)
                       & " '" & Name_of (Commands (Which)) & "'.");
+            Put_Line (  "Error message => '" & Error & "'");
          end;
    end;
 
