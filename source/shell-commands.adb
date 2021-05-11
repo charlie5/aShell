@@ -662,6 +662,27 @@ is
    end Errors_Of;
 
 
+   procedure Wait_On (The_Command : in out Command)
+   is
+   begin
+      Wait_On (The_Command.Process);
+   end Wait_On;
+
+
+   function Has_Terminated (The_Command : in out Command) return Boolean
+   is
+   begin
+      return Has_Terminated (The_Command.Process);
+   end Has_Terminated;
+
+
+   function Normal_Exit (The_Command : in Command) return Boolean
+   is
+   begin
+      return Normal_Exit (The_Command.Process);
+   end Normal_Exit;
+
+
    procedure Kill (The_Command : in Command)
    is
    begin

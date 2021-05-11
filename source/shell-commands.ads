@@ -95,6 +95,10 @@ is
    --
    -- Returns 0 if no command failed.
 
+   procedure Wait_On        (The_Command : in out Command);
+   function  Has_Terminated (The_Command : in out Command) return Boolean;
+   function  Normal_Exit    (The_Command : in     Command) return Boolean;
+
    procedure Kill      (The_Command : in Command);
    procedure Interrupt (The_Command : in Command);
    procedure Pause     (The_Command : in Command);
