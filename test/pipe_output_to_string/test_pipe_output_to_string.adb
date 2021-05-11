@@ -19,7 +19,7 @@ begin
       ls      : Shell.Process       := Start (Program   => "ls",
                                               Arguments => (1 => +"-alhR",
                                                             2 => +"/etc"),
-                                              Output    => ls_Pipe) with Unreferenced;
+                                              Output    => ls_Pipe);
    begin
       for i in 1 .. 1000
       loop
@@ -35,6 +35,9 @@ begin
             Put_Line ("'" & Output & "'");   -- The 'To_String' function reads any output from the pipe as a String.
          end;
       end loop;
+
+      Wait_On (ls);
+      Close   (ls_Pipe);
    end;
 
    New_Line (2);

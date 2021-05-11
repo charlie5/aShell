@@ -6,11 +6,13 @@ with
 procedure Test_aShell
 is
    use Ada.Text_IO;
+   Error : exception;
 begin
    Put_Line ("Begin aShell tests.");
 
    new_Line (2);
    Put_Line ("Test 1 ~ Run single command =>'ls -alh'");
+
    Test_1:
    declare
       use Shell,
@@ -33,6 +35,11 @@ begin
    begin
       Start (Piped_Commands);
       Wait_On (Process_of (Last_Command).all);
+
+      if not Has_Terminated (Process_of (Piped_Commands (1)).all)
+      then
+         raise Error with "Test 2 ~ Run piped commands failed ~ the first command has not terminated.";
+      end if;
    end Test_2;
 
 
@@ -46,6 +53,7 @@ begin
    begin
       Start (The_Command);
       Put_Line ("Sleep process id: " & Image (Process_of (The_Command).all));
+      Wait_On (Process_of (The_Command).all);
    end Test_3;
 
 
@@ -63,6 +71,11 @@ begin
       loop
          Put_Line (  "Sleep command"   & Positive'Image (i)
                    & " ~ process id: " & Image (Process_of (The_Commands (i)).all));
+      end loop;
+
+      for i in The_Commands'Range
+      loop
+         Wait_On (Process_of (The_Commands (i)).all);
       end loop;
    end Test_4;
 

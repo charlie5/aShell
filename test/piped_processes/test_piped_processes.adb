@@ -19,40 +19,38 @@ begin
       Sort_2_Pipe : constant Shell.Pipe := To_Pipe;
       Head_Pipe   : constant Shell.Pipe := To_Pipe;
 
-      Echo   : constant Shell.Process := Start (Program   => "echo",
-                                                Arguments => (1 => +"-e",
-                                                              2 => +"b\nc\na\nb\nc\nb"),
-                                                Output    => Sort_1_Pipe,
-                                                Pipeline  => True);
+      Echo   : Shell.Process    := Start (Program   => "echo",
+                                          Arguments => (1 => +"-e",
+                                                        2 => +"b\nc\na\nb\nc\nb"),
+                                          Output    => Sort_1_Pipe,
+                                          Pipeline  => True);
 
-      Sort_1 : constant Shell.Process := Start (Program   => "sort",
-                                                Input     => Sort_1_Pipe,
-                                                Output    => Uniq_Pipe,
-                                                Pipeline  => True);
+      Sort_1 : Shell.Process    := Start (Program   => "sort",
+                                          Input     => Sort_1_Pipe,
+                                          Output    => Uniq_Pipe,
+                                          Pipeline  => True);
+      CWE0   : constant Boolean := CWE (Sort_1_Pipe);
 
-      CWE0   : constant Boolean       := CWE (Sort_1_Pipe);
+      Uniq   : Shell.Process    := Start (Program   => "uniq",
+                                          Arguments => (1 => (+"-c")),
+                                          Input     => Uniq_Pipe,
+                                          Output    => Sort_2_Pipe,
+                                          Pipeline  => True);
+      CWE1   : constant Boolean := CWE (Uniq_Pipe);
 
-      Uniq   : constant Shell.Process := Start (Program   => "uniq",
-                                                Arguments => (1 => (+"-c")),
-                                                Input     => Uniq_Pipe,
-                                                Output    => Sort_2_Pipe,
-                                                Pipeline  => True);
-      CWE1   : constant Boolean       := CWE (Uniq_Pipe);
+      Sort_2 : Shell.Process    := Start (Program   => "sort",
+                                          Arguments => (1 => (+"-nr")),
+                                          Input     => Sort_2_Pipe,
+                                          Output    => Head_Pipe,
+                                          Pipeline  => True);
+      CWE2   : constant Boolean := CWE (Sort_2_Pipe);
 
-      Sort_2 : constant Shell.Process := Start (Program   => "sort",
-                                                Arguments => (1 => (+"-nr")),
-                                                Input     => Sort_2_Pipe,
-                                                Output    => Head_Pipe,
-                                                Pipeline  => True);
-      CWE2   : constant Boolean       := CWE (Sort_2_Pipe);
+      Head   : Shell.Process    := Start (Program   => "head",
+                                          Input     => Head_Pipe,
+                                          Pipeline  => False);
+      CWE3   : constant Boolean := CWE (Head_Pipe);
 
-      Head   :          Shell.Process := Start (Program   => "head",
-                                                Input     => Head_Pipe,
-                                                Pipeline  => False);
-      CWE3   : constant Boolean       := CWE (Head_Pipe);
-
-      pragma Unreferenced (Echo, Sort_1, Uniq, Sort_2,
-                           CWE0, CWE1, CWE2, CWE3);
+      pragma Unreferenced (CWE0, CWE1, CWE2, CWE3);
    begin
       Wait_On (Head);
 
@@ -62,6 +60,11 @@ begin
       else
          Put_Line ("Fail");
       end if;
+
+      Wait_On (Echo);
+      Wait_On (Sort_1);
+      Wait_On (Uniq);
+      Wait_On (Sort_2);
 
       close (Sort_1_Pipe);
       close (Uniq_Pipe);

@@ -31,6 +31,12 @@ begin
       Put_Line ("Actual output:");
       Start (Piped_Commands);
       delay 1.0;
+
+      for i in Piped_Commands'Range
+      loop
+         Wait_On (Process_of (Piped_Commands (i)).all);
+      end loop;
+
       Put_Line ("End test 1");
    end Test_1;
 
@@ -56,6 +62,12 @@ begin
       Put_Line ("Actual output:");
       Start (Piped_Commands);
       delay 1.0;
+
+      for i in Piped_Commands'Range
+      loop
+         Wait_On (Process_of (Piped_Commands (i)).all);
+      end loop;
+
       Put_Line ("End test 2");
    end Test_2;
 
