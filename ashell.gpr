@@ -13,6 +13,7 @@ is
    for Library_Name use "aShell";
 
    package Compiler renames Shared.Compiler;
+   package Binder   renames Shared.Binder;
 
    package IDE is
       for VCS_Kind use "Git";
