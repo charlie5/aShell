@@ -418,43 +418,50 @@ is
                   Raise_Error  : in     Boolean := False)
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
+      i            : Positive     := 1;
    begin
       Last_Command.Output_Pipe := To_Pipe;
 
       Start (The_Pipeline, Input);
 
-      declare
-         i : Positive := 1;
-      begin
-         loop
-            begin
-               Gather_Results (Last_Command);   -- Gather on-going results.
+      loop
+         Gather_Results (Last_Command);   -- Gather on-going results.
 
-               if Has_Terminated (The_Pipeline (i).Process)
+         if Has_Terminated (The_Pipeline (i).Process)
+         then
+            if Normal_Exit (The_Pipeline (i).Process)
+            then
+               i := i + 1;
+
+               if i > The_Pipeline'Last
                then
-                  if Normal_Exit (The_Pipeline (i).Process)
-                  then
-                     i := i + 1;
-
-                     if i > The_Pipeline'Last
-                     then
-                        Gather_Results (Last_Command);   -- Gather any final results.
-                        exit;
-                     end if;
-
-                  elsif Raise_Error
-                  then
-                     declare
-                        Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                                   & " '" & (+The_Pipeline (i).Name) & "' failed.";
-                     begin
-                        raise Command_Error with Error;
-                     end;
-                  end if;
+                  Gather_Results (Last_Command);   -- Gather any final results.
+                  exit;
                end if;
-            end;
-         end loop;
-      end;
+
+            else
+               declare
+                  Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                             & " '" & (+The_Pipeline (i).Name) & "' failed.";
+               begin
+                  -- Stop the pipeline.
+                  --
+                  while i <= The_Pipeline'Last
+                  loop
+                     Stop (The_Pipeline (i));
+                     i := i + 1;
+                  end loop;
+
+                  if Raise_Error
+                  then
+                     raise Command_Error with Error;
+                  else
+                     exit;
+                  end if;
+               end;
+            end if;
+         end if;
+      end loop;
    end Run;
 
 
