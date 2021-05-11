@@ -143,13 +143,6 @@ is
       end to_Command;
 
 
-      function "+" (Command_Line : in String) return Command
-      is
-      begin
-         return To_Command (Command_Line);
-      end "+";
-
-
       function To_Commands (Pipeline : in String) return Command_Array
       is
          use Ada.Strings.Fixed;
@@ -192,13 +185,6 @@ is
             end loop;
          end return;
       end To_Commands;
-
-
-      function "+" (Pipeline : in String) return Command_Array
-      is
-      begin
-         return To_Commands (Pipeline);
-      end "+";
 
    end Forge;
 

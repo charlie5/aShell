@@ -19,8 +19,8 @@ is
       function To_Command  (Command_Line  : in String) return Command;                  -- An example 'Command_Line' is "ps -A".
       function To_Commands (Pipeline      : in String) return Command_Array;            -- An example 'Pipeline' is "ps -A | grep bash | wc".
 
-      function "+"         (Command_Line  : in String) return Command;
-      function "+"         (Pipeline      : in String) return Command_Array;
+      function "+"         (Command_Line  : in String) return Command       renames To_Command;
+      function "+"         (Pipeline      : in String) return Command_Array renames To_Commands;
    end Forge;
 
    function  Image      (The_Command   : in Command) return String;
