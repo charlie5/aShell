@@ -19,7 +19,7 @@ begin
 
       if Failed (The_Command)
       then
-         Put_Line ("Failed on command '" & Name_of (The_Command) & "' as expected.");
+         Put_Line ("Failed on command '" & The_Command.Name & "' as expected.");
       end if;
    end;
 
@@ -36,7 +36,7 @@ begin
    exception
       when Command_Error =>
          Put_Line ("Command failed and raised an exception, as expected.");
-         Put_Line ("Failed command was '" & Name_of (The_Command) & "'.");
+         Put_Line ("Failed command was '" & The_Command.Name & "'.");
    end;
 
    New_Line (2);

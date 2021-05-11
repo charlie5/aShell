@@ -23,7 +23,7 @@ is
       function "+"         (Pipeline      : in String) return Command_Array renames To_Commands;
    end Forge;
 
-   function  Image      (The_Command   : in Command) return String;
+   function  Image   (The_Command : in Command) return String;
 
    procedure Connect (From, To : in out Command);           -- Connects 'From's output to 'To's input via a pipe.
    procedure Connect (Commands : in out Command_Array);     -- Connects each command in a pipeline.
@@ -32,9 +32,9 @@ is
    function  Output_Pipe (The_Command : in     Command) return Pipe;
    function   Error_Pipe (The_Command : in     Command) return Pipe;
 
-   function  Name_of     (The_Command : in out Command) return String;
-   function  Process_of  (The_Command : in out Command) return access Process;
-   function  Failed      (The_Command : in     Command) return Boolean;
+   function  Name    (The_Command : in out Command) return String;
+   function  Process (The_Command : in out Command) return access Shell.Process;
+   function  Failed  (The_Command : in     Command) return Boolean;
 
 
    --- The Start subprograms return before the process completes.

@@ -20,8 +20,8 @@ begin
           Shell.Commands.Forge;
       The_Command : Command := To_Command ("ls -alh");
    begin
-      Start (The_Command);
-      Wait_On (Process_of (The_Command).all);
+      Start   (The_Command);
+      Wait_On (The_Command);
    end Test_1;
 
 
@@ -36,9 +36,9 @@ begin
       Last_Command   : Command  renames Piped_Commands (Piped_Commands'Last);
    begin
       Start (Piped_Commands);
-      Wait_On (Process_of (Last_Command).all);
+      Wait_On (Last_Command);
 
-      if not Has_Terminated (Process_of (Piped_Commands (1)).all)
+      if not Piped_Commands (1).Has_Terminated
       then
          raise Error with "Test 2 ~ Run piped commands failed ~ the first command has not terminated.";
       end if;
@@ -54,9 +54,9 @@ begin
           Shell.Commands.Forge;
       The_Command : Command := To_Command ("sleep 3");
    begin
-      Start (The_Command);
-      Put_Line ("Sleep process id: " & Image (Process_of (The_Command).all));
-      Wait_On (Process_of (The_Command).all);
+      Start    (The_Command);
+      Put_Line ("Sleep process id: " & Image (The_Command.Process.all));
+      Wait_On  (The_Command);
    end Test_3;
 
 
@@ -74,12 +74,12 @@ begin
       for i in The_Commands'Range
       loop
          Put_Line (  "Sleep command"   & Positive'Image (i)
-                   & " ~ process id: " & Image (Process_of (The_Commands (i)).all));
+                   & " ~ process id: " & Image (The_Commands (i).Process.all));
       end loop;
 
       for i in The_Commands'Range
       loop
-         Wait_On (Process_of (The_Commands (i)).all);
+         Wait_On (The_Commands (i));
       end loop;
    end Test_4;
 

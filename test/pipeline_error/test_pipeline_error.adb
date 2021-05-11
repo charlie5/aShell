@@ -27,7 +27,7 @@ begin
          begin
             Put_Line (  "Pipeline failed as expected.");
             Put_Line (  "Failed on command" & Natural'Image (Which)
-                      & " '" & Name_of (Commands (Which)) & "'.");
+                      & " '" & Commands (Which).Name & "'.");
             Put_Line (  "Error message => '" & Error & "'");
          end;
       end if;
@@ -52,7 +52,7 @@ begin
          begin
             Put_Line (  "Pipeline failed and raised an exception, as expected.");
             Put_Line (  "Failed on command" & Natural'Image (Which)
-                      & " '" & Name_of (Commands (Which)) & "'.");
+                      & " '" & Commands (Which).Name & "'.");
             Put_Line (  "Error message => '" & Error & "'");
          end;
    end;

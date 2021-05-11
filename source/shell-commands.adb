@@ -249,18 +249,18 @@ is
    end Error_Pipe;
 
 
-   function Name_of (The_Command : in out Command) return String
+   function Name (The_Command : in out Command) return String
    is
    begin
       return +The_Command.Name;
-   end Name_of;
+   end Name;
 
 
-   function Process_of (The_Command : in out Command) return access Process
+   function Process (The_Command : in out Command) return access Shell.Process
    is
    begin
       return The_Command.Process'Unchecked_Access;
-   end Process_of;
+   end Process;
 
 
    --- Start

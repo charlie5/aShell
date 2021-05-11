@@ -35,7 +35,7 @@ begin
 
       for i in Piped_Commands'Range
       loop
-         Wait_On (Process_of (Piped_Commands (i)).all);
+         Wait_On (Piped_Commands (i));
       end loop;
 
       Put_Line ("End test 1");
@@ -67,13 +67,12 @@ begin
 
       for i in Piped_Commands'Range
       loop
-         Wait_On (Process_of (Piped_Commands (i)).all);
+         Wait_On (Piped_Commands (i));
       end loop;
 
       Put_Line ("End test 2");
    end Test_2;
 
    New_Line (2);
-
    Put_Line ("End 'Test_Environment' tests.");
 end Test_Environment;
