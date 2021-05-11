@@ -48,33 +48,11 @@ is
                   Clear (The_Command.Output);
                   Clear (The_Command.Errors);
 
-                  begin
-                     Close (The_Command. Input_Pipe);
-                     Close (The_Command.Output_Pipe);
-                     Close (The_Command. Error_Pipe);
+                  Close (The_Command. Input_Pipe);
+                  Close (The_Command.Output_Pipe);
+                  Close (The_Command. Error_Pipe);
 
-                     begin
-                        Kill (The_Command);
-                     exception
-                        when E : POSIX.POSIX_Error =>
-                           if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"
-                           then
-                              Put_Line (Image (Current_Task) & " ~ Unable to kill process" & Image (The_Command.Process));
-                              raise;
-                           end if;
-                     end;
-
-                     begin
-                        Wait_On (The_Command.Process);   -- Reap zombies.
-                     exception
-                        when E : POSIX.POSIX_Error =>
-                           if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
-                           then
-                              Put_Line (Image (Current_Task) & " ~ Unable to wait on process" & Image (The_Command.Process));
-                              raise;
-                           end if;
-                     end;
-                  end;
+                  Stop (The_Command);
 
                   The_Command.Output_Pipe := To_Pipe;
                   The_Command. Error_Pipe := To_Pipe;

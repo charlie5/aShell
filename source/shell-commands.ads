@@ -139,6 +139,7 @@ private
    procedure Finalize (The_Command : in out Command);
 
    procedure Gather_Results (The_Command : in out Command);
+   procedure Stop           (The_Command : in out Command);
 
    type Command_Results (Output_Size : Data_Offset;
                          Error_Size  : Data_Offset) is

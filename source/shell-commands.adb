@@ -2,6 +2,9 @@ with
      GNAT.OS_Lib,
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
+     Ada.Characters.Handling,
+     Ada.Exceptions,
+     Ada.Text_IO,
      Ada.Unchecked_Deallocation,
      Ada.Unchecked_Conversion;
 
@@ -497,6 +500,36 @@ is
    begin
       null;
    end Run;
+
+
+   procedure Stop (The_Command : in out Command)
+   is
+      use Ada.Characters.Handling,
+          Ada.Exceptions,
+          Ada.Text_IO;
+   begin
+      begin
+         Kill (The_Command);
+      exception
+         when E : POSIX.POSIX_Error =>
+            if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"
+            then
+               Put_Line ("Unable to kill process" & Image (The_Command.Process));
+               raise;
+            end if;
+      end;
+
+      begin
+         Wait_On (The_Command.Process);   -- Reap zombies.
+      exception
+         when E : POSIX.POSIX_Error =>
+            if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
+            then
+               Put_Line ("Unable to wait on process" & Image (The_Command.Process));
+               raise;
+            end if;
+      end;
+   end Stop;
 
 
    function Failed (The_Command : in Command) return Boolean
