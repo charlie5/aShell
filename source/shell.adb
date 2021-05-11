@@ -7,7 +7,8 @@ with
      Ada.Exceptions,
      Ada.IO_Exceptions,
      Ada.Unchecked_Conversion,
-     Ada.Task_Identification;
+     Ada.Task_Identification,
+     Ada.Text_IO;
 
 package body Shell
 is
@@ -401,13 +402,25 @@ is
 
    function Has_Terminated (Process : in out Shell.Process) return Boolean
    is
-      use POSIX.Process_Primitives;
+      use POSIX.Process_Primitives,
+          Ada.Characters.Handling,
+          Ada.Exceptions,
+          Ada.Text_IO;
    begin
       Wait_For_Child_Process (Status => Process.Status,
                               Child  => Process.Id,
                               Block  => False);
 
       return Status_Available (Process.Status);
+   exception
+      when E : POSIX.POSIX_Error =>
+         if To_Upper (Exception_Message (E)) = "NO_CHILD_PROCESS"
+         then
+            Put_Line ("Child process is dead (" & Image (Process) & ")");
+            return True;
+         else
+            raise;
+         end if;
    end Has_Terminated;
 
 
