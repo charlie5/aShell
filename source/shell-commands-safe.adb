@@ -31,18 +31,18 @@ is
          use Data_Vectors,
              Ada.Task_Identification,
              Ada.Text_IO;
-         Restart_Pipeline : Boolean  := False;
-         Retry_Count      : Natural  := 0;
+         Restart_Command : Boolean  := False;
+         Retry_Count     : Natural  := 0;
       begin
          loop
             begin
                Gather_Results (The_Command);   -- Gather on-going results.
 
-               if   The_Command.Error_Count > 5
-                 or Restart_Pipeline
+               if Restart_Command
                then
+                  Put_Line ("restarting command: " & The_Command.Error_Count'Image & "  " & Restart_Command'Image);
                   Retry_Count             := Retry_Count + 1;
-                  Restart_Pipeline        := False;
+                  Restart_Command         := False;
                   The_Command.Error_Count := 0;
 
                   Clear (The_Command.Output);
@@ -65,7 +65,7 @@ is
                        or not Is_Readable (The_Command.Output_Pipe)
                        or not Is_Readable (The_Command.Error_Pipe)
                      then
-                        Restart_Pipeline := True;
+                        Restart_Command := True;
                      else
                         Gather_Results (The_Command);   -- Gather any final results.
                         exit;
@@ -74,12 +74,12 @@ is
                   else
                      if Retry_Count < Retry
                      then
-                        Restart_Pipeline := True;
+                        Restart_Command := True;
 
                      elsif Raise_Error
                      then
                         declare
-                           Error : constant String :=   "The command '" & (+The_Command.Name) & "' failed.";
+                           Error : constant String := "The command '" & (+The_Command.Name) & "' failed.";
                         begin
                            raise Command_Error with Error;
                         end;
@@ -95,7 +95,7 @@ is
                when E : POSIX.POSIX_Error =>
                   if To_Upper (Exception_Message (E)) = "INVALID_ARGUMENT"
                   then
-                     Restart_Pipeline := True;
+                     Restart_Command := True;
                   else
                      raise;
                   end if;
@@ -242,8 +242,11 @@ is
    end Run;
 
 
-   function Run (Command_Line : in String;
-                 Input        : in Data  := No_Data) return Command_Results
+   function Run (Command_Line  : in String;
+                 Input         : in Data    := No_Data;
+                 Raise_Error   : in Boolean := False;
+                 Retry         : in Natural := Natural'Last;
+                 Expect_Output : in Boolean := True) return Command_Results
    is
       use Ada.Strings.Fixed,
           Shell.Commands.Forge;
@@ -255,22 +258,25 @@ is
          declare
             The_Commands : Command_Array := To_Commands (Command_Line);
          begin
-            return Safe.Run (The_Commands, Input);
+            return Safe.Run (The_Commands, Input, Raise_Error, Retry, Expect_Output);
          end;
       else
          declare
             The_Command : Command := To_Command (Command_Line);
          begin
-            return Safe.Run (The_Command, Input);
+            return Safe.Run (The_Command, Input, Raise_Error, Retry, Expect_Output);
          end;
       end if;
    end Run;
 
 
-   procedure Run (Command_Line : in String;
-                  Input        : in Data  := No_Data)
+   procedure Run (Command_Line  : in String;
+                  Input         : in Data    := No_Data;
+                  Raise_Error   : in Boolean := False;
+                  Retry         : in Natural := Natural'Last;
+                  Expect_Output : in Boolean := True)
    is
-      Results : Command_Results := Safe.Run (Command_Line, Input) with Unreferenced;
+      Results : Command_Results := Safe.Run (Command_Line, Input, Raise_Error, Retry, Expect_Output) with Unreferenced;
    begin
       null;
    end Run;
