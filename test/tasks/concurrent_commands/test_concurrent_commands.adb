@@ -12,14 +12,14 @@ is
    task body Task_1
    is
    begin
-      for i in 1 .. 10_000
+      for i in 1 .. 100_000
       loop
          declare
             use Shell,
                 Shell.Commands,
                 Shell.Commands.Forge;
             The_Command :          Command := To_Command ("ls /home");
-            Output      : constant String  := +Output_Of (Safe.Run (The_Command, Retry => Natural'Last));
+            Output      : constant String  := +Output_Of (Safe.Run (The_Command));
          begin
             Put_Line ("Task 1   i =" & i'Image & " =>");
             Put_Line ("'" & Output & "'");
@@ -42,14 +42,14 @@ is
    task body Task_2
    is
    begin
-      for i in 1 .. 10_000
+      for i in 1 .. 100_000
       loop
          declare
             use Shell,
                 Shell.Commands,
                 Shell.Commands.Forge;
             The_Command :          Command :=  To_Command ("pwd");
-            Output      : constant String  := +Output_Of (Safe.Run (The_Command, Retry => Natural'Last));
+            Output      : constant String  := +Output_Of (Safe.Run (The_Command));
          begin
             Put_Line ("Task 2   i =" & i'Image & " =>");
             Put_Line ("'" & Output & "'");
