@@ -36,9 +36,9 @@ is
                              Errors : in Shell.Data)
       is
       begin
-         --  if Output'Length /= 0 then
+         if Output'Length /= 0 then
             All_Output.Append (Output);
-         --  end if;
+         end if;
 
          if Errors'Length /= 0 then
             All_Errors.Append (Errors);
@@ -129,18 +129,21 @@ is
                begin
                   declare
                      Output : constant Data := Output_Of (Manager_Out_Pipe);
-                     --  Errors : constant Data := Output_Of (Manager_Err_Pipe);
+                     Errors : constant Data := Output_Of (Manager_Err_Pipe);
                   begin
-                     Command_Output.Add_Outputs (Output, No_Data);-- Errors);
-                     Command_Output.Set_Done;
-                     --  ada.Text_IO.Put_Line (Output);
+                     if Output'Length > 0
+                     then
+                        Command_Output.Add_Outputs (Output, Errors);
+                        Command_Output.Set_Done;
+                        exit;
+                     end if;
                   end;
 
-                  exit;
+                  delay 0.1;
 
-               exception
-                  when Shell.No_Output_Error =>   -- No new command output.
-                     delay 0.1;                   -- Wait for new output.
+               --  exception
+               --     when Shell.No_Output_Error =>   -- No new command output.
+               --        delay 0.1;                   -- Wait for new output.
                end;
             end loop;
          end if;
