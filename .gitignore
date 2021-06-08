@@ -16,6 +16,7 @@ build
 test/test_ashell
 test/ashell/test_ashell
 attic
+aShell_spawn_Manager.error_log
 
 
 ## Binaries
@@ -35,3 +36,4 @@ test_wait_on_process
 test_concurrent_commands
 test_concurrent_pipelines
 test_spawn_manager
+ashell_spawn_manager
