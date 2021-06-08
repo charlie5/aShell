@@ -96,7 +96,7 @@ is
       Have_New_Command : Boolean := False;
       --  Done             : Boolean := False;
 
-      Command_Output : Safe_Client_Outputs_Access;
+      Command_Outputs : Safe_Client_Outputs_Access;
 
       Manager_Input_Stream  : aliased Pipe_Stream := Stream (Manager_In_Pipe);
       Manager_Output_Stream : aliased Pipe_Stream := Stream (Manager_Out_Pipe);
@@ -109,7 +109,7 @@ is
                         Output      : in     Safe_Client_Outputs_Access)
             do
                Have_New_Command := True;
-               Command_Output   := Output;
+               Command_Outputs   := Output;
                New_Command      := Shell.Unbounded_String (Null_Unbounded_String);
                Append (New_Command,
                        Name (The_Command) & " " & Arguments (The_Command));
@@ -139,8 +139,8 @@ is
                   begin
                      if Output'Length > 0
                      then
-                        Command_Output.Add_Outputs (Output, Errors);
-                        Command_Output.Set_Done;
+                        Command_Outputs.Add_Outputs (Output, Errors);
+                        Command_Outputs.Set_Done;
                         exit;
                      end if;
                   end;
