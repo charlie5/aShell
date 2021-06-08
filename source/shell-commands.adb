@@ -249,7 +249,7 @@ is
    end Error_Pipe;
 
 
-   function Name (The_Command : in out Command) return String
+   function Name (The_Command : in Command) return String
    is
    begin
       return +The_Command.Name;
