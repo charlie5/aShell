@@ -164,7 +164,7 @@ is
       Max_Process_Output : constant := 200 * 1024;
 
       Buffer : Data (1 .. Max_Process_Output);
-      Last   : Stream_Element_Offset;
+      Last   : Stream_Element_Offset := 0;
    begin
       if not Is_Readable (Pipe)
       then
@@ -196,8 +196,8 @@ is
             Read (File   => Pipe.Read_End,
                   Buffer => Buffer,
                   Last   => Last);
-         else
-            raise No_Output_Error with Image (Current_Task) & " 'Shell.Output_Of ()' ~ pipe read end =>" & Pipe.Read_End'Image;
+         --  else
+         --     raise No_Output_Error with Image (Current_Task) & " 'Shell.Output_Of ()' ~ pipe read end =>" & Pipe.Read_End'Image;
          end if;
       end;
 
@@ -214,7 +214,7 @@ is
                return No_Data;
             end if;
 
-            raise No_Output_Error with Image (Current_Task) & " " & Message & " ~ pipe read end =>" & Pipe.Read_End'Image;
+            return No_Data;  -- raise No_Output_Error with Image (Current_Task) & " " & Message & " ~ pipe read end =>" & Pipe.Read_End'Image;
          end;
 
       when Ada.IO_Exceptions.End_Error =>
