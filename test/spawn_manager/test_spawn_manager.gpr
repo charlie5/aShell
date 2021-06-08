@@ -1,0 +1,21 @@
+with
+     "ashell",
+     "shared";
+
+project test_spawn_Manager
+is
+   for Create_Missing_Dirs use "True";
+
+   for Object_Dir  use "build";
+   for Source_Dirs use (".");
+   for Exec_Dir    use ".";
+   for Main        use ("test_spawn_manager");
+
+   package Compiler renames Shared.Compiler;
+   package Binder   renames Shared.Binder;
+
+   package IDE is
+      for VCS_Kind use "Git";
+   end IDE;
+
+end test_spawn_Manager;
