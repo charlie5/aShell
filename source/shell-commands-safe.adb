@@ -97,6 +97,8 @@ is
       --  Done             : Boolean := False;
 
       Command_Output : Safe_Client_Outputs_Access;
+
+      Manager_Input_Stream : aliased Pipe_Stream := Stream (Manager_In_Pipe);
    begin
       --  while not Done
       loop
@@ -123,7 +125,7 @@ is
          if Have_New_Command
          then
             Have_New_Command := False;
-            Write_To (Manager_In_Pipe, To_Data (+New_Command));
+            String'Output (Manager_Input_Stream'Access, +New_Command);
 
             loop
                begin

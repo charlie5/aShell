@@ -24,6 +24,8 @@ is
       return True;
    end log;
 
+   Input_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Input);
+
 begin
    Create (Log_File, Out_File, "aShell_spawn_Manager.error_log");
 
@@ -33,7 +35,7 @@ begin
 
       begin
          declare
-            Input       : constant String  := +Output_Of (Shell.Standard_Input);
+            Input       : constant String  := String'Input (Input_Stream'Access);
             A1          :          Boolean := Log ("Input => '" & Input & "'");
 
             The_Command :          Command := Forge.To_Command (Input);
