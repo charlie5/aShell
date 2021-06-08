@@ -74,6 +74,7 @@ is
    Standard_Error  : constant Pipe;
 
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with private;
+   function  Stream (Pipe : in Shell.Pipe) return Pipe_Stream;
 
 
    --- Processes

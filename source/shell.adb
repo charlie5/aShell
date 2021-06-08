@@ -255,6 +255,13 @@ is
    --- Pipe Streams
    --
 
+   function Stream (Pipe : in Shell.Pipe) return Pipe_Stream
+   is
+   begin
+      return (Root_Stream_Type with Pipe => Pipe);
+   end Stream;
+
+
    overriding
    procedure Read (Stream : in out Pipe_Stream;
                    Item   :    out Stream_Element_Array;
