@@ -7,6 +7,13 @@ package Shell.Commands.Safe
 -- Set 'Expect_Output' to false if a command or pipeline may produce no output.
 
 is
+   procedure Finalize;
+
+
+   procedure Runn (The_Command : in out Command);
+
+
+
    --- Run - Block until process completes.
    --
 

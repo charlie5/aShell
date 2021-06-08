@@ -8,6 +8,178 @@ with
 
 package body Shell.Commands.Safe
 is
+
+   ----------------------
+   --- Safe_Client_Output
+   --
+
+   protected
+   type Safe_Client_Outputs
+   is
+      procedure Add_Outputs (Output : in     Shell.Data;
+                             Errors : in     Shell.Data);
+      entry     Get_Outputs (Output :    out Data_Vector;
+                             Errors :    out Data_Vector);
+      procedure Set_Done;
+
+   private
+      All_Output : Data_Vector;
+      All_Errors : Data_Vector;
+      Done       : Boolean    := False;
+   end Safe_Client_Outputs;
+
+
+   protected
+   body Safe_Client_Outputs
+   is
+      procedure Add_Outputs (Output : in Shell.Data;
+                             Errors : in Shell.Data)
+      is
+      begin
+         --  if Output'Length /= 0 then
+            All_Output.Append (Output);
+         --  end if;
+
+         if Errors'Length /= 0 then
+            All_Errors.Append (Errors);
+         end if;
+      end Add_Outputs;
+
+
+      entry Get_Outputs (Output : out Data_Vector;
+                         Errors : out Data_Vector) when Done
+      is
+      begin
+         Output := All_Output;
+         Errors := All_Errors;
+      end Get_Outputs;
+
+
+      procedure Set_Done
+      is
+      begin
+         Done := True;
+      end Set_Done;
+
+   end Safe_Client_Outputs;
+
+
+   type Safe_Client_Outputs_Access is access all Safe_Client_Outputs;
+
+
+   ----------------
+   --- Spawn_Client
+   --
+
+   task Spawn_Client
+   is
+      entry Add (The_Command : in     Command;
+                 Output      : in     Safe_Client_Outputs_Access);
+      --  entry Stop;
+   end Spawn_Client;
+
+
+   task body Spawn_Client
+   is
+      use Ada.Strings.Unbounded;
+
+      Manager_In_Pipe  : constant Shell.Pipe := To_Pipe;
+      Manager_Out_Pipe : constant Shell.Pipe := To_Pipe;
+      Manager_Err_Pipe : constant Shell.Pipe := To_Pipe;
+
+      spawn_Manager : Shell.Process  := Start (Program   => "ashell_spawn_manager",
+                                               Input     => Manager_In_Pipe,
+                                               Output    => Manager_Out_Pipe,
+                                               Errors    => Manager_Err_Pipe) with Unreferenced;
+
+      New_Command      : Unbounded_String;
+      Have_New_Command : Boolean := False;
+      --  Done             : Boolean := False;
+
+      Command_Output : Safe_Client_Outputs_Access;
+   begin
+      --  while not Done
+      loop
+         select
+            accept Add (The_Command : in     Command;
+                        Output      : in     Safe_Client_Outputs_Access)
+            do
+               Have_New_Command := True;
+               Command_Output   := Output;
+               New_Command      := Shell.Unbounded_String (Null_Unbounded_String);
+               Append (New_Command,
+                       Name (The_Command) & " " & Arguments (The_Command));
+            end Add;
+         --  or
+         --     accept Stop
+         --     do
+         --        Done := True;
+         --     end Stop;
+         or
+            terminate;
+         end select;
+
+
+         if Have_New_Command
+         then
+            Have_New_Command := False;
+            Write_To (Manager_In_Pipe, To_Data (+New_Command));
+
+            loop
+               begin
+                  declare
+                     Output : constant Data := Output_Of (Manager_Out_Pipe);
+                     --  Errors : constant Data := Output_Of (Manager_Err_Pipe);
+                  begin
+                     Command_Output.Add_Outputs (Output, No_Data);-- Errors);
+                     Command_Output.Set_Done;
+                     --  ada.Text_IO.Put_Line (Output);
+                  end;
+
+                  exit;
+
+               exception
+                  when Shell.No_Output_Error =>   -- No new command output.
+                     delay 0.1;                   -- Wait for new output.
+               end;
+            end loop;
+         end if;
+
+      end loop;
+
+   exception
+      when E : others =>
+         Ada.Text_IO.Put_Line ("Unhandled error in Spawn_Client.");
+         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+   end Spawn_Client;
+
+
+
+   procedure Finalize
+   is
+   begin
+      null;
+      --  Spawn_Client.stop;
+   end Finalize;
+
+
+   procedure Runn (The_Command : in out Command)
+   is
+      Outputs : aliased Safe_Client_Outputs;
+      Output  :         Data_Vector;
+      Errors  :         Data_Vector;
+   begin
+      Spawn_Client.Add (The_Command,
+                        Outputs'Unchecked_Access);
+
+      Outputs.Get_Outputs (Output,
+                           Errors);
+
+      The_Command.Output := Output;
+      The_Command.Errors := Errors;
+   end Runn;
+
+
    --- Run
    --
 
