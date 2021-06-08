@@ -24,7 +24,9 @@ is
       return True;
    end log;
 
-   Input_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Input);
+   Input_Stream  : aliased Pipe_Stream := Stream (Shell.Standard_Input);
+   Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
+   Errors_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Error);
 
 begin
    Create (Log_File, Out_File, "aShell_spawn_Manager.error_log");
@@ -41,11 +43,19 @@ begin
             The_Command :          Command := Forge.To_Command (Input);
             A2          :          Boolean := Log (Image (The_Command));
 
-            Output      : constant Data    := Output_Of (Run (The_Command));
+            Results     : Command_Results  := Run (The_Command);
+
+            Output      : constant Data    := Output_Of (Results);
             A3          :          Boolean := Log (+Output);
+
+            Errors      : constant Data    := Errors_Of (Results);
+            A4          :          Boolean := Log (+Errors);
          begin
-            Write_To (Shell.Standard_Output,
-                      Output);
+            Data'Output (Output_Stream'Access, Output);
+            Data'Output (Errors_Stream'Access, Errors);
+
+            --  Write_To (Shell.Standard_Output,
+            --            Output);
          end;
 
 

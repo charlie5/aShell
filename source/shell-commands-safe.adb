@@ -98,7 +98,9 @@ is
 
       Command_Output : Safe_Client_Outputs_Access;
 
-      Manager_Input_Stream : aliased Pipe_Stream := Stream (Manager_In_Pipe);
+      Manager_Input_Stream  : aliased Pipe_Stream := Stream (Manager_In_Pipe);
+      Manager_Output_Stream : aliased Pipe_Stream := Stream (Manager_Out_Pipe);
+      Manager_Errors_Stream : aliased Pipe_Stream := Stream (Manager_Err_Pipe);
    begin
       --  while not Done
       loop
@@ -130,8 +132,10 @@ is
             loop
                begin
                   declare
-                     Output : constant Data := Output_Of (Manager_Out_Pipe);
-                     Errors : constant Data := Output_Of (Manager_Err_Pipe);
+                     Output : constant Data := Data'Input (Manager_Output_Stream'Access);
+                     Errors : constant Data := Data'Input (Manager_Errors_Stream'Access);
+                     --  Output : constant Data := Output_Of (Manager_Out_Pipe);
+                     --  Errors : constant Data := Output_Of (Manager_Err_Pipe);
                   begin
                      if Output'Length > 0
                      then
