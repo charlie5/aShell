@@ -1,23 +1,26 @@
-# Editor backup files
+## Editor backup files
+#
+
 *.bak
 *\~
 
-# Object file
-*.o
 
-# Ada Library Information
+## Build artifacts
+#
+
 *.ali
 *.a
-
-# Build atifacts
+*.o
+.clang-format
 build
 test/test_ashell
 test/ashell/test_ashell
-
 attic
 
 
-# Binaries
+## Binaries
+#
+
 test_all
 test_command_error
 test_command_output_to_string
@@ -31,3 +34,4 @@ test_pipeline_output
 test_wait_on_process
 test_concurrent_commands
 test_concurrent_pipelines
+test_spawn_manager
