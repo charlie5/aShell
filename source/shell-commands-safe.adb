@@ -75,7 +75,6 @@ is
    is
       entry Add (The_Command : in     Command;
                  Output      : in     Safe_Client_Outputs_Access);
-      --  entry Stop;
    end Spawn_Client;
 
 
@@ -91,18 +90,14 @@ is
                                                Input     => Manager_In_Pipe,
                                                Output    => Manager_Out_Pipe,
                                                Errors    => Manager_Err_Pipe) with Unreferenced;
-
       New_Command      : Unbounded_String;
       Have_New_Command : Boolean := False;
-      --  Done             : Boolean := False;
-
-      Command_Outputs : Safe_Client_Outputs_Access;
+      Command_Outputs  : Safe_Client_Outputs_Access;
 
       Manager_Input_Stream  : aliased Pipe_Stream := Stream (Manager_In_Pipe);
       Manager_Output_Stream : aliased Pipe_Stream := Stream (Manager_Out_Pipe);
       Manager_Errors_Stream : aliased Pipe_Stream := Stream (Manager_Err_Pipe);
    begin
-      --  while not Done
       loop
          select
             accept Add (The_Command : in     Command;
@@ -114,11 +109,6 @@ is
                Append (New_Command,
                        Name (The_Command) & " " & Arguments (The_Command));
             end Add;
-         --  or
-         --     accept Stop
-         --     do
-         --        Done := True;
-         --     end Stop;
          or
             terminate;
          end select;
@@ -134,8 +124,6 @@ is
                   declare
                      Output : constant Data := Data'Input (Manager_Output_Stream'Access);
                      Errors : constant Data := Data'Input (Manager_Errors_Stream'Access);
-                     --  Output : constant Data := Output_Of (Manager_Out_Pipe);
-                     --  Errors : constant Data := Output_Of (Manager_Err_Pipe);
                   begin
                      if Output'Length > 0
                      then
@@ -146,10 +134,6 @@ is
                   end;
 
                   delay 0.1;
-
-               --  exception
-               --     when Shell.No_Output_Error =>   -- No new command output.
-               --        delay 0.1;                   -- Wait for new output.
                end;
             end loop;
          end if;
@@ -162,14 +146,6 @@ is
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
    end Spawn_Client;
 
-
-
-   procedure Finalize
-   is
-   begin
-      null;
-      --  Spawn_Client.stop;
-   end Finalize;
 
 
    procedure Runn (The_Command : in out Command)

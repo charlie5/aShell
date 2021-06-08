@@ -43,7 +43,7 @@ begin
             The_Command :          Command := Forge.To_Command (Input);
             A2          :          Boolean := Log (Image (The_Command));
 
-            Results     : Command_Results  := Run (The_Command);
+            Results     : constant Command_Results := Run (The_Command);
 
             Output      : constant Data    := Output_Of (Results);
             A3          :          Boolean := Log (+Output);
@@ -53,11 +53,7 @@ begin
          begin
             Data'Output (Output_Stream'Access, Output);
             Data'Output (Errors_Stream'Access, Errors);
-
-            --  Write_To (Shell.Standard_Output,
-            --            Output);
          end;
-
 
       exception
          when Shell.No_Output_Error =>   -- No new command.

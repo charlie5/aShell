@@ -2,7 +2,6 @@ with
      Shell.Commands.Safe,
      Ada.Text_IO;
 
-
 procedure Test_Spawn_Manager
 --
 --
@@ -30,8 +29,6 @@ begin
 
       delay 0.1;
    end loop;
-
-   --  Shell.Commands.Safe.Finalize;
 
    New_Line (2);
    Put_Line ("End test.");
