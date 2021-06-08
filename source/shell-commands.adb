@@ -256,6 +256,25 @@ is
    end Name;
 
 
+   function Arguments (The_Command : in Command) return String
+   is
+      All_Arguments : Unbounded_String;
+      Last          : constant Natural := Natural (The_Command.Arguments.Length);
+   begin
+      for i in 1 .. Last
+      loop
+         Append (All_Arguments, The_Command.Arguments.Element (i));
+
+         if i /= Last
+         then
+            Append (All_Arguments, " ");
+         end if;
+      end loop;
+
+      return To_String (All_Arguments);
+   end Arguments;
+
+
    function Process (The_Command : in out Command) return access Shell.Process
    is
    begin

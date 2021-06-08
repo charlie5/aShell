@@ -32,7 +32,10 @@ is
    function  Output_Pipe (The_Command : in     Command) return Pipe;
    function   Error_Pipe (The_Command : in     Command) return Pipe;
 
-   function  Name    (The_Command : in     Command) return String;
+   function  Name      (The_Command : in     Command) return String;
+   function  Arguments (The_Command : in     Command) return String;
+
+
    function  Process (The_Command : in out Command) return access Shell.Process;
    function  Failed  (The_Command : in     Command) return Boolean;
 
