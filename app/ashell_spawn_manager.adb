@@ -1,6 +1,7 @@
 with
      Shell.Commands,
      Ada.Text_IO,
+     Ada.IO_Exceptions,
      Ada.Exceptions;
 
 procedure aShell_spawn_Manager
@@ -34,6 +35,7 @@ begin
    for i in 1 .. 20
    loop
       delay 0.1;
+      log ("loop: " & i'Image);
 
       begin
          declare
@@ -56,7 +58,7 @@ begin
          end;
 
       exception
-         when Shell.No_Output_Error =>   -- No new command.
+         when Ada.IO_Exceptions.End_Error =>   -- No new command.
             delay 0.1;
       end;
    end loop;

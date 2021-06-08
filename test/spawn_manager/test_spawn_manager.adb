@@ -14,7 +14,7 @@ begin
    Put_Line ("Begin test.");
    New_Line (2);
 
-   for i in 1 .. 1
+   for i in 1 .. 5
    loop
       declare
          use Shell;
