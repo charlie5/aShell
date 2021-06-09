@@ -26,10 +26,8 @@ is
 begin
    Create (Log_File, Out_File, "aShell_spawn_Manager.error_log");
    log ("K1");
+
    declare
-
-
-
       package Id_Maps_of_Command is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
                                                                     Element_Type    => Command,
                                                                     Hash            => Hash,

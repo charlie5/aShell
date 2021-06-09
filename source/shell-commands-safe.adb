@@ -88,8 +88,8 @@ is
 
    task Spawn_Client
    is
-      entry Add (The_Command : in     Command;
-                 Output      : in     Safe_Client_Outputs_Access);
+      entry Add (The_Command : in Command;
+                 Outputs     : in Safe_Client_Outputs_Access);
    end Spawn_Client;
 
 
@@ -125,15 +125,14 @@ is
 
       loop
          select
-            accept Add (The_Command : in     Command;
-                        Output      : in     Safe_Client_Outputs_Access)
+            accept Add (The_Command : in Command;
+                        Outputs     : in Safe_Client_Outputs_Access)
             do
                log ("Adding command.");
                Have_New_Command := True;
-               Command_Outputs  := Output;
-               New_Command      := Shell.Unbounded_String (Null_Unbounded_String);
-               Append (New_Command,
-                       Name (The_Command) & " " & Arguments (The_Command));
+               Command_Outputs  := Outputs;
+               Set_Unbounded_String (New_Command,
+                                     Name (The_Command) & " " & Arguments (The_Command));
             end Add;
          or
             terminate;
@@ -151,30 +150,31 @@ is
 
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
-
-            loop
-               begin
-                  declare
-                     Output : constant Data := Data'Input (Manager_Output_Stream'Access);
-                     Errors : constant Data := Data'Input (Manager_Errors_Stream'Access);
-                  begin
-                     log ("Output Length: " & Output'Length'Image);
-                     log ("Output => '" & (+Output) & "'");
-                     log ("Errors => '" & (+Errors) & "'");
-
-                     if Output'Length > 0
-                     then
-                        Command_Outputs.Add_Outputs (Output, Errors);
-                        Command_Outputs.Set_Done;
-                        exit;
-                     end if;
-                  end;
-
-                  delay 0.1;
-               end;
-            end loop;
          end if;
-exit;
+
+         loop
+            begin
+               declare
+                  Output : constant Data := Data'Input (Manager_Output_Stream'Access);
+                  Errors : constant Data := Data'Input (Manager_Errors_Stream'Access);
+               begin
+                  log ("Output Length: " & Output'Length'Image);
+                  log ("Output => '" & (+Output) & "'");
+                  log ("Errors => '" & (+Errors) & "'");
+
+                  if Output'Length > 0
+                  then
+                     Command_Outputs.Add_Outputs (Output, Errors);
+                     Command_Outputs.Set_Done;
+                     exit;
+                  end if;
+               end;
+
+               delay 0.1;
+            end;
+         end loop;
+
+         exit;
       end loop;
 
    exception
