@@ -40,18 +40,18 @@ begin
       begin
          declare
             Input       : constant String  := String'Input (Input_Stream'Access);
-            A1          :          Boolean := Log ("Input => '" & Input & "'");
+            A1          :          Boolean := Log ("Input => '" & Input & "'") with Unreferenced;
 
             The_Command :          Command := Forge.To_Command (Input);
-            A2          :          Boolean := Log (Image (The_Command));
+            A2          :          Boolean := Log (Image (The_Command)) with Unreferenced;
 
             Results     : constant Command_Results := Run (The_Command);
 
             Output      : constant Data    := Output_Of (Results);
-            A3          :          Boolean := Log (+Output);
+            A3          :          Boolean := Log (+Output) with Unreferenced;
 
             Errors      : constant Data    := Errors_Of (Results);
-            A4          :          Boolean := Log (+Errors);
+            A4          :          Boolean := Log (+Errors) with Unreferenced;
          begin
             Data'Output (Output_Stream'Access, Output);
             Data'Output (Errors_Stream'Access, Errors);
