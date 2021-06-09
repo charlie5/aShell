@@ -4,7 +4,7 @@ with
      Ada.IO_Exceptions,
      Ada.Exceptions;
 
-procedure Shell.Commands.Safe.Spawn_Manager
+procedure Shell.Commands.Spawn_Manager
 is
    use Ada.Text_IO;
 
@@ -100,4 +100,4 @@ exception
       Log ("Unhandled error in aShell_spawn_Manager.");
       Log (Ada.Exceptions.Exception_Information (E));
       Close (Log_File);
-end Shell.Commands.Safe.Spawn_Manager;
+end Shell.Commands.Spawn_Manager;
