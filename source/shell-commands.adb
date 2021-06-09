@@ -10,6 +10,24 @@ with
 
 package body Shell.Commands
 is
+   Log_File : Ada.Text_IO.File_Type;
+
+   procedure log (Message : in String)
+   is
+   begin
+      Ada.Text_IO.Put_Line (Log_File, Message);
+      ada.Text_IO.Flush (Log_File);
+   end log;
+
+   function log (Message : in String) return Boolean
+   is
+   begin
+      Log (Message);
+      return True;
+   end log;
+
+
+
    --- Strings
    --
 
@@ -80,6 +98,10 @@ is
             Append (Result, ", ");
          end if;
       end loop;
+
+      Append (Result, ", Input_Pipe => "  & Image (The_Command.Input_Pipe));
+      Append (Result, ", Output_Pipe => " & Image (The_Command.Output_Pipe));
+      Append (Result, ", Error_Pipe => "  & Image (The_Command.Error_Pipe));
 
       Append (Result, ")");
       return To_String (Result);
@@ -356,10 +378,14 @@ is
    procedure Gather_Results (The_Command : in out Command)
    is
    begin
+      log ("In gather results");
+
       begin
          declare
             The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
          begin
+            log ("The_Output'Length =" & The_Output'Length'Image);
+
             if The_Output'Length /= 0
             then
                The_Command.Output.Append (The_Output);
@@ -609,6 +635,7 @@ is
       --     raise Command_Error with "Attempt to read the Standard_Error pipe.";
       --  end if;
 
+      log ("In Results_Of");
       Gather_Results (The_Command);
 
       declare
@@ -764,5 +791,8 @@ is
 
    end Finalize;
 
+
+begin
+   ada.text_io.Create (Log_File, ada.Text_IO.Out_File, "commands.log");
 
 end Shell.Commands;

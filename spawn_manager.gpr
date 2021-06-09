@@ -13,7 +13,7 @@ is
    for Main        use ("shell-commands-spawn_manager");
 
    package Builder is
-      for Executable ("shell-commands-safe-spawn_manager") use "ashell_spawn_manager";
+      for Executable ("shell-commands-spawn_manager") use "ashell_spawn_manager";
    end Builder;
 
    package Compiler renames Shared.Compiler;

@@ -12,6 +12,24 @@ with
 
 package body Shell
 is
+   Log_File : Ada.Text_IO.File_Type;
+
+   procedure log (Message : in String)
+   is
+   begin
+      Ada.Text_IO.Put_Line (Log_File, Message);
+      ada.Text_IO.Flush (Log_File);
+   end log;
+
+   function log (Message : in String) return Boolean
+   is
+   begin
+      Log (Message);
+      return True;
+   end log;
+
+
+
    --- Strings
    --
 
@@ -166,8 +184,10 @@ is
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset := 0;
    begin
+      log ("In Output_Of");
       if not Is_Readable (Pipe)
       then
+         log ("In Output_Of: pipe not readable " & Image (Pipe));
          return No_Data;
       end if;
 
@@ -488,5 +508,7 @@ is
       Send_Signal (Process.Id, Signal_Continue);
    end Resume;
 
+begin
+   ada.text_io.Create (Log_File, ada.Text_IO.Out_File, "shell.log");
 
 end Shell;

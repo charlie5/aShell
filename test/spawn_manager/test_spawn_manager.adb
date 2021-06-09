@@ -14,15 +14,15 @@ begin
    Put_Line ("Begin test.");
    New_Line (2);
 
-   for i in 1 .. 5
+   for i in 1 .. 1
    loop
       declare
          use Shell;
          The_Command   : Command := Forge.To_Command ("ls -alh");
          --  The_Command_2 : Command := Forge.To_Command ("pwd");
       begin
-         null;
          Safe.Runn (The_Command);
+         Put_Line ("Output =>");
          Put_Line (+Output_Of (Results_Of (The_Command)));
          --  Safe.Runn (The_Command_2);
       end;

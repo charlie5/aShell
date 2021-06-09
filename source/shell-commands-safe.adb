@@ -9,6 +9,20 @@ with
 package body Shell.Commands.Safe
 is
 
+   procedure log (Message : in String)
+   is
+   begin
+      Ada.Text_IO.Put_Line (Message);
+   end log;
+
+   function log (Message : in String) return Boolean
+   is
+   begin
+      Log (Message);
+      return True;
+   end log;
+
+
    ----------------------
    --- Safe_Client_Output
    --
@@ -97,14 +111,19 @@ is
       Manager_Input_Stream  : aliased Pipe_Stream := Stream (Manager_In_Pipe);
       Manager_Output_Stream : aliased Pipe_Stream := Stream (Manager_Out_Pipe);
       Manager_Errors_Stream : aliased Pipe_Stream := Stream (Manager_Err_Pipe);
+
+      Next_Id : Command_Id := 1;
    begin
+      log ("Starting Spawn_Client");
+
       loop
          select
             accept Add (The_Command : in     Command;
                         Output      : in     Safe_Client_Outputs_Access)
             do
+               log ("Adding command.");
                Have_New_Command := True;
-               Command_Outputs   := Output;
+               Command_Outputs  := Output;
                New_Command      := Shell.Unbounded_String (Null_Unbounded_String);
                Append (New_Command,
                        Name (The_Command) & " " & Arguments (The_Command));
@@ -116,8 +135,13 @@ is
 
          if Have_New_Command
          then
+            log ("New Command: '" & (+New_Command) & "'");
             Have_New_Command := False;
-            String'Output (Manager_Input_Stream'Access, +New_Command);
+
+            Command_Id'Output (Manager_Input_Stream'Access,  Next_Id);
+            String    'Output (Manager_Input_Stream'Access, +New_Command);
+
+            Next_Id := Next_Id + 1;
 
             loop
                begin
@@ -125,6 +149,10 @@ is
                      Output : constant Data := Data'Input (Manager_Output_Stream'Access);
                      Errors : constant Data := Data'Input (Manager_Errors_Stream'Access);
                   begin
+                     log ("Output Length: " & Output'Length'Image);
+                     log ("Output => '" & (+Output) & "'");
+                     log ("Errors => '" & (+Errors) & "'");
+
                      if Output'Length > 0
                      then
                         Command_Outputs.Add_Outputs (Output, Errors);
@@ -137,7 +165,7 @@ is
                end;
             end loop;
          end if;
-
+exit;
       end loop;
 
    exception
