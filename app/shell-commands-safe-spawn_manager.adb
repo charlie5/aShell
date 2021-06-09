@@ -1,14 +1,11 @@
 with
-     Shell.Commands,
      Ada.Text_IO,
      Ada.IO_Exceptions,
      Ada.Exceptions;
 
-procedure aShell_spawn_Manager
+procedure Shell.Commands.Safe.Spawn_Manager
 is
-   use Shell,
-       Shell.Commands,
-       Ada.Text_IO;
+   use Ada.Text_IO;
 
    Log_File : File_Type;
 
@@ -45,7 +42,7 @@ begin
             The_Command :          Command := Forge.To_Command (Input);
             A2          :          Boolean := Log (Image (The_Command)) with Unreferenced;
 
-            Results     : constant Command_Results := Run (The_Command);
+            Results     : constant Command_Results := Commands.Run (The_Command);
 
             Output      : constant Data    := Output_Of (Results);
             A3          :          Boolean := Log (+Output) with Unreferenced;
@@ -70,4 +67,4 @@ exception
       Log ("Unhandled error in aShell_spawn_Manager.");
       Log (Ada.Exceptions.Exception_Information (E));
       Close (Log_File);
-end aShell_spawn_Manager;
+end Shell.Commands.Safe.Spawn_Manager;

@@ -10,7 +10,11 @@ is
    for Object_Dir  use "build";
    for Source_Dirs use ("app");
    for Exec_Dir    use ".";
-   for Main        use ("ashell_spawn_manager");
+   for Main        use ("shell-commands-safe-spawn_manager");
+
+   package Builder is
+      for Executable ("shell-commands-safe-spawn_manager") use "ashell_spawn_manager";
+   end Builder;
 
    package Compiler renames Shared.Compiler;
    package Binder   renames Shared.Binder;
