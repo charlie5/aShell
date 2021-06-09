@@ -4,6 +4,7 @@ with
      Ada.Text_IO,
      Ada.Task_Identification,
      Ada.Characters.Handling,
+     Ada.Containers.Hashed_Maps,
      Ada.Exceptions;
 
 package body Shell.Commands.Safe
@@ -96,6 +97,12 @@ is
    is
       use Ada.Strings.Unbounded;
 
+      package Id_Maps_of_Command_Outputs is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
+                                                                            Element_Type    => Safe_Client_Outputs_Access,
+                                                                            Hash            => Hash,
+                                                                            Equivalent_Keys =>  "=");
+      Command_Outputs_Map : Id_Maps_of_Command_Outputs.Map;
+
       Manager_In_Pipe  : constant Shell.Pipe := To_Pipe;
       Manager_Out_Pipe : constant Shell.Pipe := To_Pipe;
       Manager_Err_Pipe : constant Shell.Pipe := To_Pipe;
@@ -136,12 +143,14 @@ is
          if Have_New_Command
          then
             log ("New Command: '" & (+New_Command) & "'");
-            Have_New_Command := False;
+
+            Command_Outputs_Map.Insert (Next_Id, Command_Outputs);
 
             Command_Id'Output (Manager_Input_Stream'Access,  Next_Id);
             String    'Output (Manager_Input_Stream'Access, +New_Command);
 
-            Next_Id := Next_Id + 1;
+            Have_New_Command := False;
+            Next_Id          := Next_Id + 1;
 
             loop
                begin
