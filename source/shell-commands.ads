@@ -158,4 +158,7 @@ private
          Errors  : Data (1 ..  Error_Size);
       end record;
 
+   type Command_Id is new Positive;   -- Used by spawn manager and spawn client.
+
+
 end Shell.Commands;
