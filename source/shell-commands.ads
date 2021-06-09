@@ -158,7 +158,10 @@ private
          Errors  : Data (1 ..  Error_Size);
       end record;
 
+
    type Command_Id is new Positive;   -- Used by spawn manager and spawn client.
+
+   function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type;
 
 
 end Shell.Commands;

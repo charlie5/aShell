@@ -30,12 +30,6 @@ begin
 
 
 
-      function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type
-      is
-      begin
-         return Ada.Containers.Hash_Type (Id);
-      end Hash;
-
       package Id_Maps_of_Command is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
                                                                     Element_Type    => Command,
                                                                     Hash            => Hash,

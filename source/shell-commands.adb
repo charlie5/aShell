@@ -792,6 +792,13 @@ is
    end Finalize;
 
 
+   function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type
+   is
+   begin
+      return Ada.Containers.Hash_Type (Id);
+   end Hash;
+
+
 begin
    ada.text_io.Create (Log_File, ada.Text_IO.Out_File, "commands.log");
 
