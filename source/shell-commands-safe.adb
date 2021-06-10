@@ -156,7 +156,8 @@ is
          loop
             begin
                declare
-                  Action : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
+                  Action          : constant Client_Action              := Client_Action'Input (Server_Output_Stream'Access);
+                  Command_Outputs : constant Safe_Client_Outputs_Access := Command_Outputs_Map.Element (Action.Id);
                begin
                   case Action.Kind
                   is
