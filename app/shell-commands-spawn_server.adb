@@ -49,12 +49,14 @@ begin
 
          begin
             declare
-               Id          : constant Command_Id := Command_Id'Input (Input_Stream'Access);
-               A0          :          Boolean    := Log ("Before Input") with Unreferenced;
-               Input       : constant String     := String'Input (Input_Stream'Access);
-               A1          :          Boolean    := Log ("Input => '" & Input & "'") with Unreferenced;
+               Action : Server_Action := Server_Action'Input (Input_Stream'Access);
 
-               The_Command :          Command    := Forge.To_Command (Input);
+               --  Id          : constant Command_Id := Command_Id'Input (Input_Stream'Access);
+               --  A0          :          Boolean    := Log ("Before Input") with Unreferenced;
+               --  Input       : constant String     := String'Input (Input_Stream'Access);
+               --  A1          :          Boolean    := Log ("Input => '" & Input & "'") with Unreferenced;
+
+               The_Command :          Command    := Forge.To_Command (+Action.Command_Line);
                --  A2          :          Boolean := Log (Image (The_Command)) with Unreferenced;
 
             begin
@@ -66,7 +68,7 @@ begin
                The_Command.Start;
                Log ("Command => '" & Image (The_Command) & "'");
 
-               Command_Map.Insert (Id, The_Command);
+               Command_Map.Insert (Action.Id, The_Command);
                log ("After Insert");
             end;
 
