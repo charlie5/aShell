@@ -166,6 +166,7 @@ is
                                                      Action.Errors.Element);
                      when Is_Done =>
                         Command_Outputs.Set_Done;
+                        Command_Outputs_Map.Delete (Action.Id);
                         exit;
                   end case;
                end;
