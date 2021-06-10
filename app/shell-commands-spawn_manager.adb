@@ -78,8 +78,8 @@ begin
                while Has_Element (Cursor)
                loop
                   declare
-                     Id          : Command_Id := Key     (Cursor);
-                     The_Command : Command    := Element (Cursor);
+                     Id          : constant Command_Id := Key     (Cursor);
+                     The_Command :          Command    := Element (Cursor);
 
                      Results     : constant Command_Results := Results_Of (The_Command);
 
