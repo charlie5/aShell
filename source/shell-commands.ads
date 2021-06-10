@@ -159,9 +159,42 @@ private
       end record;
 
 
-   type Command_Id is new Positive;   -- Used by spawn manager and spawn client.
+   ------------------------
+   -- Spawn_Manager Support
+   --
+
+   type Command_Id is new Positive;
 
    function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type;
+
+
+   type Server_Action_Kind is (New_Command);
+
+   type Server_Action (Kind : Server_Action_Kind) is
+      record
+         Id : Command_Id;
+
+         case Kind
+         is
+         when New_Command =>
+            Command_Line : Unbounded_String;
+         end case;
+      end record;
+
+
+   type Client_Action_Kind is (Is_Done);
+
+   type Client_Action (Kind : Client_Action_Kind) is
+      record
+         Id : Command_Id;
+
+         case Kind
+         is
+         when Is_Done =>
+            null;
+         end case;
+      end record;
+
 
 
 end Shell.Commands;
