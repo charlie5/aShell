@@ -77,9 +77,12 @@ begin
                Cursor : Id_Maps_of_Command.Cursor := Command_Map.First;
             begin
                delay 1.0;
+
                while Has_Element (Cursor)
                loop
                   declare
+                     use Data_Holders;
+
                      Id          : constant Command_Id := Key     (Cursor);
                      The_Command :          Command    := Element (Cursor);
 
@@ -91,9 +94,14 @@ begin
                      Errors      : constant Data    := Errors_Of (Results);
                      A4          :          Boolean := Log ("Errors '" & (+Errors) & "'") with Unreferenced;
                   begin
-                     null;
-                     Data'Output (Output_Stream'Access, Output);
-                     Data'Output (Errors_Stream'Access, Errors);
+                     Client_Action'Output (Output_Stream'Access,
+                                           (New_Outputs,
+                                            Id,
+                                            To_Holder (Output),
+                                            To_Holder (Errors)));
+
+                     --  Data'Output (Output_Stream'Access, Output);
+                     --  Data'Output (Errors_Stream'Access, Errors);
 
                      if The_Command.Has_Terminated
                      then

@@ -155,19 +155,30 @@ is
          loop
             begin
                declare
-                  Output : constant Data := Data'Input (Server_Output_Stream'Access);
-                  Errors : constant Data := Data'Input (Server_Errors_Stream'Access);
+                  Action : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
+                  --  Output : constant Data := Data'Input (Server_Output_Stream'Access);
+                  --  Errors : constant Data := Data'Input (Server_Errors_Stream'Access);
                begin
-                  log ("Output Length: " & Output'Length'Image);
-                  log ("Output => '" & (+Output) & "'");
-                  log ("Errors => '" & (+Errors) & "'");
+                  --  log ("Output Length: " & Output'Length'Image);
+                  --  log ("Output => '" & (+Output) & "'");
+                  --  log ("Errors => '" & (+Errors) & "'");
 
-                  if Output'Length > 0
-                  then
-                     Command_Outputs.Add_Outputs (Output, Errors);
-                     Command_Outputs.Set_Done;
-                     exit;
-                  end if;
+                  case Action.Kind
+                  is
+                     when New_Outputs =>
+                        Command_Outputs.Add_Outputs (Action.Output.Element,
+                                                     Action.Errors.Element);
+                     when Is_Done =>
+                        Command_Outputs.Set_Done;
+                        exit;
+                  end case;
+
+                  --  if Output'Length > 0
+                  --  then
+                  --     Command_Outputs.Add_Outputs (Output, Errors);
+                  --     Command_Outputs.Set_Done;
+                  --     exit;
+                  --  end if;
                end;
 
                delay 0.1;

@@ -1,6 +1,7 @@
 private
 with
-     Ada.Containers.Indefinite_Vectors;
+     Ada.Containers.Indefinite_Vectors,
+     Ada.Containers.Indefinite_Holders;
 
 package Shell.Commands
 --
@@ -182,7 +183,10 @@ private
       end record;
 
 
-   type Client_Action_Kind is (Is_Done);
+   package Data_Holders is new Ada.Containers.Indefinite_Holders (Element_Type => Data);
+   subtype Data_Holder  is Data_Holders.Holder;
+
+   type Client_Action_Kind is (New_Outputs, Is_Done);
 
    type Client_Action (Kind : Client_Action_Kind) is
       record
@@ -190,8 +194,12 @@ private
 
          case Kind
          is
-         when Is_Done =>
-            null;
+            when New_Outputs =>
+               Output : Data_Holder;
+               Errors : Data_Holder;
+
+            when Is_Done =>
+               null;
          end case;
       end record;
 
