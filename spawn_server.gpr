@@ -1,15 +1,20 @@
 with
      "ashell",
+     "florist",
      "shared";
 
-project test_spawn_Manager
+project spawn_Server
 is
    for Create_Missing_Dirs use "True";
 
    for Object_Dir  use "build";
-   for Source_Dirs use (".");
+   for Source_Dirs use ("app");
    for Exec_Dir    use ".";
-   for Main        use ("test_spawn_manager");
+   for Main        use ("shell-commands-spawn_server");
+
+   package Builder is
+      for Executable ("shell-commands-spawn_server") use "ashell_spawn_server";
+   end Builder;
 
    package Compiler renames Shared.Compiler;
    package Binder   renames Shared.Binder;
@@ -18,4 +23,4 @@ is
       for VCS_Kind use "Git";
    end IDE;
 
-end test_spawn_Manager;
+end spawn_Server;

@@ -4,7 +4,7 @@ Ada.Text_IO,
      Ada.IO_Exceptions,
      Ada.Exceptions;
 
-procedure Shell.Commands.Spawn_Manager
+procedure Shell.Commands.Spawn_Server
 is
    use Ada.Text_IO;
 
@@ -24,7 +24,7 @@ is
    end log;
 
 begin
-   Create (Log_File, Out_File, "aShell_spawn_Manager.error_log");
+   Create (Log_File, Out_File, "aShell_spawn_Server.error_log");
    log ("K1");
 
    declare
@@ -111,7 +111,7 @@ begin
             --  exit;
          exception
             when Ada.IO_Exceptions.End_Error =>   -- No new command.
-               log ("SM: End_Error");
+               log ("SS: End_Error");
                exit;
                delay 0.1;
          end;
@@ -123,7 +123,7 @@ begin
 
 exception
    when E : others =>
-      Log ("Unhandled error in aShell_spawn_Manager.");
+      Log ("Unhandled error in aShell_Spawn_Server.");
       Log (Ada.Exceptions.Exception_Information (E));
       Close (Log_File);
-end Shell.Commands.Spawn_Manager;
+end Shell.Commands.Spawn_Server;

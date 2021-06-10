@@ -159,8 +159,8 @@ private
       end record;
 
 
-   ------------------------
-   -- Spawn_Manager Support
+   -----------------------
+   -- Spawn_Server Support
    --
 
    type Command_Id is new Positive;

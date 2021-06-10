@@ -103,21 +103,21 @@ is
                                                                             Equivalent_Keys =>  "=");
       Command_Outputs_Map : Id_Maps_of_Command_Outputs.Map;
 
-      Manager_In_Pipe  : constant Shell.Pipe := To_Pipe;
-      Manager_Out_Pipe : constant Shell.Pipe := To_Pipe;
-      Manager_Err_Pipe : constant Shell.Pipe := To_Pipe;
+      Server_In_Pipe  : constant Shell.Pipe := To_Pipe;
+      Server_Out_Pipe : constant Shell.Pipe := To_Pipe;
+      Server_Err_Pipe : constant Shell.Pipe := To_Pipe;
 
-      spawn_Manager : Shell.Process  := Start (Program   => "ashell_spawn_manager",
-                                               Input     => Manager_In_Pipe,
-                                               Output    => Manager_Out_Pipe,
-                                               Errors    => Manager_Err_Pipe) with Unreferenced;
+      Spawn_Server : Shell.Process  := Start (Program   => "ashell_spawn_server",
+                                              Input     => Server_In_Pipe,
+                                              Output    => Server_Out_Pipe,
+                                              Errors    => Server_Err_Pipe) with Unreferenced;
       New_Command      : Unbounded_String;
       Have_New_Command : Boolean := False;
       Command_Outputs  : Safe_Client_Outputs_Access;
 
-      Manager_Input_Stream  : aliased Pipe_Stream := Stream (Manager_In_Pipe);
-      Manager_Output_Stream : aliased Pipe_Stream := Stream (Manager_Out_Pipe);
-      Manager_Errors_Stream : aliased Pipe_Stream := Stream (Manager_Err_Pipe);
+      Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
+      Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
+      Server_Errors_Stream : aliased Pipe_Stream := Stream (Server_Err_Pipe);
 
       Next_Id : Command_Id := 1;
    begin
@@ -145,8 +145,8 @@ is
 
             Command_Outputs_Map.Insert (Next_Id, Command_Outputs);
 
-            Command_Id'Output (Manager_Input_Stream'Access,  Next_Id);
-            String    'Output (Manager_Input_Stream'Access, +New_Command);
+            Command_Id'Output (Server_Input_Stream'Access,  Next_Id);
+            String    'Output (Server_Input_Stream'Access, +New_Command);
 
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
@@ -155,8 +155,8 @@ is
          loop
             begin
                declare
-                  Output : constant Data := Data'Input (Manager_Output_Stream'Access);
-                  Errors : constant Data := Data'Input (Manager_Errors_Stream'Access);
+                  Output : constant Data := Data'Input (Server_Output_Stream'Access);
+                  Errors : constant Data := Data'Input (Server_Errors_Stream'Access);
                begin
                   log ("Output Length: " & Output'Length'Image);
                   log ("Output => '" & (+Output) & "'");

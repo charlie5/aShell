@@ -2,7 +2,7 @@ with
      Shell.Commands.Safe,
      Ada.Text_IO;
 
-procedure Test_Spawn_Manager
+procedure Test_Spawn_Server
 --
 --
 --
@@ -32,4 +32,4 @@ begin
 
    New_Line (2);
    Put_Line ("End test.");
-end Test_Spawn_Manager;
+end Test_Spawn_Server;
