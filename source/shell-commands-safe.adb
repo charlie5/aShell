@@ -146,7 +146,9 @@ is
             Command_Outputs_Map.Insert (Next_Id, Command_Outputs);
 
             Server_Action'Output (Server_Input_Stream'Access,
-                                  (New_Command, Next_Id, Command_Line));
+                                  (New_Command,
+                                   Next_Id,
+                                   Command_Line));
 
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
@@ -156,13 +158,7 @@ is
             begin
                declare
                   Action : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
-                  --  Output : constant Data := Data'Input (Server_Output_Stream'Access);
-                  --  Errors : constant Data := Data'Input (Server_Errors_Stream'Access);
                begin
-                  --  log ("Output Length: " & Output'Length'Image);
-                  --  log ("Output => '" & (+Output) & "'");
-                  --  log ("Errors => '" & (+Errors) & "'");
-
                   case Action.Kind
                   is
                      when New_Outputs =>
@@ -172,13 +168,6 @@ is
                         Command_Outputs.Set_Done;
                         exit;
                   end case;
-
-                  --  if Output'Length > 0
-                  --  then
-                  --     Command_Outputs.Add_Outputs (Output, Errors);
-                  --     Command_Outputs.Set_Done;
-                  --     exit;
-                  --  end if;
                end;
 
                delay 0.1;

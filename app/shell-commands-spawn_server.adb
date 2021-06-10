@@ -1,5 +1,5 @@
 with
-Ada.Text_IO,
+     Ada.Text_IO,
      Ada.Containers.Hashed_Maps,
      Ada.IO_Exceptions,
      Ada.Exceptions;
@@ -39,7 +39,6 @@ begin
       Errors_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Error);
 
    begin
-      --     --  Create (Log_File, Out_File, "aShell_spawn_Manager.error_log");
       log ("Starting Spawn Manager");
 
       for i in 1 .. 20
@@ -49,16 +48,8 @@ begin
 
          begin
             declare
-               Action : Server_Action := Server_Action'Input (Input_Stream'Access);
-
-               --  Id          : constant Command_Id := Command_Id'Input (Input_Stream'Access);
-               --  A0          :          Boolean    := Log ("Before Input") with Unreferenced;
-               --  Input       : constant String     := String'Input (Input_Stream'Access);
-               --  A1          :          Boolean    := Log ("Input => '" & Input & "'") with Unreferenced;
-
-               The_Command :          Command    := Forge.To_Command (+Action.Command_Line);
-               --  A2          :          Boolean := Log (Image (The_Command)) with Unreferenced;
-
+               Action      : constant Server_Action := Server_Action'Input (Input_Stream'Access);
+               The_Command :          Command       := Forge.To_Command (+Action.Command_Line);
             begin
                The_Command.Owns_Output_Pipe := True;
 
@@ -100,9 +91,6 @@ begin
                                             To_Holder (Output),
                                             To_Holder (Errors)));
 
-                     --  Data'Output (Output_Stream'Access, Output);
-                     --  Data'Output (Errors_Stream'Access, Errors);
-
                      if The_Command.Has_Terminated
                      then
                         declare
@@ -118,7 +106,7 @@ begin
                end loop;
             end;
             log ("Done Cursor loop");
-            --  exit;
+
          exception
             when Ada.IO_Exceptions.End_Error =>   -- No new command.
                log ("SS: End_Error");
