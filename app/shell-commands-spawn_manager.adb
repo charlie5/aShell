@@ -92,6 +92,16 @@ begin
                      null;
                      Data'Output (Output_Stream'Access, Output);
                      Data'Output (Errors_Stream'Access, Errors);
+
+                     if The_Command.Has_Terminated
+                     then
+                        declare
+                           Act : constant Client_Action := (Is_Done, Id);
+                        begin
+                           Client_Action'Output (Output_Stream'Access, Act);
+                        end;
+                        Command_Map.Delete (Id);
+                     end if;
                   end;
 
                   Next (Cursor);
