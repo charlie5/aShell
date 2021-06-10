@@ -113,7 +113,6 @@ is
                                               Errors    => Server_Err_Pipe) with Unreferenced;
       Command_Line     : Unbounded_String;
       Have_New_Command : Boolean := False;
-      Command_Outputs  : Safe_Client_Outputs_Access;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
@@ -130,7 +129,9 @@ is
             do
                log ("Adding command.");
                Have_New_Command := True;
-               Command_Outputs  := Outputs;
+
+               Command_Outputs_Map.Insert (Next_Id,
+                                           Outputs);
                Set_Unbounded_String (Command_Line,
                                      Name (The_Command) & " " & Arguments (The_Command));
             end Add;
@@ -142,8 +143,6 @@ is
          if Have_New_Command
          then
             log ("New Command: '" & (+Command_Line) & "'");
-
-            Command_Outputs_Map.Insert (Next_Id, Command_Outputs);
 
             Server_Action'Output (Server_Input_Stream'Access,
                                   (New_Command,
