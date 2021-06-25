@@ -107,7 +107,7 @@ is
       Command_Outputs_Map : Id_Maps_of_Command_Outputs.Map;
 
       Server_In_Pipe  : constant Shell.Pipe := To_Pipe;
-      Server_Out_Pipe : constant Shell.Pipe := To_Pipe;
+      Server_Out_Pipe : constant Shell.Pipe := To_Pipe (Blocking => False);
       Server_Err_Pipe : constant Shell.Pipe := To_Pipe;
 
       Spawn_Server : Shell.Process  := Start (Program   => "ashell_spawn_server",
