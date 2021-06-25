@@ -150,7 +150,10 @@ begin
 
             declare
                use Id_Maps_of_Command;
-               Cursor : Id_Maps_of_Command.Cursor := Command_Map.First;
+               package Command_Id_Vectors is new Ada.Containers.Vectors (Positive, Command_Id);
+
+               Done_Comands : Command_Id_Vectors.Vector;
+               Cursor       : Id_Maps_of_Command.Cursor := Command_Map.First;
             begin
                delay 1.0;
 
@@ -183,12 +186,18 @@ begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;
 
-                        Command_Map.Delete (Id);
-                        exit;
+                        Done_Comands.Append (Id);
                      end if;
                   end;
 
                   Next (Cursor);
+               end loop;
+
+               -- Rid completed commands.
+               --
+               for Each of Done_Comands
+               loop
+                  Command_Map.Delete (Each);
                end loop;
             end;
 
