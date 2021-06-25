@@ -1,5 +1,6 @@
 with
      Ada.Text_IO,
+     Ada.Containers.Indefinite_Vectors,
      Ada.Containers.Hashed_Maps,
      Ada.IO_Exceptions,
      Ada.Exceptions;
