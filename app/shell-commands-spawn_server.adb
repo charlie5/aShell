@@ -48,19 +48,36 @@ begin
 
          begin
             declare
-               Action      : constant Server_Action := Server_Action'Input (Input_Stream'Access);
-               The_Command :          Command       := Forge.To_Command (+Action.Command_Line);
+               Action : Server_Action;
             begin
-               The_Command.Owns_Output_Pipe := True;
+               New_Actions.Get (Action);
 
-               The_Command.Output_Pipe := To_Pipe (Blocking => False);
-               The_Command. Error_Pipe := To_Pipe (Blocking => False);
+               case Action.Kind
+               is
+                  when Nil =>
+                     Log ("Nil action.");
+                     null;
 
-               The_Command.Start;
-               Log ("Command => '" & Image (The_Command) & "'");
+                  when New_Command =>
+                     Log ("New_Command action.");
+                     declare
+                        The_Command : Command := Forge.To_Command (+Action.Command_Line);
+                     begin
+                        The_Command.Owns_Output_Pipe := True;
 
-               Command_Map.Insert (Action.Id, The_Command);
-               log ("After Insert");
+                        The_Command.Output_Pipe := To_Pipe (Blocking => False);
+                        The_Command. Error_Pipe := To_Pipe (Blocking => False);
+
+                        The_Command.Start;
+                        Log ("Command => '" & Image (The_Command) & "'");
+
+                        Command_Map.Insert (Action.Id, The_Command);
+                     end;
+
+                  when Stop =>
+                     Log ("Stop action.");
+                     exit;
+               end case;
             end;
 
             declare

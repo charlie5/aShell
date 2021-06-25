@@ -169,9 +169,9 @@ private
    function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type;
 
 
-   type Server_Action_Kind is (New_Command);
+   type Server_Action_Kind is (Nil, New_Command, Stop);
 
-   type Server_Action (Kind : Server_Action_Kind) is
+   type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
          Id : Command_Id;
 
@@ -179,6 +179,9 @@ private
          is
          when New_Command =>
             Command_Line : Unbounded_String;
+
+         when Nil | Stop =>
+            null;
          end case;
       end record;
 
