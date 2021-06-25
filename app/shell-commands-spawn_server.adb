@@ -178,6 +178,8 @@ begin
 
                      if The_Command.Has_Terminated
                      then
+                        log ("Has_Terminated");
+
                         declare
                            Act : constant Client_Action := (Command_Done, Id);
                         begin
