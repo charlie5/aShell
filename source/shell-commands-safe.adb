@@ -11,11 +11,12 @@ with
 package body Shell.Commands.Safe
 is
 
-   procedure log (Message : in String)
+   procedure Log (Message : in String)
    is
    begin
       Ada.Text_IO.Put_Line (Message);
-   end log;
+      ada.Text_IO.Flush;
+   end Log;
 
    function Log (Message : in String) return Boolean
    is
