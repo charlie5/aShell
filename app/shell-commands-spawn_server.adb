@@ -157,6 +157,8 @@ begin
             begin
                delay 1.0;
 
+               -- Send ongoing command results to the client.
+               --
                while Has_Element (Cursor)
                loop
                   declare
