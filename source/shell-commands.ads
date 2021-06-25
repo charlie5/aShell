@@ -189,7 +189,7 @@ private
    package Data_Holders is new Ada.Containers.Indefinite_Holders (Element_Type => Data);
    subtype Data_Holder  is Data_Holders.Holder;
 
-   type Client_Action_Kind is (New_Outputs, Is_Done);
+   type Client_Action_Kind is (New_Outputs, Command_Done, Server_Done);
 
    type Client_Action (Kind : Client_Action_Kind) is
       record
@@ -201,7 +201,8 @@ private
                Output : Data_Holder;
                Errors : Data_Holder;
 
-            when Is_Done =>
+            when Command_Done
+               | Server_Done =>
                null;
          end case;
       end record;

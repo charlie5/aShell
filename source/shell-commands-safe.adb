@@ -153,30 +153,49 @@ is
             Next_Id          := Next_Id + 1;
          end if;
 
-         loop
+         --  loop
+         begin
+            declare
+               Action          : constant Client_Action              := Client_Action'Input (Server_Output_Stream'Access);
+               Command_Outputs : constant Safe_Client_Outputs_Access := Command_Outputs_Map.Element (Action.Id);
             begin
-               declare
-                  Action          : constant Client_Action              := Client_Action'Input (Server_Output_Stream'Access);
-                  Command_Outputs : constant Safe_Client_Outputs_Access := Command_Outputs_Map.Element (Action.Id);
-               begin
-                  case Action.Kind
-                  is
-                     when New_Outputs =>
-                        Command_Outputs.Add_Outputs (Action.Output.Element,
-                                                     Action.Errors.Element);
-                     when Is_Done =>
-                        Command_Outputs.Set_Done;
-                        Command_Outputs_Map.Delete (Action.Id);
-                        exit;
-                  end case;
-               end;
+               case Action.Kind
+               is
+                  when New_Outputs =>
+                     Command_Outputs.Add_Outputs (Action.Output.Element,
+                                                  Action.Errors.Element);
+                  when Command_Done =>
+                     Command_Outputs.Set_Done;
+                     Command_Outputs_Map.Delete (Action.Id);
+                     --  exit;
 
-               delay 0.1;
+                  when Server_Done =>
+                     exit;
+               end case;
             end;
-         end loop;
 
-         exit;
+            delay 0.1;
+
+         exception
+            when Ada.IO_Exceptions.End_Error =>
+               log ("No new action from the server.");
+               null;   -- No new action from the server.
+
+            when E : POSIX.POSIX_Error =>
+               if Ada.Exceptions.Exception_Message (E) = "RESOURCE_TEMPORARILY_UNAVAILABLE"
+               then
+                  --  log ("Ignoring RESOURCE_TEMPORARILY_UNAVAILABLE POSIX error.");
+                  null;   -- Server_Out_Pipe is busy.
+               else
+                  raise;
+               end if;
+         end;
+         --  end loop;
+
+         --  exit;
       end loop;
+
+      log ("Client is done.");
 
    exception
       when E : others =>
