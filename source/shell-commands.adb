@@ -378,14 +378,10 @@ is
    procedure Gather_Results (The_Command : in out Command)
    is
    begin
-      log ("In gather results");
-
       begin
          declare
             The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
          begin
-            log ("The_Output'Length =" & The_Output'Length'Image);
-
             if The_Output'Length /= 0
             then
                The_Command.Output.Append (The_Output);
@@ -635,7 +631,6 @@ is
       --     raise Command_Error with "Attempt to read the Standard_Error pipe.";
       --  end if;
 
-      log ("In Results_Of");
       Gather_Results (The_Command);
 
       declare

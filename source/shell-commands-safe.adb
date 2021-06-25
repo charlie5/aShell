@@ -5,6 +5,7 @@ with
      Ada.Task_Identification,
      Ada.Characters.Handling,
      Ada.Containers.Hashed_Maps,
+     Ada.IO_Exceptions,
      Ada.Exceptions;
 
 package body Shell.Commands.Safe
@@ -16,12 +17,12 @@ is
       Ada.Text_IO.Put_Line (Message);
    end log;
 
-   function log (Message : in String) return Boolean
+   function Log (Message : in String) return Boolean
    is
    begin
       Log (Message);
       return True;
-   end log;
+   end Log;
 
 
    ----------------------

@@ -93,7 +93,6 @@ is
 
 begin
    Create (Log_File, Out_File, "aShell_spawn_Server.error_log");
-   log ("K1");
 
    declare
       package Id_Maps_of_Command is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
@@ -102,7 +101,6 @@ begin
                                                                     Equivalent_Keys =>  "=");
       Command_Map   : Id_Maps_of_Command.Map;
 
-      Input_Stream  : aliased Pipe_Stream := Stream (Shell.Standard_Input);
       Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
       Errors_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Error);
 
@@ -164,11 +162,8 @@ begin
 
                      Results     : constant Command_Results := Results_Of (The_Command);
 
-                     Output      : constant Data    := Output_Of (Results);
-                     A3          :          Boolean := Log ("Output '" &(+Output) & "'") with Unreferenced;
-
-                     Errors      : constant Data    := Errors_Of (Results);
-                     A4          :          Boolean := Log ("Errors '" & (+Errors) & "'") with Unreferenced;
+                     Output      : constant Data := Output_Of (Results);
+                     Errors      : constant Data := Errors_Of (Results);
                   begin
                      Client_Action'Output (Output_Stream'Access,
                                            (New_Outputs,
@@ -185,6 +180,7 @@ begin
                         begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;
+
                         Command_Map.Delete (Id);
                      end if;
                   end;
@@ -192,17 +188,15 @@ begin
                   Next (Cursor);
                end loop;
             end;
-            log ("Done Cursor loop");
 
          exception
             when Ada.IO_Exceptions.End_Error =>   -- No new command.
-               log ("SS: End_Error");
-               exit;
                delay 0.1;
+               exit;
          end;
       end loop;
 
-      log ("SM: Done");
+      log ("Spawn Server: Done");
       Close (Log_File);
    end;
 
