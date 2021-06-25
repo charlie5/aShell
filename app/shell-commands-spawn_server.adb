@@ -23,6 +23,72 @@ is
       return True;
    end log;
 
+
+
+   package Server_Action_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Server_Action);
+
+
+   protected New_Actions
+   is
+      procedure Add (Action : in     Server_Action);
+      procedure Get (Action :    out Server_Action);
+   private
+      Actions : Server_Action_Vectors.Vector;
+   end New_Actions;
+
+
+   protected
+   body New_Actions
+   is
+      procedure Add (Action : in Server_Action)
+      is
+      begin
+         Actions.Append (Action);
+      end Add;
+
+
+      procedure Get (Action :    out Server_Action)
+      is
+      begin
+         if not Actions.Is_Empty
+         then
+            Action := Actions.Last_Element;
+            Actions.Delete_Last;
+         end if;
+      end Get;
+
+   end New_Actions;
+
+
+
+   task New_Action_Fetcher
+   is
+      entry Start;
+   end  New_Action_Fetcher;
+
+   task body New_Action_Fetcher
+   is
+      Input_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Input);
+   begin
+      accept Start;
+
+      loop
+         declare
+            Action : constant Server_Action := Server_Action'Input (Input_Stream'Access);
+         begin
+            New_Actions.Add (Action);
+            exit when Action.Kind = Stop;
+         end;
+      end loop;
+
+   exception
+      when E : others =>
+         Log ("Unhandled error in New_Action_Fetcher.");
+         Log (Ada.Exceptions.Exception_Information (E));
+         Close (Log_File);
+   end New_Action_Fetcher;
+
+
 begin
    Create (Log_File, Out_File, "aShell_spawn_Server.error_log");
    log ("K1");
