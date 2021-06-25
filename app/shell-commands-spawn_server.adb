@@ -15,6 +15,7 @@ is
    is
    begin
       Put_Line (Log_File, Message);
+      ada.Text_IO.Flush (Log_File);
    end log;
 
    function log (Message : in String) return Boolean
