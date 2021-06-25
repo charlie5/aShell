@@ -184,6 +184,7 @@ begin
                         end;
 
                         Command_Map.Delete (Id);
+                        exit;
                      end if;
                   end;
 
