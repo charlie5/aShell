@@ -122,6 +122,7 @@ is
       Server_Errors_Stream : aliased Pipe_Stream := Stream (Server_Err_Pipe);
 
       Next_Id : Command_Id := 1;
+      Done    : Boolean    := False;
    begin
       log ("Starting Spawn_Client");
 
