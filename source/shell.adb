@@ -184,7 +184,6 @@ is
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset := 0;
    begin
-      log ("In Output_Of");
       if not Is_Readable (Pipe)
       then
          log ("In Output_Of: pipe not readable " & Image (Pipe));
