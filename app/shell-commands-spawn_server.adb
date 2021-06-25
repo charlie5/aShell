@@ -177,7 +177,7 @@ begin
                      if The_Command.Has_Terminated
                      then
                         declare
-                           Act : constant Client_Action := (Is_Done, Id);
+                           Act : constant Client_Action := (Command_Done, Id);
                         begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;
