@@ -107,6 +107,8 @@ begin
    begin
       log ("Starting Spawn Manager");
 
+      New_Action_Fetcher.Start;
+
       for i in 1 .. 20
       loop
          delay 0.1;
