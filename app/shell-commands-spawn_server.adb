@@ -112,6 +112,7 @@ begin
       for i in 1 .. 20
       loop
          delay 0.1;
+         log ("");
          log ("loop: " & i'Image);
 
          begin
