@@ -9,6 +9,7 @@ package Shell.Commands.Safe
 is
    procedure Runn (The_Command : in out Command);
 
+   procedure Stop_Spawn_Client;
 
 
    --- Run - Block until process completes.

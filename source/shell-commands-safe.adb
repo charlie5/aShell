@@ -91,6 +91,7 @@ is
    is
       entry Add (The_Command : in Command;
                  Outputs     : in Safe_Client_Outputs_Access);
+      entry Stop;
    end Spawn_Client;
 
 
@@ -137,9 +138,24 @@ is
                                      Name (The_Command) & " " & Arguments (The_Command));
             end Add;
          or
-            terminate;
+            accept Stop
+            do
+               Done := True;
+            end Stop;
+         or
+            delay 0.1;
          end select;
 
+         if Done
+         then
+            log ("Client is done.");
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  (Stop,
+                                   Command_Id'Last));
+            log ("Client stops server.");
+            delay 0.5;
+            exit;
+         end if;
 
          if Have_New_Command
          then
@@ -221,6 +237,15 @@ is
       The_Command.Output := Output;
       The_Command.Errors := Errors;
    end Runn;
+
+
+   procedure Stop_Spawn_Client
+   is
+   begin
+      Spawn_Client.Stop;
+   end Stop_Spawn_Client;
+
+
 
 
    --- Run
