@@ -198,6 +198,10 @@ is
          --  exit;
       end loop;
 
+      Close (Server_In_Pipe);
+      Close (Server_Out_Pipe);
+      Close (Server_Err_Pipe);
+
       log ("Client is done.");
 
    exception
