@@ -7,7 +7,6 @@ with
      Ada.Exceptions,
      Ada.IO_Exceptions,
      Ada.Unchecked_Conversion,
-     Ada.Task_Identification,
      Ada.Text_IO;
 
 package body Shell
@@ -158,8 +157,7 @@ is
 
    function Output_Of (Pipe : in Shell.Pipe) return Data
    is
-      use Ada.Task_Identification,
-          Ada.Exceptions;
+      use Ada.Exceptions;
 
       Max_Process_Output : constant := 200 * 1024;
 
