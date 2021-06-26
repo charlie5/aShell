@@ -12,24 +12,6 @@ with
 
 package body Shell
 is
-   Log_File : Ada.Text_IO.File_Type;
-
-   procedure log (Message : in String)
-   is
-   begin
-      Ada.Text_IO.Put_Line (Log_File, Message);
-      ada.Text_IO.Flush (Log_File);
-   end log;
-
-   function log (Message : in String) return Boolean
-   is
-   begin
-      Log (Message);
-      return True;
-   end log;
-
-
-
    --- Strings
    --
 
@@ -507,7 +489,61 @@ is
       Send_Signal (Process.Id, Signal_Continue);
    end Resume;
 
-begin
-   ada.text_io.Create (Log_File, ada.Text_IO.Out_File, "shell.log");
+
+
+   --- Debugging
+   --
+
+   Log_File    : Ada.Text_IO.File_Type;
+   Log_Enabled : Boolean := False;
+
+
+   procedure Open_Log (Name : in String)
+   is
+      use Ada.Text_IO;
+   begin
+      if Log_Enabled
+      then
+         raise Program_Error with "Log is already open.";
+      end if;
+
+      Log_Enabled := True;
+      Create (Log_File, Ada.Text_IO.Out_File, Name);
+   end Open_Log;
+
+
+   procedure Close_Log
+   is
+      use Ada.Text_IO;
+   begin
+      if not Log_Enabled
+      then
+         raise Program_Error with "Log has not been opened.";
+      end if;
+
+      Log_Enabled := False;
+      Close (Log_File);
+   end Close_Log;
+
+
+   procedure Log (Message : in String)
+   is
+      use Ada.Text_IO;
+   begin
+      if Log_Enabled
+      then
+         Put_Line (Log_File, Message);
+         Flush (Log_File);
+      end if;
+   end Log;
+
+
+   function Log (Message : in String) return Boolean
+   is
+   begin
+      Log (Message);
+      return True;
+   end Log;
+
 
 end Shell;

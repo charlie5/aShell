@@ -4,29 +4,12 @@ with
      Ada.Strings.Maps,
      Ada.Characters.Handling,
      Ada.Exceptions,
-     Ada.Text_IO,
+     Ada.Task_Identification,
      Ada.Unchecked_Deallocation,
      Ada.Unchecked_Conversion;
 
 package body Shell.Commands
 is
-   Log_File : Ada.Text_IO.File_Type;
-
-   procedure log (Message : in String)
-   is
-   begin
-      Ada.Text_IO.Put_Line (Log_File, Message);
-      ada.Text_IO.Flush (Log_File);
-   end log;
-
-   function log (Message : in String) return Boolean
-   is
-   begin
-      Log (Message);
-      return True;
-   end log;
-
-
 
    --- Strings
    --
@@ -548,8 +531,7 @@ is
    procedure Stop (The_Command : in out Command)
    is
       use Ada.Characters.Handling,
-          Ada.Exceptions,
-          Ada.Text_IO;
+          Ada.Exceptions;
    begin
       Close (The_Command. Input_Pipe);
       Close (The_Command.Output_Pipe);
@@ -561,7 +543,7 @@ is
          when E : POSIX.POSIX_Error =>
             if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"
             then
-               Put_Line ("Unable to kill process" & Image (The_Command.Process));
+               Log ("Unable to kill process" & Image (The_Command.Process));
                raise;
             end if;
       end;
@@ -572,7 +554,7 @@ is
          when E : POSIX.POSIX_Error =>
             if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
             then
-               Put_Line ("Unable to wait on process" & Image (The_Command.Process));
+               Log ("Unable to wait on process" & Image (The_Command.Process));
                raise;
             end if;
       end;
@@ -793,8 +775,5 @@ is
       return Ada.Containers.Hash_Type (Id);
    end Hash;
 
-
-begin
-   ada.text_io.Create (Log_File, ada.Text_IO.Out_File, "commands.log");
 
 end Shell.Commands;

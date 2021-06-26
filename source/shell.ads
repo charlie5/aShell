@@ -113,6 +113,13 @@ is
    procedure Resume    (Process : in Shell.Process);
 
 
+   --- Debugging
+   --
+
+   procedure Open_Log (Name : in String);
+   procedure Close_Log;
+
+
 
 private
 
@@ -177,5 +184,12 @@ private
          Id     : Process_ID := POSIX.Process_Identification.Null_Process_ID;
          Status : POSIX.Process_Primitives.Termination_Status;
       end record;
+
+
+   --- Debugging
+   --
+
+   procedure Log (Message : in String);
+   function  Log (Message : in String) return Boolean;     -- Allow for logging in a declarative region.
 
 end Shell;

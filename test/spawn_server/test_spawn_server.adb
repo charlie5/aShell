@@ -11,6 +11,8 @@ is
        Ada.Text_IO;
 
 begin
+   Shell.Open_Log ("test_spawn_Server.log");
+
    Put_Line ("Begin test.");
    New_Line (2);
 
@@ -29,6 +31,11 @@ begin
 
       delay 0.1;
    end loop;
+
+
+
+   Shell.Close_Log;
+
 
    New_Line (2);
    Put_Line ("End test.");

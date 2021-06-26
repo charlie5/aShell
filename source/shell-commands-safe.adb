@@ -1,7 +1,6 @@
 with
      Ada.Strings.Fixed,
      Ada.Unchecked_Conversion,
-     Ada.Text_IO,
      Ada.Task_Identification,
      Ada.Characters.Handling,
      Ada.Containers.Hashed_Maps,
@@ -10,21 +9,6 @@ with
 
 package body Shell.Commands.Safe
 is
-
-   procedure Log (Message : in String)
-   is
-   begin
-      Ada.Text_IO.Put_Line (Message);
-      ada.Text_IO.Flush;
-   end Log;
-
-   function Log (Message : in String) return Boolean
-   is
-   begin
-      Log (Message);
-      return True;
-   end Log;
-
 
    ----------------------
    --- Safe_Client_Output
@@ -218,8 +202,8 @@ is
 
    exception
       when E : others =>
-         Ada.Text_IO.Put_Line ("Unhandled error in Spawn_Client.");
-         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
+         Log ("Unhandled error in Spawn_Client.");
+         Log (Ada.Exceptions.Exception_Information (E));
    end Spawn_Client;
 
 
@@ -271,8 +255,7 @@ is
 
       declare
          use Data_Vectors,
-             Ada.Task_Identification,
-             Ada.Text_IO;
+             Ada.Task_Identification;
          Restart_Command : Boolean  := False;
          Retry_Count     : Natural  := 0;
       begin
@@ -282,7 +265,7 @@ is
 
                if Restart_Command
                then
-                  Put_Line ("restarting command: " & The_Command.Error_Count'Image & "  " & Restart_Command'Image);
+                  Log ("restarting command: " & The_Command.Error_Count'Image & "  " & Restart_Command'Image);
                   Retry_Count             := Retry_Count + 1;
                   Restart_Command         := False;
                   The_Command.Error_Count := 0;
@@ -343,7 +326,7 @@ is
                   end if;
 
                when E : others =>
-                  Put_Line (Image (Current_Task) & "   "  & Exception_Information (E));
+                  Log (Image (Current_Task) & "   "  & Exception_Information (E));
                   raise;
             end;
          end loop;
@@ -380,8 +363,7 @@ is
 
       declare
          use Data_Vectors,
-             Ada.Task_Identification,
-             Ada.Text_IO;
+             Ada.Task_Identification;
          Restart_Pipeline : Boolean  := False;
          Retry_Count      : Natural  := 0;
          i                : Positive := 1;
@@ -461,7 +443,7 @@ is
                   end if;
 
                when E : others =>
-                  Put_Line (Image (Current_Task) & "   "  & Exception_Information (E));
+                  Log (Image (Current_Task) & "   "  & Exception_Information (E));
                   raise;
             end;
          end loop;

@@ -1,5 +1,4 @@
 with
-     Ada.Text_IO,
      Ada.Containers.Indefinite_Vectors,
      Ada.Containers.Hashed_Maps,
      Ada.IO_Exceptions,
@@ -7,25 +6,6 @@ with
 
 procedure Shell.Commands.Spawn_Server
 is
-   use Ada.Text_IO;
-
-   Log_File : File_Type;
-
-   procedure log (Message : in String)
-   is
-   begin
-      Put_Line (Log_File, Message);
-      ada.Text_IO.Flush (Log_File);
-   end log;
-
-   function log (Message : in String) return Boolean
-   is
-   begin
-      Log (Message);
-      return True;
-   end log;
-
-
 
    package Server_Action_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Server_Action);
 
@@ -87,12 +67,11 @@ is
       when E : others =>
          Log ("Unhandled error in New_Action_Fetcher.");
          Log (Ada.Exceptions.Exception_Information (E));
-         Close (Log_File);
    end New_Action_Fetcher;
 
 
 begin
-   Create (Log_File, Out_File, "aShell_spawn_Server.error_log");
+   Open_Log ("aShell_spawn_Server.log");
 
    declare
       package Id_Maps_of_Command is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
@@ -212,12 +191,13 @@ begin
       end loop;
 
       log ("Spawn Server: Done");
-      Close (Log_File);
    end;
+
+   Close_Log;
 
 exception
    when E : others =>
       Log ("Unhandled error in aShell_Spawn_Server.");
       Log (Ada.Exceptions.Exception_Information (E));
-      Close (Log_File);
+      Close_Log;
 end Shell.Commands.Spawn_Server;
