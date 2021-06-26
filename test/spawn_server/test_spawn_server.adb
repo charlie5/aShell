@@ -32,8 +32,7 @@ begin
       delay 0.1;
    end loop;
 
-
-
+   Safe.Stop_Spawn_Client;
    Shell.Close_Log;
 
 
