@@ -193,6 +193,12 @@ begin
          end;
       end loop;
 
+      declare
+         Act : constant Client_Action := (Server_Done, Null_Id);
+      begin
+         Client_Action'Output (Output_Stream'Access, Act);
+      end;
+
       log ("Spawn Server: Done");
    end;
 
