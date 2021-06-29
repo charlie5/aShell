@@ -93,7 +93,7 @@ begin
 
       loop
          log ("");
-         log ("loop: " & i'Image);
+         log ("looping");
 
          begin
             declare
