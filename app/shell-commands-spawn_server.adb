@@ -136,8 +136,6 @@ begin
                Done_Comands : Command_Id_Vectors.Vector;
                Cursor       : Id_Maps_of_Command.Cursor := Command_Map.First;
             begin
-               delay 1.0;
-
                -- Send ongoing command results to the client.
                --
                while Has_Element (Cursor)
