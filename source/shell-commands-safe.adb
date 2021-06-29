@@ -105,8 +105,10 @@ is
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
       Server_Errors_Stream : aliased Pipe_Stream := Stream (Server_Err_Pipe);
 
-      Next_Id : Command_Id := 1;
-      Done    : Boolean    := False;
+      Next_Id        : Command_Id := 1;
+      Stopping       : Boolean    := False;
+      Server_Is_Done : Boolean    := False;
+
    begin
       Close (Server_In_Pipe,  Only_Read_End  => True);
       Close (Server_Out_Pipe, Only_Write_End => True);
@@ -130,24 +132,23 @@ is
          or
             accept Stop
             do
-               Done := True;
+               log ("Client: Stopping.");
+               Stopping := True;
             end Stop;
          or
             delay 0.1;
          end select;
 
-         if Done
+         if Stopping
          then
             log ("Client is done.");
             Server_Action'Output (Server_Input_Stream'Access,
                                   (Stop,
-                                   Command_Id'Last));
-            log ("Client stops server.");
-            delay 0.5;
-            exit;
-         end if;
+                                   Null_Id));
+            log ("Client asks server to stop.");
+            Stopping := False;
 
-         if Have_New_Command
+         elsif Have_New_Command
          then
             log ("New Command: '" & (+Command_Line) & "'");
 
@@ -181,10 +182,10 @@ is
                      Command_Outputs_Map.Delete (Action.Id);
 
                   when Server_Done =>
-                     exit;
-               end case;
-            end;
-
+                     Server_Is_Done := True;
+                     Log ("Server is done.");
+                  end case;
+               end;
             end if;
 
          exception
@@ -201,9 +202,9 @@ is
                   raise;
                end if;
          end;
-         --  end loop;
 
-         --  exit;
+         exit when Server_Is_Done
+               and Command_Outputs_Map.Is_Empty;
       end loop;
 
       log ("Client is done.");
