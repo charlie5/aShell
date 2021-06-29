@@ -53,8 +53,10 @@ is
 
    function  Image   (Pipe : in Shell.Pipe) return String;
 
-   function  Is_Readable  (Pipe : in Shell.Pipe) return Boolean;
-   function  Is_Writeable (Pipe : in Shell.Pipe) return Boolean;
+   function  Is_Readable  (Pipe    : in Shell.Pipe) return Boolean;
+   function  Is_Writeable (Pipe    : in Shell.Pipe) return Boolean;
+   function  Is_Empty     (Pipe    : in Shell.Pipe;
+                           Timeout : in Duration := 0.0) return Boolean;   -- A timeout of '0.0' will block until the pipe is not empty.
 
    No_Output_Error   : exception;
    Pipe_Not_Readable : exception;

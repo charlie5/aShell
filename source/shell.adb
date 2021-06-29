@@ -155,14 +155,42 @@ is
    end Is_Writeable;
 
 
+   function Is_Empty (Pipe    : in Shell.Pipe;
+                      Timeout : in Duration  := 0.0) return Boolean
+   is
+      use POSIX.Event_Management,
+          POSIX.IO;
+      FDS_R : File_Descriptor_Set;
+      FDS_W : File_Descriptor_Set;
+      FDS_E : File_Descriptor_Set;
+      Count : Natural;
+   begin
+      Make_Empty (FDS_R);
+      Make_Empty (FDS_W);
+      Make_Empty (FDS_E);
+
+      add (FDS_R, Pipe.Read_End);
+
+      Select_File (Read_Files     => FDS_R,
+                   Write_Files    => FDS_W,
+                   Except_Files   => FDS_E,
+                   Files_Selected => Count,
+                   Timeout        => Timeout);
+
+      return Count = 0;
+   end Is_Empty;
+
+
    function Output_Of (Pipe : in Shell.Pipe) return Data
    is
-      use Ada.Exceptions;
+      use Ada.Exceptions,
+          POSIX.IO;
 
       Max_Process_Output : constant := 200 * 1024;
 
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset := 0;
+
    begin
       if not Is_Readable (Pipe)
       then
@@ -170,35 +198,12 @@ is
          return No_Data;
       end if;
 
-      declare
-         use POSIX.Event_Management,
-             POSIX.IO;
-         FDS_R : File_Descriptor_Set;
-         FDS_W : File_Descriptor_Set;
-         FDS_E : File_Descriptor_Set;
-         Count : Natural;
-      begin
-         Make_Empty (FDS_R);
-         Make_Empty (FDS_W);
-         Make_Empty (FDS_E);
-
-         add (FDS_R, Pipe.Read_End);
-
-         Select_File (Read_Files     => FDS_R,
-                      Write_Files    => FDS_W,
-                      Except_Files   => FDS_E,
-                      Files_Selected => Count,
-                      Timeout        => 0.05);
-
-         if Count > 0
-         then
-            Read (File   => Pipe.Read_End,
-                  Buffer => Buffer,
-                  Last   => Last);
-         --  else
-         --     raise No_Output_Error with Image (Current_Task) & " 'Shell.Output_Of ()' ~ pipe read end =>" & Pipe.Read_End'Image;
-         end if;
-      end;
+      if not Is_Empty (Pipe, Timeout => Duration'Small)
+      then
+         Read (File   => Pipe.Read_End,
+               Buffer => Buffer,
+               Last   => Last);
+      end if;
 
       return Buffer (1 .. Last);
 
