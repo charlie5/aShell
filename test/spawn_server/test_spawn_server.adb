@@ -11,13 +11,15 @@ is
        Ada.Text_IO;
 
 begin
-   Shell.Open_Log ("test_spawn_Server.log");
+   Shell.Open_Log ("aShell_spawn_Client.log");
 
    Put_Line ("Begin test.");
    New_Line (2);
 
    for i in 1 .. 1
    loop
+      Put_Line ("Loop:" & i'Image);
+
       declare
          use Shell;
          The_Command   : Command := Forge.To_Command ("ls -alh");

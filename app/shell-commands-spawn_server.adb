@@ -118,7 +118,7 @@ begin
                         The_Command. Error_Pipe := To_Pipe (Blocking => False);
 
                         The_Command.Start;
-                        Log ("Command => '" & Image (The_Command) & "'");
+                        Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
 
                         Command_Map.Insert (Action.Id, The_Command);
                      end;
@@ -159,7 +159,7 @@ begin
 
                      if The_Command.Has_Terminated
                      then
-                        log ("Has_Terminated");
+                        log ("Command: " & Id'Image & " has terminated.");
 
                         declare
                            Act : constant Client_Action := (Command_Done, Id);

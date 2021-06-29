@@ -151,7 +151,7 @@ is
 
          elsif Have_New_Command
          then
-            log ("New Command: '" & (+Command_Line) & "'");
+            log ("New Command:" & Next_Id'Image & "   '" & (+Command_Line) & "'");
 
             Server_Action'Output (Server_Input_Stream'Access,
                                   (New_Command,
@@ -178,6 +178,7 @@ is
                      Command_Outputs.Add_Outputs (Action.Output.Element,
                                                   Action.Errors.Element);
                   when Command_Done =>
+                     Log ("Command Done:" & Action.Id'Image);
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
                      Command_Outputs.Set_Done;
                      Command_Outputs_Map.Delete (Action.Id);
