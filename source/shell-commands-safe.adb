@@ -108,6 +108,10 @@ is
       Next_Id : Command_Id := 1;
       Done    : Boolean    := False;
    begin
+      Close (Server_In_Pipe,  Only_Read_End  => True);
+      Close (Server_Out_Pipe, Only_Write_End => True);
+      Close (Server_Err_Pipe);
+
       log ("Starting Spawn_Client");
 
       loop
@@ -198,11 +202,10 @@ is
          --  exit;
       end loop;
 
-      Close (Server_In_Pipe);
-      Close (Server_Out_Pipe);
-      Close (Server_Err_Pipe);
-
       log ("Client is done.");
+
+      Close (Server_In_Pipe,  Only_Write_End => True);
+      Close (Server_Out_Pipe, Only_Read_End  => True);
 
    exception
       when E : others =>
