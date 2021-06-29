@@ -92,7 +92,6 @@ begin
       New_Action_Fetcher.Start;
 
       loop
-         delay 0.1;
          log ("");
          log ("loop: " & i'Image);
 
