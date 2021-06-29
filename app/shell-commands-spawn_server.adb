@@ -85,12 +85,12 @@ begin
       Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
       Errors_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Error);
 
+      Stopping : Boolean := False;
    begin
       log ("Starting Spawn Manager");
 
       New_Action_Fetcher.Start;
 
-      for i in 1 .. 20
       loop
          delay 0.1;
          log ("");
@@ -126,7 +126,7 @@ begin
 
                   when Stop =>
                      Log ("Stop action.");
-                     exit;
+                     Stopping := True;
                end case;
             end;
 
@@ -185,10 +185,14 @@ begin
                end loop;
             end;
 
-         exception
-            when Ada.IO_Exceptions.End_Error =>   -- No new command.
+            exit when Stopping
+                  and Command_Map.Is_Empty;
+
+            if Command_Map.Is_Empty
+            then
                delay 0.1;
-               exit;
+            end if;
+
          end;
       end loop;
 
