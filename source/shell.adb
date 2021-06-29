@@ -497,47 +497,83 @@ is
    --- Debugging
    --
 
-   Log_File    : Ada.Text_IO.File_Type;
-   Log_Enabled : Boolean := False;
+   protected Logger
+   is
+      procedure Open  (Name : in String);
+      procedure Close;
+
+      procedure Log (Message : in String);
+   private
+      Log_File    : Ada.Text_IO.File_Type;
+      Log_Enabled : Boolean := False;
+   end Logger;
+
+
+   protected body Logger
+   is
+      procedure Open (Name : in String)
+      is
+         use Ada.Text_IO;
+      begin
+         if Log_Enabled
+         then
+            raise Program_Error with "Log is already open.";
+         end if;
+
+         Log_Enabled := True;
+         Create (Log_File, Ada.Text_IO.Out_File, Name);
+      end Open;
+
+
+      procedure Close
+      is
+         use Ada.Text_IO;
+      begin
+         if not Log_Enabled
+         then
+            raise Program_Error with "Log has not been opened.";
+         end if;
+
+         Log_Enabled := False;
+         Close (Log_File);
+      exception
+         when Device_Error =>
+           null;
+      end Close;
+
+
+      procedure Log (Message : in String)
+      is
+         use Ada.Text_IO;
+      begin
+         if Log_Enabled
+         then
+            Put_Line (Log_File, Message);
+            Flush (Log_File);
+         end if;
+      end Log;
+
+   end Logger;
 
 
    procedure Open_Log (Name : in String)
    is
-      use Ada.Text_IO;
    begin
-      if Log_Enabled
-      then
-         raise Program_Error with "Log is already open.";
-      end if;
-
-      Log_Enabled := True;
-      Create (Log_File, Ada.Text_IO.Out_File, Name);
+      Logger.Open (Name);
    end Open_Log;
 
 
    procedure Close_Log
    is
-      use Ada.Text_IO;
    begin
-      if not Log_Enabled
-      then
-         raise Program_Error with "Log has not been opened.";
-      end if;
-
-      Log_Enabled := False;
-      Close (Log_File);
+      Logger.Close;
    end Close_Log;
 
 
    procedure Log (Message : in String)
    is
-      use Ada.Text_IO;
    begin
-      if Log_Enabled
-      then
-         Put_Line (Log_File, Message);
-         Flush (Log_File);
-      end if;
+      Logger.Log (Message);
    end Log;
 
 
