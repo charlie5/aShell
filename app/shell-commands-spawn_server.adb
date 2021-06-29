@@ -36,6 +36,8 @@ is
          then
             Action := Actions.Last_Element;
             Actions.Delete_Last;
+         else
+            Action := (Nil, Null_Id);
          end if;
       end Get;
 
