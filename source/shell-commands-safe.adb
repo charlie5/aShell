@@ -160,28 +160,32 @@ is
             Next_Id          := Next_Id + 1;
          end if;
 
-         --  loop
          begin
-            declare
-               Action          : constant Client_Action              := Client_Action'Input (Server_Output_Stream'Access);
-               Command_Outputs : constant Safe_Client_Outputs_Access := Command_Outputs_Map.Element (Action.Id);
-            begin
-               case Action.Kind
-               is
+            if not Is_Empty (Server_Out_Pipe, Timeout => 0.06)
+            then
+               delay 0.01;
+
+               declare
+                  Action          : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
+                  Command_Outputs : Safe_Client_Outputs_Access;
+               begin
+                  case Action.Kind
+                  is
                   when New_Outputs =>
+                     Command_Outputs := Command_Outputs_Map.Element (Action.Id);
                      Command_Outputs.Add_Outputs (Action.Output.Element,
                                                   Action.Errors.Element);
                   when Command_Done =>
+                     Command_Outputs := Command_Outputs_Map.Element (Action.Id);
                      Command_Outputs.Set_Done;
                      Command_Outputs_Map.Delete (Action.Id);
-                     --  exit;
 
                   when Server_Done =>
                      exit;
                end case;
             end;
 
-            delay 0.1;
+            end if;
 
          exception
             when Ada.IO_Exceptions.End_Error =>
