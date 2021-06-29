@@ -166,6 +166,8 @@ private
 
    type Command_Id is new Positive;
 
+   Null_Id : constant Command_Id := Command_Id'Last;
+
    function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type;
 
 
@@ -173,7 +175,7 @@ private
 
    type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
-         Id : Command_Id;
+         Id : Command_Id := Null_Id;
 
          case Kind
          is
@@ -193,7 +195,7 @@ private
 
    type Client_Action (Kind : Client_Action_Kind) is
       record
-         Id : Command_Id;
+         Id : Command_Id := Null_Id;
 
          case Kind
          is
