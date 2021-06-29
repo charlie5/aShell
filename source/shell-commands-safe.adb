@@ -190,10 +190,6 @@ is
             end if;
 
          exception
-            when Ada.IO_Exceptions.End_Error =>
-               log ("No new action from the server.");
-               null;   -- No new action from the server.
-
             when E : POSIX.POSIX_Error =>
                if Ada.Exceptions.Exception_Message (E) = "RESOURCE_TEMPORARILY_UNAVAILABLE"
                then
