@@ -105,7 +105,7 @@ begin
                is
                   when Nil =>
                      Log ("Nil action.");
-                     null;
+                     delay 0.02;
 
                   when New_Command =>
                      Log ("New_Command action.");
