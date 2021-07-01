@@ -198,7 +198,7 @@ is
          return No_Data;
       end if;
 
-      if not Is_Empty (Pipe)
+      if not Is_Empty (Pipe, Timeout => 0.01)
       then
          Read (File   => Pipe.Read_End,
                Buffer => Buffer,
