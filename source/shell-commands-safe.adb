@@ -189,16 +189,6 @@ is
                   end case;
                end;
             end if;
-
-         exception
-            when E : POSIX.POSIX_Error =>
-               if Ada.Exceptions.Exception_Message (E) = "RESOURCE_TEMPORARILY_UNAVAILABLE"
-               then
-                  Log ("Server_Out_Pipe is busy.");
-                  null;   -- Server_Out_Pipe is busy.
-               else
-                  raise;
-               end if;
          end;
 
          exit when Server_Is_Done
