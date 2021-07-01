@@ -606,15 +606,6 @@ is
    function Results_Of (The_Command : in out Command) return Command_Results
    is
    begin
-      --  if    The_Command.Output_Pipe = Standard_Output
-      --  then
-      --     raise Command_Error with "Attempt to read the Standard_Ouput pipe.";
-      --
-      --  elsif The_Command.Error_Pipe  = Standard_Error
-      --  then
-      --     raise Command_Error with "Attempt to read the Standard_Error pipe.";
-      --  end if;
-
       Gather_Results (The_Command);
 
       declare
