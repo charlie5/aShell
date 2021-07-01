@@ -403,9 +403,11 @@ is
 
       Start (The_Command, Input);
       loop
-         Gather_Results (The_Command);
+         Gather_Results (The_Command);   -- Gather on-going results.
          exit when Has_Terminated (The_Command.Process);
       end loop;
+
+      Gather_Results (The_Command);      -- Gather any final results.
 
       if not Normal_Exit (The_Command.Process)
          and Raise_Error
