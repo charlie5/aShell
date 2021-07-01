@@ -5,7 +5,7 @@ with
 
 procedure Test_Pipe_Output_To_String
 --
--- Starts a long process (ls -alhR /) and periodically reads/prints the processes output.
+-- Starts a long process (ls -alhR /usr/share/doc) and periodically reads/prints the processes output.
 --
 is
    use Ada.Text_IO;
@@ -18,7 +18,7 @@ begin
       ls_Pipe : constant Shell.Pipe := To_Pipe;
       ls      : Shell.Process       := Start (Program   => "ls",
                                               Arguments => (1 => +"-alhR",
-                                                            2 => +"/etc"),
+                                                            2 => +"/usr/share/doc"),
                                               Output    => ls_Pipe);
    begin
       for i in 1 .. 1000
