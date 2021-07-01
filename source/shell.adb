@@ -208,19 +208,6 @@ is
       return Buffer (1 .. Last);
 
    exception
-      when E : POSIX.POSIX_Error =>
-         declare
-            use Ada.Characters.Handling;
-            Message : constant String := To_Upper (Exception_Message (E));
-         begin
-            if Message = "BAD_FILE_DESCRIPTOR"
-            then
-               return No_Data;
-            end if;
-
-            return No_Data;  -- raise No_Output_Error with Image (Current_Task) & " " & Message & " ~ pipe read end =>" & Pipe.Read_End'Image;
-         end;
-
       when Ada.IO_Exceptions.End_Error =>
          return No_Data;
    end Output_Of;
