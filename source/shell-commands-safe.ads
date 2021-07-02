@@ -1,11 +1,7 @@
 package Shell.Commands.Safe
 --
--- Commands run simultaneously in different tasks will sometimes (rarely) fail. The 'Expect_Output'
--- and 'Retry' parameters are present to help manage this issue. The defaults are usually sufficient.
+-- Allows commands to be safely run in different tasks.
 --
--- If a command or pipeline fail, it will repeat up to 'Retry' times.
--- Set 'Expect_Output' to false if a command or pipeline may produce no output.
-
 is
    --- Run - Block until process completes.
    --
@@ -20,6 +16,8 @@ is
 
 
    procedure Stop_Spawn_Client;
+   --
+   -- Called at program completion to halt the spawn client task and spawn server process.
 
 
 end Shell.Commands.Safe;
