@@ -103,7 +103,7 @@ is
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
-      Server_Errors_Stream : aliased Pipe_Stream := Stream (Server_Err_Pipe);
+      --  Server_Errors_Stream : aliased Pipe_Stream := Stream (Server_Err_Pipe);
 
       Next_Id        : Command_Id := 1;
       Stopping       : Boolean    := False;
