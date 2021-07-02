@@ -171,7 +171,9 @@ begin
                         Send_New_Results;     -- Send any final results.
 
                         declare
-                           Act : constant Client_Action := (Command_Done, Id);
+                           Act : constant Client_Action := (Command_Done,
+                                                            Id,
+                                                            Normal_Exit => The_Command.Normal_Exit);
                         begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;

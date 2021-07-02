@@ -8,7 +8,8 @@ package Shell.Commands.Safe
 
 is
    procedure Runn (The_Command : in out Command;
-                   Input       : in     Data    := No_Data);
+                   Input       : in     Data    := No_Data;
+                   Raise_Error : in     Boolean := False);
 
    procedure Stop_Spawn_Client;
 

@@ -205,8 +205,10 @@ private
                Output : Data_Holder;
                Errors : Data_Holder;
 
-            when Command_Done
-               | Server_Done =>
+            when Command_Done =>
+               Normal_Exit : Boolean;
+
+            when Server_Done =>
                null;
          end case;
       end record;

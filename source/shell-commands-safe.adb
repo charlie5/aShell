@@ -19,14 +19,19 @@ is
    is
       procedure Add_Outputs (Output : in     Shell.Data;
                              Errors : in     Shell.Data);
-      entry     Get_Outputs (Output :    out Data_Vector;
-                             Errors :    out Data_Vector);
-      procedure Set_Done;
+
+      entry     Get_Outputs (Output      :    out Data_Vector;
+                             Errors      :    out Data_Vector;
+                             Normal_Exit :    out Boolean);
+
+      procedure Set_Done (Normal_Exit : in   Boolean);
 
    private
       All_Output : Data_Vector;
       All_Errors : Data_Vector;
-      Done       : Boolean    := False;
+
+      Exit_Is_Normal : Boolean;
+      Done           : Boolean := False;
    end Safe_Client_Outputs;
 
 
@@ -47,19 +52,22 @@ is
       end Add_Outputs;
 
 
-      entry Get_Outputs (Output : out Data_Vector;
-                         Errors : out Data_Vector) when Done
+      entry Get_Outputs (Output      :    out Data_Vector;
+                         Errors      :    out Data_Vector;
+                         Normal_Exit :    out Boolean) when Done
       is
       begin
-         Output := All_Output;
-         Errors := All_Errors;
+         Output      := All_Output;
+         Errors      := All_Errors;
+         Normal_Exit := Exit_Is_Normal;
       end Get_Outputs;
 
 
-      procedure Set_Done
+      procedure Set_Done (Normal_Exit : in Boolean)
       is
       begin
-         Done := True;
+         Exit_Is_Normal := Normal_Exit;
+         Done           := True;
       end Set_Done;
 
    end Safe_Client_Outputs;
@@ -184,7 +192,7 @@ is
                   when Command_Done =>
                      Log ("Command Done:" & Action.Id'Image);
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
-                     Command_Outputs.Set_Done;
+                     Command_Outputs.Set_Done (Normal_Exit => Action.Normal_Exit);
                      Command_Outputs_Map.Delete (Action.Id);
 
                   when Server_Done =>
@@ -213,21 +221,30 @@ is
 
 
    procedure Runn (The_Command : in out Command;
-                   Input       : in     Data   := No_Data)
+                   Input       : in     Data    := No_Data;
+                   Raise_Error : in     Boolean := False)
    is
-      Outputs : aliased Safe_Client_Outputs;
-      Output  :         Data_Vector;
-      Errors  :         Data_Vector;
+      Outputs     : aliased Safe_Client_Outputs;
+      Output      :         Data_Vector;
+      Errors      :         Data_Vector;
+      Normal_Exit :         Boolean;
    begin
       Spawn_Client.Add (The_Command,
                         Input,
                         Outputs'Unchecked_Access);
 
       Outputs.Get_Outputs (Output,
-                           Errors);
+                           Errors,
+                           Normal_Exit);
 
       The_Command.Output := Output;
       The_Command.Errors := Errors;
+
+      if        Raise_Error
+        and not Normal_Exit
+      then
+         raise Command_Error with "Command '" & (+The_Command.Name) & "' failed.";
+      end if;
    end Runn;
 
 
