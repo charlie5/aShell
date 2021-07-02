@@ -21,23 +21,22 @@ begin
                                                             2 => +"/usr/share/doc"),
                                               Output    => ls_Pipe);
    begin
-      for i in 1 .. 1000
       loop
          declare
             Output : constant String := +Output_Of (ls_Pipe);
          begin
-            if Output = ""
-            then
-               exit;
-            end if;
-
             delay 0.1;                       -- Allow time to elapse so the process can pump the pipe with plenty of output.
             Put_Line ("'" & Output & "'");   -- The 'To_String' function reads any output from the pipe as a String.
          end;
+
+         if Has_Terminated (ls)
+         then
+            Put_Line ("'" & (+Output_Of (ls_Pipe)) & "'");   -- Show any final output.
+            exit;
+         end if;
       end loop;
 
-      Wait_On (ls);
-      Close   (ls_Pipe);
+      Close (ls_Pipe);
    end;
 
    New_Line (2);
