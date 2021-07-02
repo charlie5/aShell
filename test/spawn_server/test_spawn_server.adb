@@ -16,7 +16,7 @@ begin
    Put_Line ("Begin test.");
    New_Line (2);
 
-   for i in 1 .. 1
+   for i in 1 .. 100_000
    loop
       Put_Line ("Loop:" & i'Image);
 
