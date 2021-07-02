@@ -25,17 +25,22 @@ begin
          The_Command   : Command := Forge.To_Command ("ls -alh");
       begin
          Safe.Runn (The_Command);
-         Put_Line ("Output =>");
-         Put_Line (+Output_Of (Results_Of (The_Command)));
-         --  Safe.Runn (The_Command_2);
-      end;
+         declare
+            Output : String := +Output_Of (Results_Of (The_Command));
+         begin
+            Put_Line ("Output =>");
+            Put_Line (Output);
 
-      delay 0.1;
+            if Output = ""
+            then
+               raise Program_Error with "Fatal Error ~ No output.";
+            end if;
+         end;
+      end;
    end loop;
 
    Safe.Stop_Spawn_Client;
    Shell.Close_Log;
-
 
    New_Line (2);
    Put_Line ("End test.");
