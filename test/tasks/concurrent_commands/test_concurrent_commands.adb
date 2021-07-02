@@ -21,7 +21,7 @@ is
             The_Command :          Command := To_Command ("ls /home");
             --  Output      : constant String  := +Output_Of (Safe.Runn (The_Command));
          begin
-            Safe.Runn (The_Command);
+            Safe.Run (The_Command);
 
             declare
                Output : constant String  := +Output_Of (Results_Of (The_Command));
@@ -59,7 +59,7 @@ is
             --  The_Command :          Command :=  To_Command ("sleep 2");
             --  Output      : constant String  := +Output_Of (Safe.Runn (The_Command));
          begin
-            Safe.Runn (The_Command);
+            Safe.Run (The_Command);
 
             declare
                Output : constant String  := +Output_Of (Results_Of (The_Command));

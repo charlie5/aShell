@@ -24,7 +24,7 @@ begin
          use Shell;
          The_Command   : Command := Forge.To_Command ("ls -alh");
       begin
-         Safe.Runn (The_Command);
+         Safe.Run (The_Command);
          declare
             Output : String := +Output_Of (Results_Of (The_Command));
          begin

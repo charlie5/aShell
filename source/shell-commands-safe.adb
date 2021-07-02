@@ -220,7 +220,7 @@ is
 
 
 
-   procedure Runn (The_Command : in out Command;
+   procedure Run (The_Command : in out Command;
                    Input       : in     Data    := No_Data;
                    Raise_Error : in     Boolean := False)
    is
@@ -245,7 +245,18 @@ is
       then
          raise Command_Error with "Command '" & (+The_Command.Name) & "' failed.";
       end if;
-   end Runn;
+   end Run;
+
+
+   function Run (The_Command   : in out Command;
+                  Input         : in     Data    := No_Data;
+                  Raise_Error   : in     Boolean := False) return Command_Results
+   is
+   begin
+      Run (The_Command, Input, Raise_Error);
+
+      return Results_Of (The_Command);
+   end Run;
 
 
    procedure Stop_Spawn_Client
@@ -253,292 +264,6 @@ is
    begin
       Spawn_Client.Stop;
    end Stop_Spawn_Client;
-
-
-
-   function Runn (The_Command   : in out Command;
-                  Input         : in     Data    := No_Data;
-                  Raise_Error   : in     Boolean := False) return Command_Results
-   is
-   begin
-      Runn (The_Command, Input, Raise_Error);
-
-      return Results_Of (The_Command);
-   end Runn;
-
-
-   -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-   --- Run
-   --
-
-   procedure Run (The_Command   : in out Command;
-                  Input         : in     Data    := No_Data;
-                  Raise_Error   : in     Boolean := False;
-                  Retry         : in     Natural := Natural'Last;
-                  Expect_Output : in     Boolean := True)
-   is
-      use Ada.Characters.Handling,
-          Ada.Exceptions;
-   begin
-      The_Command.Owns_Output_Pipe := True;
-
-      The_Command.Output_Pipe := To_Pipe (Blocking => False);
-      The_Command. Error_Pipe := To_Pipe (Blocking => False);
-
-      Start (The_Command, Input);
-
-      declare
-         use Data_Vectors,
-             Ada.Task_Identification;
-         Restart_Command : Boolean  := False;
-         Retry_Count     : Natural  := 0;
-      begin
-         loop
-            begin
-               Gather_Results (The_Command);   -- Gather on-going results.
-
-               if Restart_Command
-               then
-                  Log ("restarting command: " & The_Command.Error_Count'Image & "  " & Restart_Command'Image);
-                  Retry_Count             := Retry_Count + 1;
-                  Restart_Command         := False;
-                  The_Command.Error_Count := 0;
-
-                  Clear (The_Command.Output);
-                  Clear (The_Command.Errors);
-
-                  Stop (The_Command);
-
-                  The_Command.Output_Pipe := To_Pipe;
-                  The_Command. Error_Pipe := To_Pipe;
-
-                  Start (The_Command, Input);
-               end if;
-
-               if Has_Terminated (The_Command.Process)
-               then
-                  if Normal_Exit (The_Command.Process)
-                  then
-                     if (    Expect_Output
-                         and Is_Empty (The_Command.Output))
-                       or not Is_Readable (The_Command.Output_Pipe)
-                       or not Is_Readable (The_Command.Error_Pipe)
-                     then
-                        Restart_Command := True;
-                     else
-                        Gather_Results (The_Command);   -- Gather any final results.
-                        exit;
-                     end if;
-
-                  else
-                     if Retry_Count < Retry
-                     then
-                        Restart_Command := True;
-
-                     elsif Raise_Error
-                     then
-                        declare
-                           Error : constant String := "The command '" & (+The_Command.Name) & "' failed.";
-                        begin
-                           raise Command_Error with Error;
-                        end;
-
-                     else
-                        exit;
-                     end if;
-                  end if;
-
-               end if;
-
-            exception
-               when E : POSIX.POSIX_Error =>
-                  if To_Upper (Exception_Message (E)) = "INVALID_ARGUMENT"
-                  then
-                     Restart_Command := True;
-                  else
-                     raise;
-                  end if;
-
-               when E : others =>
-                  Log (Image (Current_Task) & "   "  & Exception_Information (E));
-                  raise;
-            end;
-         end loop;
-
-      end;
-   end Run;
-
-
-   function Run (The_Command   : in out Command;
-                 Input         : in     Data    := No_Data;
-                 Raise_Error   : in     Boolean := False;
-                 Retry         : in     Natural := Natural'Last;
-                 Expect_Output : in     Boolean := True) return Command_Results
-   is
-   begin
-      Run (The_Command, Input, Raise_Error, Retry, Expect_Output);
-
-      return Results_Of (The_Command);
-   end Run;
-
-
-   procedure Run (The_Pipeline  : in out Command_Array;
-                  Input         : in     Data    := No_Data;
-                  Raise_Error   : in     Boolean := False;
-                  Retry         : in     Natural := Natural'Last;
-                  Expect_Output : in     Boolean := True)
-   is
-      use Ada.Characters.Handling,
-          Ada.Exceptions;
-      Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-   begin
-      Last_Command.Output_Pipe := To_Pipe;
-      Start (The_Pipeline, Input);
-
-      declare
-         use Data_Vectors,
-             Ada.Task_Identification;
-         Restart_Pipeline : Boolean  := False;
-         Retry_Count      : Natural  := 0;
-         i                : Positive := 1;
-      begin
-         loop
-            begin
-               Gather_Results (Last_Command);   -- Gather on-going results.
-
-               if   Last_Command.Error_Count > 5
-                 or Restart_Pipeline
-               then
-                  Retry_Count              := Retry_Count + 1;
-                  Restart_Pipeline         := False;
-                  Last_Command.Error_Count := 0;
-
-                  Clear (Last_Command.Output);
-                  Clear (Last_Command.Errors);
-
-                  for Each of The_Pipeline
-                  loop
-                     Stop (Each);
-                  end loop;
-
-                  Last_Command.Output_Pipe := To_Pipe;
-                  Start (The_Pipeline, Input);
-                  i := 1;
-               end if;
-
-               if Has_Terminated (The_Pipeline (i).Process)
-               then
-                  if Normal_Exit (The_Pipeline (i).Process)
-                  then
-                     i := i + 1;
-
-                     if i > The_Pipeline'Last
-                     then
-                        if (    Expect_Output
-                            and Is_Empty (Last_Command.Output))
-                          or not Is_Readable (Last_Command.Output_Pipe)
-                          or not Is_Readable (Last_Command.Error_Pipe)
-                        then
-                           Restart_Pipeline := True;
-                        else
-                           Gather_Results (Last_Command);   -- Gather any final results.
-                           exit;
-                        end if;
-                     end if;
-
-                  else
-                     if Retry_Count < Retry
-                     then
-                        Restart_Pipeline := True;
-
-                     elsif Raise_Error
-                     then
-                        declare
-                           Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                                      & " '" & (+The_Pipeline (i).Name) & "' failed.";
-                        begin
-                           raise Command_Error with Error;
-                        end;
-
-                     else
-                        exit;
-                     end if;
-                  end if;
-
-               end if;
-
-            exception
-               when E : POSIX.POSIX_Error =>
-                  if To_Upper (Exception_Message (E)) = "INVALID_ARGUMENT"
-                  then
-                     Restart_Pipeline := True;
-                  else
-                     raise;
-                  end if;
-
-               when E : others =>
-                  Log (Image (Current_Task) & "   "  & Exception_Information (E));
-                  raise;
-            end;
-         end loop;
-
-      end;
-   end Run;
-
-
-   function Run (The_Pipeline  : in out Command_Array;
-                 Input         : in     Data    := No_Data;
-                 Raise_Error   : in     Boolean := False;
-                 Retry         : in     Natural := Natural'Last;
-                 Expect_Output : in     Boolean := True) return Command_Results
-   is
-      Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-   begin
-      Run (The_Pipeline, Input, Raise_Error, Retry, Expect_Output);
-
-      return Results_Of (Last_Command);
-   end Run;
-
-
-   function Run (Command_Line  : in String;
-                 Input         : in Data    := No_Data;
-                 Raise_Error   : in Boolean := False;
-                 Retry         : in Natural := Natural'Last;
-                 Expect_Output : in Boolean := True) return Command_Results
-   is
-      use Ada.Strings.Fixed,
-          Shell.Commands.Forge;
-      The_Index   : constant Natural := Index (Command_Line, " | ");
-      Is_Pipeline : constant Boolean := The_Index /= 0;
-   begin
-      if Is_Pipeline
-      then
-         declare
-            The_Commands : Command_Array := To_Commands (Command_Line);
-         begin
-            return Safe.Run (The_Commands, Input, Raise_Error, Retry, Expect_Output);
-         end;
-      else
-         declare
-            The_Command : Command := To_Command (Command_Line);
-         begin
-            return Safe.Run (The_Command, Input, Raise_Error, Retry, Expect_Output);
-         end;
-      end if;
-   end Run;
-
-
-   procedure Run (Command_Line  : in String;
-                  Input         : in Data    := No_Data;
-                  Raise_Error   : in Boolean := False;
-                  Retry         : in Natural := Natural'Last;
-                  Expect_Output : in Boolean := True)
-   is
-      Results : Command_Results := Safe.Run (Command_Line, Input, Raise_Error, Retry, Expect_Output) with Unreferenced;
-   begin
-      null;
-   end Run;
 
 
 end Shell.Commands.Safe;
