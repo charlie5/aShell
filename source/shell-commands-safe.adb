@@ -256,6 +256,18 @@ is
 
 
 
+   function Runn (The_Command   : in out Command;
+                  Input         : in     Data    := No_Data;
+                  Raise_Error   : in     Boolean := False) return Command_Results
+   is
+   begin
+      Runn (The_Command, Input, Raise_Error);
+
+      return Results_Of (The_Command);
+   end Runn;
+
+
+   -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
    --- Run
    --
