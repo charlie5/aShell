@@ -12,7 +12,7 @@ is
    task body Task_1
    is
    begin
-      for i in 1 .. 1_000
+      for i in 1 .. 50_000
       loop
          declare
             use Shell,
@@ -49,7 +49,7 @@ is
    task body Task_2
    is
    begin
-      for i in 1 .. 1_000
+      for i in 1 .. 50_000
       loop
          declare
             use Shell,
