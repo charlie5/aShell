@@ -146,20 +146,29 @@ begin
                      Id          : constant Command_Id := Key     (Cursor);
                      The_Command :          Command    := Element (Cursor);
 
-                     Results     : constant Command_Results := Results_Of (The_Command);
+                     procedure Send_New_Results
+                     is
+                        Output : constant Data := Output_Of (The_Command.Output_Pipe);
+                        Errors : constant Data := Output_Of (The_Command.Error_Pipe);
+                     begin
+                        if not (    Output'Length = 0
+                                and Errors'Length = 0)
+                        then
+                           Client_Action'Output (Output_Stream'Access,
+                                                 (New_Outputs,
+                                                  Id,
+                                                  To_Holder (Output),
+                                                  To_Holder (Errors)));
+                        end if;
+                     end Send_New_Results;
 
-                     Output      : constant Data := Output_Of (Results);
-                     Errors      : constant Data := Errors_Of (Results);
                   begin
-                     Client_Action'Output (Output_Stream'Access,
-                                           (New_Outputs,
-                                            Id,
-                                            To_Holder (Output),
-                                            To_Holder (Errors)));
+                     Send_New_Results;        -- Send ongoing results.
 
                      if The_Command.Has_Terminated
                      then
                         log ("Command: " & Id'Image & " has terminated.");
+                        Send_New_Results;     -- Send any final results.
 
                         declare
                            Act : constant Client_Action := (Command_Done, Id);
