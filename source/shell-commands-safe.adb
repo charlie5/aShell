@@ -174,17 +174,16 @@ is
             Next_Id          := Next_Id + 1;
          end if;
 
-         begin
-            if not Is_Empty (Server_Out_Pipe, Timeout => 0.06)
-            then
-               delay 0.01;
+         if not Is_Empty (Server_Out_Pipe, Timeout => 0.06)
+         then
+            delay 0.01;
 
-               declare
-                  Action          : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
-                  Command_Outputs : Safe_Client_Outputs_Access;
-               begin
-                  case Action.Kind
-                  is
+            declare
+               Action          : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
+               Command_Outputs : Safe_Client_Outputs_Access;
+            begin
+               case Action.Kind
+               is
                   when New_Outputs =>
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
                      Command_Outputs.Add_Outputs (Action.Output.Element,
@@ -198,10 +197,9 @@ is
                   when Server_Done =>
                      Server_Is_Done := True;
                      Log ("Server is done.");
-                  end case;
-               end;
-            end if;
-         end;
+               end case;
+            end;
+         end if;
 
          exit when Server_Is_Done
                and Command_Outputs_Map.Is_Empty;
