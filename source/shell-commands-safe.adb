@@ -75,6 +75,7 @@ is
    task Spawn_Client
    is
       entry Add (The_Command : in Command;
+                 Input       : in     Data := No_Data;
                  Outputs     : in Safe_Client_Outputs_Access);
       entry Stop;
    end Spawn_Client;
@@ -100,6 +101,7 @@ is
                                               Errors    => Server_Err_Pipe) with Unreferenced;
       Command_Line     : Unbounded_String;
       Have_New_Command : Boolean := False;
+      Command_Input    : Data_Holder;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
@@ -119,16 +121,18 @@ is
       loop
          select
             accept Add (The_Command : in Command;
+                        Input       : in Data   := No_Data;
                         Outputs     : in Safe_Client_Outputs_Access)
             do
                log ("");
                log ("Client: Accepting new command.");
-               Have_New_Command := True;
 
-               Command_Outputs_Map.Insert (Next_Id,
-                                           Outputs);
+               Have_New_Command := True;
                Set_Unbounded_String (Command_Line,
                                      Name (The_Command) & " " & Arguments (The_Command));
+               Command_Input.Replace_Element (Input);
+               Command_Outputs_Map.Insert (Next_Id,
+                                           Outputs);
             end Add;
          or
             accept Stop
@@ -156,7 +160,8 @@ is
             Server_Action'Output (Server_Input_Stream'Access,
                                   (New_Command,
                                    Next_Id,
-                                   Command_Line));
+                                   Command_Line,
+                                   Command_Input));
 
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
@@ -208,13 +213,15 @@ is
 
 
 
-   procedure Runn (The_Command : in out Command)
+   procedure Runn (The_Command : in out Command;
+                   Input       : in     Data   := No_Data)
    is
       Outputs : aliased Safe_Client_Outputs;
       Output  :         Data_Vector;
       Errors  :         Data_Vector;
    begin
       Spawn_Client.Add (The_Command,
+                        Input,
                         Outputs'Unchecked_Access);
 
       Outputs.Get_Outputs (Output,

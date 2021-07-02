@@ -7,7 +7,8 @@ package Shell.Commands.Safe
 -- Set 'Expect_Output' to false if a command or pipeline may produce no output.
 
 is
-   procedure Runn (The_Command : in out Command);
+   procedure Runn (The_Command : in out Command;
+                   Input       : in     Data    := No_Data);
 
    procedure Stop_Spawn_Client;
 

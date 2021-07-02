@@ -117,7 +117,7 @@ begin
                         The_Command.Output_Pipe := To_Pipe (Blocking => False);
                         The_Command. Error_Pipe := To_Pipe (Blocking => False);
 
-                        The_Command.Start;
+                        The_Command.Start (Input => Action.Command_Input.Element);
                         Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
 
                         Command_Map.Insert (Action.Id, The_Command);
