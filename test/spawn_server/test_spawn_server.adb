@@ -23,7 +23,6 @@ begin
       declare
          use Shell;
          The_Command   : Command := Forge.To_Command ("ls -alh");
-         --  The_Command_2 : Command := Forge.To_Command ("pwd");
       begin
          Safe.Runn (The_Command);
          Put_Line ("Output =>");
