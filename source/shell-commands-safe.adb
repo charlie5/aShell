@@ -4,6 +4,7 @@ with
      Ada.Task_Identification,
      Ada.Characters.Handling,
      Ada.Containers.Hashed_Maps,
+     Ada.Text_IO,
      Ada.IO_Exceptions,
      Ada.Exceptions;
 
@@ -103,10 +104,6 @@ is
       Server_Out_Pipe : constant Shell.Pipe := To_Pipe (Blocking => False);
       Server_Err_Pipe : constant Shell.Pipe := To_Pipe;
 
-      Spawn_Server : Shell.Process  := Start (Program   => "ashell_spawn_server",
-                                              Input     => Server_In_Pipe,
-                                              Output    => Server_Out_Pipe,
-                                              Errors    => Server_Err_Pipe) with Unreferenced;
       Command_Line     : Unbounded_String;
       Have_New_Command : Boolean := False;
       Command_Input    : Data_Holder;
@@ -118,7 +115,14 @@ is
       Stopping       : Boolean    := False;
       Server_Is_Done : Boolean    := False;
 
+      Spawn_Server : Shell.Process with Unreferenced;
+
    begin
+      Spawn_Server := Start (Program => "ashell_spawn_server",
+                             Input   => Server_In_Pipe,
+                             Output  => Server_Out_Pipe,
+                             Errors  => Server_Err_Pipe);
+
       Close (Server_In_Pipe,  Only_Read_End  => True);
       Close (Server_Out_Pipe, Only_Write_End => True);
       Close (Server_Err_Pipe);
@@ -211,6 +215,14 @@ is
       Close (Server_Out_Pipe, Only_Read_End  => True);
 
    exception
+      when Process_Error =>
+         Ada.Text_IO.New_Line (2);
+         Ada.Text_IO.Put_Line ("__________________________________________________________________");
+         Ada.Text_IO.Put_Line ("Program 'ashell_spawn_server' not found on PATH. Please install it.");
+         Ada.Text_IO.Put_Line ("Spawn client is shutting down.");
+         Ada.Text_IO.Put_Line ("__________________________________________________________________");
+         Ada.Text_IO.New_Line (2);
+
       when E : others =>
          Log ("Unhandled error in Spawn_Client.");
          Log (Ada.Exceptions.Exception_Information (E));
@@ -243,6 +255,10 @@ is
       then
          raise Command_Error with "Command '" & (+The_Command.Name) & "' failed.";
       end if;
+
+   exception
+      when Tasking_Error =>
+         raise Command_Error with "Spawn client has shut down.";
    end Run;
 
 
