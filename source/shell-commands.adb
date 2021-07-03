@@ -606,8 +606,6 @@ is
    function Results_Of (The_Command : in out Command) return Command_Results
    is
    begin
-      Gather_Results (The_Command);
-
       declare
          use Data_Vectors;
 
