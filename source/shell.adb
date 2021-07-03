@@ -3,7 +3,10 @@ with
      POSIX.Process_Primitives.Extensions,
      POSIX.Event_Management,
 
+     Gnat.OS_Lib,
+
      Ada.Characters.Handling,
+     Ada.Strings.Fixed,
      Ada.Exceptions,
      Ada.IO_Exceptions,
      Ada.Unchecked_Conversion,
@@ -291,16 +294,24 @@ is
    is
       use POSIX,
           POSIX.Process_Primitives,
-          POSIX.Process_Primitives.Extensions;
+          POSIX.Process_Primitives.Extensions,
+          Gnat.OS_Lib;
 
       The_Template   : Process_Template;
       The_Process    : Process;
       The_Process_Id : Process_Id;
 
-      Args :          POSIX_String_List;
-      Name : constant POSIX_String     := To_POSIX_String (Program);
-
+      Args     :          POSIX_String_List;
+      Name     : constant POSIX_String     := To_POSIX_String (Program);
+      Pathname :          String_Access    := Locate_Exec_On_Path (Program);
    begin
+      if Pathname = null
+      then
+         raise Process_Error with "Program '" & Program & "' not found on PATH";
+      else
+         Free (Pathname);
+      end if;
+
       Open_Template (The_Template);
 
       if Errors /= Standard_Error
@@ -376,7 +387,20 @@ is
                    Errors            : in Pipe    := Standard_Error;
                    Pipeline          : in Boolean := False) return Process
    is
+      use Ada.Strings.Fixed,
+          Gnat.OS_Lib;
+
+      I        : constant Natural := Index (Command, " ");
+      Program  : constant String  := (if I = 0 then Command else Command (Command'First .. I - 1));
+      Pathname : String_Access    := Locate_Exec_On_Path (Program);
    begin
+      if Pathname = null
+      then
+         raise Process_Error with "Program '" & Program & "' not found on PATH";
+      else
+         Free (Pathname);
+      end if;
+
       return Start (Program           => "/bin/sh",
                     Arguments         => (+"-c",
                                           +Command),
