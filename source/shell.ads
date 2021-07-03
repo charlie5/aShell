@@ -87,6 +87,9 @@ is
 
    -- For 'Start', when pipeline is true, closing the write ends of any
    -- non-standard 'Output' and 'Errors' pipes becomes the callers responsibility.
+   -- A 'Process_Error' is raised if 'Start' fails.
+
+   Process_Error : exception;
 
    function Start (Program           : in String;
                    Arguments         : in String_Array := Nil_Strings;
