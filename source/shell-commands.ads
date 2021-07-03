@@ -140,8 +140,6 @@ private
 
             Output      : Data_Vector;
             Errors      : Data_Vector;
-
-            Error_Count : Natural := 0;     -- Used in the task safe child package.
          end record;
 
    overriding

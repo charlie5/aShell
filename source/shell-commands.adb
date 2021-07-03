@@ -370,9 +370,6 @@ is
                The_Command.Output.Append (The_Output);
             end if;
          end;
-      exception
-         when No_Output_Error =>
-            The_Command.Error_Count := The_Command.Error_Count + 1;
       end;
 
       begin
@@ -384,9 +381,6 @@ is
                The_Command.Errors.Append (The_Errors);
             end if;
          end;
-      exception
-         when No_Output_Error =>
-            The_Command.Error_Count := The_Command.Error_Count + 1;
       end;
    end Gather_Results;
 
