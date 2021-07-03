@@ -2,6 +2,9 @@ package Shell.Commands.Safe
 --
 -- Allows commands to be safely run in different tasks.
 --
+-- Requires the 'ashell_spawn_server' binary to be installed
+-- in a folder on the users PATH (such as /usr/bin).
+--
 is
    --- Run - Block until process completes.
    --
