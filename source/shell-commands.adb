@@ -4,7 +4,6 @@ with
      Ada.Strings.Maps,
      Ada.Characters.Handling,
      Ada.Exceptions,
-     Ada.Task_Identification,
      Ada.Unchecked_Deallocation,
      Ada.Unchecked_Conversion;
 
@@ -45,8 +44,8 @@ is
    function To_Arguments (All_Arguments : in String) return String_Array
    is
       use GNAT.OS_Lib;
-      Command_Name : constant String      := "Command_Name";     -- 'Argument_String_To_List' expects the command name to be
-                                                                 -- the 1st piece of the string, so we provide a dummy name.
+      Command_Name : constant String := "Command_Name";     -- 'Argument_String_To_List' expects the command name to be
+                                                            -- the 1st piece of the string, so we provide a dummy name.
       Arguments    : Argument_List_Access := Argument_String_To_List (Command_Name & " " & All_Arguments);
       Result       : String_Array (1 .. Arguments'Length - 1);
    begin
@@ -97,7 +96,7 @@ is
 
       I : constant Natural := Index (Command_Line, " ");
    begin
-      The_Command.Copy_Count  := new Count' (1);
+      The_Command.Copy_Count := new Count' (1);
 
       if I = 0
       then
@@ -122,7 +121,6 @@ is
       function To_Command (Command_Line : in String) return Command
       is
          use Ada.Strings.Fixed;
-
          I : constant Natural := Index (Command_Line, " ");
       begin
          if I = 0
@@ -186,7 +184,7 @@ is
             for i in 1 .. Count
             loop
                Define ( Result (i),
-                        +All_Commands (i));
+                       +All_Commands (i));
             end loop;
          end return;
       end To_Commands;
@@ -361,26 +359,22 @@ is
    procedure Gather_Results (The_Command : in out Command)
    is
    begin
+      declare
+         The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
       begin
-         declare
-            The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
-         begin
-            if The_Output'Length /= 0
-            then
-               The_Command.Output.Append (The_Output);
-            end if;
-         end;
+         if The_Output'Length /= 0
+         then
+            The_Command.Output.Append (The_Output);
+         end if;
       end;
 
+      declare
+         The_Errors : constant Data := Output_Of (The_Command.Error_Pipe);
       begin
-         declare
-            The_Errors : constant Data := Output_Of (The_Command.Error_Pipe);
-         begin
-            if The_Errors'Length /= 0
-            then
-               The_Command.Errors.Append (The_Errors);
-            end if;
-         end;
+         if The_Errors'Length /= 0
+         then
+            The_Command.Errors.Append (The_Errors);
+         end if;
       end;
    end Gather_Results;
 
@@ -438,7 +432,7 @@ is
       Start (The_Pipeline, Input);
 
       loop
-         Gather_Results (Last_Command);   -- Gather on-going results.
+         Gather_Results (Last_Command);            -- Gather on-going results.
 
          if Has_Terminated (The_Pipeline (i).Process)
          then
@@ -495,6 +489,7 @@ is
    is
       use Ada.Strings.Fixed,
           Shell.Commands.Forge;
+
       The_Index   : constant Natural := Index (Command_Line, " | ");
       Is_Pipeline : constant Boolean := The_Index /= 0;
    begin
@@ -599,58 +594,55 @@ is
 
    function Results_Of (The_Command : in out Command) return Command_Results
    is
+      use Data_Vectors;
+
+      Output_Size : Data_Offset := 0;
+      Errors_Size : Data_Offset := 0;
    begin
+      for Each of The_Command.Output
+      loop
+         Output_Size := Output_Size + Each'Length;
+      end loop;
+
+      for Each of The_Command.Errors
+      loop
+         Errors_Size := Errors_Size + Each'Length;
+      end loop;
+
       declare
-         use Data_Vectors;
+         Output : Data (1 .. Output_Size);
+         Errors : Data (1 .. Errors_Size);
 
-         Output_Size : Data_Offset := 0;
-         Errors_Size : Data_Offset := 0;
-      begin
-         for Each of The_Command.Output
-         loop
-            Output_Size := Output_Size + Each'Length;
-         end loop;
-
-         for Each of The_Command.Errors
-         loop
-            Errors_Size := Errors_Size + Each'Length;
-         end loop;
-
-         declare
-            Output : Data (1 .. Output_Size);
-            Errors : Data (1 .. Errors_Size);
-
-            procedure Set_Data (From : in out Data_Vector;
-                                To   :    out Data)
-            is
-               First : Data_Index := 1;
-               Last  : Data_Index;
-            begin
-               for Each of From
-               loop
-                  Last  := First + Each'Length - 1;
-                  To (First .. Last) := Each;
-                  First := Last + 1;
-               end loop;
-
-               From.Clear;
-            end Set_Data;
-
+         procedure Set_Data (From : in out Data_Vector;
+                             To   :    out Data)
+         is
+            First : Data_Index := 1;
+            Last  : Data_Index;
          begin
-            Set_Data (The_Command.Output, Output);
-            Set_Data (The_Command.Errors, Errors);
+            for Each of From
+            loop
+               Last               := First + Each'Length - 1;
+               To (First .. Last) := Each;
+               First              := Last + 1;
+            end loop;
 
-            return (Output_Size => Output_Size,
-                    Error_Size  => Errors_Size,
-                    Output      => Output,
-                    Errors      => Errors);
-         end;
+            From.Clear;
+         end Set_Data;
 
-      exception
-         when Storage_Error =>
-            raise Command_Error with "Command output exceeds stack capacity. "
-                                   & "Increase the stack limit via 'ulimit -s'.";
+      begin
+         Set_Data (The_Command.Output, Output);
+         Set_Data (The_Command.Errors, Errors);
+
+         return (Output_Size => Output_Size,
+                 Error_Size  => Errors_Size,
+                 Output      => Output,
+                 Errors      => Errors);
       end;
+
+   exception
+      when Storage_Error =>
+         raise Command_Error with "Command output exceeds stack capacity. "
+                                & "Increase the stack limit via 'ulimit -s'.";
    end Results_Of;
 
 

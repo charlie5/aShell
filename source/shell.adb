@@ -74,14 +74,14 @@ is
       is
          use POSIX.IO;
       begin
-         if    not  Only_Write_End
+         if         not Only_Write_End
            and then Pipe.Read_End /= Null_File_Descriptor
            and then Is_Open (Pipe.Read_End)
          then
             Close (File => Pipe.Read_End);
          end if;
 
-         if    not  Only_Read_End
+         if         not Only_Read_End
            and then Pipe.Write_End /= Null_File_Descriptor
            and then Is_Open (Pipe.Write_End)
          then
@@ -186,8 +186,7 @@ is
 
    function Output_Of (Pipe : in Shell.Pipe) return Data
    is
-      use Ada.Exceptions,
-          POSIX.IO;
+      use POSIX.IO;
 
       Max_Process_Output : constant := 200 * 1024;
 
@@ -286,11 +285,11 @@ is
 
    function Start (Program           : in String;
                    Arguments         : in String_Array := Nil_Strings;
-                   Working_Directory : in String  := ".";
-                   Input             : in Pipe    := Standard_Input;
-                   Output            : in Pipe    := Standard_Output;
-                   Errors            : in Pipe    := Standard_Error;
-                   Pipeline          : in Boolean := False) return Process
+                   Working_Directory : in String       := ".";
+                   Input             : in Pipe         := Standard_Input;
+                   Output            : in Pipe         := Standard_Output;
+                   Errors            : in Pipe         := Standard_Error;
+                   Pipeline          : in Boolean      := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -340,9 +339,9 @@ is
 
       Append (Args, Name);
 
-      for I in Arguments'Range
+      for i in Arguments'Range
       loop
-         Append (Args, To_POSIX_String (+Arguments (I)));
+         Append (Args, To_POSIX_String (+Arguments (i)));
       end loop;
 
       Start_Process_Search (The_Process_Id,
@@ -426,8 +425,7 @@ is
    is
       use POSIX.Process_Primitives,
           Ada.Characters.Handling,
-          Ada.Exceptions,
-          Ada.Text_IO;
+          Ada.Exceptions;
    begin
       Wait_For_Child_Process (Status => Process.Status,
                               Child  => Process.Id,
@@ -438,7 +436,7 @@ is
       when E : POSIX.POSIX_Error =>
          if To_Upper (Exception_Message (E)) = "NO_CHILD_PROCESS"
          then
-            Put_Line ("Child process is dead (" & Image (Process) & ")");
+            Log ("Has_Terminated ~ Child process is already dead (" & Image (Process) & ")");
             return True;
          else
             raise;
@@ -472,7 +470,7 @@ is
    end Image;
 
 
-   procedure Kill  (Process : in Shell.Process)
+   procedure Kill (Process : in Shell.Process)
    is
       use POSIX.Signals;
    begin
@@ -532,7 +530,7 @@ is
          end if;
 
          Log_Enabled := True;
-         Create (Log_File, Ada.Text_IO.Out_File, Name);
+         Create (Log_File, Out_File, Name);
       end Open;
 
 

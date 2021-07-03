@@ -22,11 +22,12 @@ begin
 
       declare
          use Shell;
-         The_Command   : Command := Forge.To_Command ("ls -alh");
+         The_Command : Command := Forge.To_Command ("ls -alh");
       begin
          Safe.Run (The_Command);
+
          declare
-            Output : String := +Output_Of (Results_Of (The_Command));
+            Output : constant String := +Output_Of (Results_Of (The_Command));
          begin
             Put_Line ("Output =>");
             Put_Line (Output);

@@ -93,11 +93,11 @@ is
 
    function Start (Program           : in String;
                    Arguments         : in String_Array := Nil_Strings;
-                   Working_Directory : in String  := ".";
-                   Input             : in Pipe    := Standard_Input;
-                   Output            : in Pipe    := Standard_Output;
-                   Errors            : in Pipe    := Standard_Error;
-                   Pipeline          : in Boolean := False) return Process;
+                   Working_Directory : in String       := ".";
+                   Input             : in Pipe         := Standard_Input;
+                   Output            : in Pipe         := Standard_Output;
+                   Errors            : in Pipe         := Standard_Error;
+                   Pipeline          : in Boolean      := False) return Process;
 
    function Start (Command           : in String;
                    Working_Directory : in String  := ".";
@@ -118,7 +118,7 @@ is
    procedure Resume    (Process : in Shell.Process);
 
 
-   --- Debugging
+   --- Logging
    --
 
    procedure Open_Log (Name : in String);
@@ -129,9 +129,10 @@ is
 private
 
    subtype Process_Template is POSIX.Process_Primitives.Process_Template;
-   subtype File_Descriptor  is POSIX.IO.File_Descriptor;
    subtype Process_ID       is POSIX.Process_Identification.Process_ID;
+   subtype File_Descriptor  is POSIX.IO.File_Descriptor;
 
+   Null_Process_ID      : constant Process_ID      := POSIX.Process_Identification.Null_Process_ID;
    Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;
 
    No_Data     : constant Data (1 .. 0) := (others => <>);
@@ -145,9 +146,9 @@ private
    --
 
    type Pipe is
-         record
-            Write_End,
-            Read_End : File_Descriptor := Null_File_Descriptor;
+      record
+         Write_End,
+         Read_End : File_Descriptor := Null_File_Descriptor;
       end record;
 
    Standard_Input  : constant Pipe := (Write_End => Null_File_Descriptor,
@@ -161,10 +162,10 @@ private
 
    protected Safe_Pipes
    is
-      procedure Open  (Pipe           : out Shell.Pipe);
-      procedure Close (Pipe           : in  Shell.Pipe;
-                       Only_Write_End : in  Boolean := False;
-                       Only_Read_End  : in  Boolean := False);
+      procedure Open  (Pipe           :    out Shell.Pipe);
+      procedure Close (Pipe           : in     Shell.Pipe;
+                       Only_Write_End : in     Boolean := False;
+                       Only_Read_End  : in     Boolean := False);
    end Safe_Pipes;
 
 
@@ -186,7 +187,7 @@ private
 
    type Process is
       record
-         Id     : Process_ID := POSIX.Process_Identification.Null_Process_ID;
+         Id     : Process_ID := Null_Process_ID;
          Status : POSIX.Process_Primitives.Termination_Status;
       end record;
 

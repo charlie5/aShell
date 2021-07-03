@@ -17,8 +17,8 @@ is
 
    package Forge
    is
-      function To_Command  (Command_Line  : in String) return Command;                  -- An example 'Command_Line' is "ps -A".
-      function To_Commands (Pipeline      : in String) return Command_Array;            -- An example 'Pipeline' is "ps -A | grep bash | wc".
+      function To_Command  (Command_Line  : in String) return Command;           -- An example 'Command_Line' is "ps -A".
+      function To_Commands (Pipeline      : in String) return Command_Array;     -- An example 'Pipeline' is "ps -A | grep bash | wc".
 
       function "+"         (Command_Line  : in String) return Command       renames To_Command;
       function "+"         (Pipeline      : in String) return Command_Array renames To_Commands;
@@ -35,7 +35,6 @@ is
 
    function  Name      (The_Command : in     Command) return String;
    function  Arguments (The_Command : in     Command) return String;
-
 
    function  Process (The_Command : in out Command) return access Shell.Process;
    function  Failed  (The_Command : in     Command) return Boolean;
@@ -159,7 +158,7 @@ private
 
 
    -----------------------
-   -- Spawn_Server Support
+   -- Spawn Server Support
    --
 
    type Command_Id is new Positive;
@@ -210,7 +209,6 @@ private
                null;
          end case;
       end record;
-
 
 
 end Shell.Commands;

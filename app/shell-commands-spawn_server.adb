@@ -1,7 +1,6 @@
 with
      Ada.Containers.Indefinite_Vectors,
      Ada.Containers.Hashed_Maps,
-     Ada.IO_Exceptions,
      Ada.Exceptions;
 
 procedure Shell.Commands.Spawn_Server
@@ -80,20 +79,17 @@ begin
                                                                     Element_Type    => Command,
                                                                     Hash            => Hash,
                                                                     Equivalent_Keys =>  "=");
-      Command_Map   : Id_Maps_of_Command.Map;
-
+      Command_Map   :         Id_Maps_of_Command.Map;
       Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
-      Errors_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Error);
-
-      Stopping : Boolean := False;
+      Stopping      :         Boolean     := False;
    begin
-      log ("Starting Spawn Manager");
+      Log ("Starting Spawn Manager");
 
       New_Action_Fetcher.Start;
 
       loop
-         log ("");
-         log ("looping");
+         Log ("");
+         Log ("looping");
 
          begin
             declare
@@ -109,6 +105,7 @@ begin
 
                   when New_Command =>
                      Log ("New_Command action.");
+
                      declare
                         The_Command : Command := Forge.To_Command (+Action.Command_Line);
                      begin
@@ -167,7 +164,7 @@ begin
 
                      if The_Command.Has_Terminated
                      then
-                        log ("Command: " & Id'Image & " has terminated.");
+                        Log ("Command: " & Id'Image & " has terminated.");
                         Send_New_Results;     -- Send any final results.
 
                         declare
@@ -210,7 +207,7 @@ begin
          Client_Action'Output (Output_Stream'Access, Act);
       end;
 
-      log ("Spawn Server: Done");
+      Log ("Spawn Server: Done");
    end;
 
    Close_Log;

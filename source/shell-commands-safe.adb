@@ -1,11 +1,7 @@
 with
-     Ada.Strings.Fixed,
      Ada.Unchecked_Conversion,
-     Ada.Task_Identification,
-     Ada.Characters.Handling,
      Ada.Containers.Hashed_Maps,
      Ada.Text_IO,
-     Ada.IO_Exceptions,
      Ada.Exceptions;
 
 package body Shell.Commands.Safe
@@ -53,9 +49,9 @@ is
       end Add_Outputs;
 
 
-      entry Get_Outputs (Output      :    out Data_Vector;
-                         Errors      :    out Data_Vector;
-                         Normal_Exit :    out Boolean) when Done
+      entry Get_Outputs (Output      : out Data_Vector;
+                         Errors      : out Data_Vector;
+                         Normal_Exit : out Boolean) when Done
       is
       begin
          Output      := All_Output;
@@ -84,7 +80,7 @@ is
    task Spawn_Client
    is
       entry Add (The_Command : in Command;
-                 Input       : in     Data := No_Data;
+                 Input       : in Data   := No_Data;
                  Outputs     : in Safe_Client_Outputs_Access);
       entry Stop;
    end Spawn_Client;
@@ -97,7 +93,7 @@ is
       package Id_Maps_of_Command_Outputs is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
                                                                             Element_Type    => Safe_Client_Outputs_Access,
                                                                             Hash            => Hash,
-                                                                            Equivalent_Keys =>  "=");
+                                                                            Equivalent_Keys => "=");
       Command_Outputs_Map : Id_Maps_of_Command_Outputs.Map;
 
       Server_In_Pipe  : constant Shell.Pipe := To_Pipe;
@@ -135,12 +131,16 @@ is
                         Input       : in Data   := No_Data;
                         Outputs     : in Safe_Client_Outputs_Access)
             do
-               log ("");
-               log ("Client: Accepting new command.");
+               Log ("");
+               Log ("Client: Accepting new command.");
 
                Have_New_Command := True;
+
                Set_Unbounded_String (Command_Line,
-                                     Name (The_Command) & " " & Arguments (The_Command));
+                                     Name (The_Command)
+                                     & " "
+                                     & Arguments (The_Command));
+
                Command_Input.Replace_Element (Input);
                Command_Outputs_Map.Insert (Next_Id,
                                            Outputs);
@@ -148,25 +148,26 @@ is
          or
             accept Stop
             do
-               log ("Client: Stopping.");
+               Log ("Client: Stopping.");
                Stopping := True;
             end Stop;
          or
             delay 0.01;
          end select;
 
+
          if Stopping
          then
-            log ("Client is stopping.");
+            Log ("Client is stopping.");
             Server_Action'Output (Server_Input_Stream'Access,
                                   (Stop,
                                    Null_Id));
-            log ("Client asks server to stop.");
+            Log ("Client asks server to stop.");
             Stopping := False;
 
          elsif Have_New_Command
          then
-            log ("New Command:" & Next_Id'Image & "   '" & (+Command_Line) & "'");
+            Log ("New Command:" & Next_Id'Image & "   '" & (+Command_Line) & "'");
 
             Server_Action'Output (Server_Input_Stream'Access,
                                   (New_Command,
@@ -189,6 +190,7 @@ is
                case Action.Kind
                is
                   when New_Outputs =>
+                     Log ("New Outputs for Command:" & Action.Id'Image);
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
                      Command_Outputs.Add_Outputs (Action.Output.Element,
                                                   Action.Errors.Element);
@@ -199,8 +201,8 @@ is
                      Command_Outputs_Map.Delete (Action.Id);
 
                   when Server_Done =>
-                     Server_Is_Done := True;
                      Log ("Server is done.");
+                     Server_Is_Done := True;
                end case;
             end;
          end if;
@@ -209,10 +211,10 @@ is
                and Command_Outputs_Map.Is_Empty;
       end loop;
 
-      log ("Client is done.");
-
       Close (Server_In_Pipe,  Only_Write_End => True);
       Close (Server_Out_Pipe, Only_Read_End  => True);
+
+      Log ("Client is done.");
 
    exception
       when Process_Error =>
@@ -231,8 +233,8 @@ is
 
 
    procedure Run (The_Command : in out Command;
-                   Input       : in     Data    := No_Data;
-                   Raise_Error : in     Boolean := False)
+                  Input       : in     Data    := No_Data;
+                  Raise_Error : in     Boolean := False)
    is
       Outputs     : aliased Safe_Client_Outputs;
       Output      :         Data_Vector;
@@ -258,17 +260,16 @@ is
 
    exception
       when Tasking_Error =>
-         raise Command_Error with "Spawn client has shut down.";
+         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. The Spawn client has shut down.";
    end Run;
 
 
    function Run (The_Command   : in out Command;
-                  Input         : in     Data    := No_Data;
-                  Raise_Error   : in     Boolean := False) return Command_Results
+                 Input         : in     Data    := No_Data;
+                 Raise_Error   : in     Boolean := False) return Command_Results
    is
    begin
       Run (The_Command, Input, Raise_Error);
-
       return Results_Of (The_Command);
    end Run;
 

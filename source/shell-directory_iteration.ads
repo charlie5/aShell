@@ -7,7 +7,6 @@ private
 with
      Ada.Finalization;
 
-
 package Shell.Directory_Iteration
 is
 
@@ -40,7 +39,6 @@ is
    function Iterate       (Container : Directory) return Directory_Iterators.Forward_Iterator'Class;
    function Element_Value (Container : Directory;
                            Pos       : Cursor) return Constant_Reference_Type;
-
 
 
 private
