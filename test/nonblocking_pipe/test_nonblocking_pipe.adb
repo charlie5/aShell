@@ -19,9 +19,7 @@ begin
    declare
       use Shell,
           Shell.Commands;
-      The_Command : Command := To_Command ("tail -f test.log",
-                                           Output => To_Pipe (Blocking => False),
-                                           Errors => To_Pipe (Blocking => False));
+      The_Command : Command := Forge.To_Command ("tail -f test.log");
    begin
       Start (The_Command);
 
@@ -32,8 +30,8 @@ begin
          begin
             put_line ("'" & Output & "'");
             delay 1.0;
-            exit when      Output'Length >= 3
-                  and then Output (1..3)  = "end";
+            exit when          Output'Length >= 3
+                      and then Output (1..3)  = "end";
          end;
       end loop;
    end;
