@@ -299,6 +299,17 @@ is
          Write_To (The_Command.Input_Pipe, Input);
       end if;
 
+      if The_Command.Output_Pipe = Null_Pipe
+      then
+         The_Command.Owns_Output_Pipe := True;
+         The_Command.Output_Pipe      := To_Pipe (Blocking => False);
+      end if;
+
+      if The_Command.Error_Pipe = Null_Pipe
+      then
+         The_Command. Error_Pipe := To_Pipe (Blocking => False);
+      end if;
+
       The_Command.Process := Start (Program   => +The_Command.Name,
                                     Arguments =>  To_String_Array (The_Command.Arguments),
                                     Input     =>  The_Command.Input_Pipe,
@@ -327,8 +338,6 @@ is
 
       for i in Commands'Range
       loop
-         Commands (i).Error_Pipe := To_Pipe;
-
          if i = Commands'First
          then
             Start (Commands (i),
@@ -384,11 +393,6 @@ is
                   Raise_Error : in     Boolean := False)
    is
    begin
-      The_Command.Owns_Output_Pipe := True;
-
-      The_Command.Output_Pipe := To_Pipe (Blocking => False);
-      The_Command. Error_Pipe := To_Pipe (Blocking => False);
-
       Start (The_Command, Input);
       loop
          Gather_Results (The_Command);   -- Gather on-going results.
@@ -524,6 +528,8 @@ is
       use Ada.Characters.Handling,
           Ada.Exceptions;
    begin
+      The_Command.Gather_Results;
+
       Close (The_Command. Input_Pipe);
       Close (The_Command.Output_Pipe);
       Close (The_Command. Error_Pipe);
@@ -599,6 +605,8 @@ is
       Output_Size : Data_Offset := 0;
       Errors_Size : Data_Offset := 0;
    begin
+      Gather_Results (The_Command);
+
       for Each of The_Command.Output
       loop
          Output_Size := Output_Size + Each'Length;

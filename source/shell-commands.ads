@@ -128,8 +128,8 @@ private
             Arguments   : String_Vector;
 
             Input_Pipe  : Pipe := Standard_Input;
-            Output_Pipe : Pipe := Standard_Output;
-            Error_Pipe  : Pipe := Standard_Error;
+            Output_Pipe : Pipe := Null_Pipe;
+            Error_Pipe  : Pipe := Null_Pipe;
 
             Owns_Output_Pipe : Boolean := False;
             Owns_Input_Pipe  : Boolean := False;
