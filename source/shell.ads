@@ -74,6 +74,7 @@ is
    Standard_Input  : constant Pipe;
    Standard_Output : constant Pipe;
    Standard_Error  : constant Pipe;
+   Null_Pipe       : constant Pipe;
 
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with private;
    function  Stream (Pipe : in Shell.Pipe) return Pipe_Stream;
@@ -158,6 +159,9 @@ private
                                        Read_End  => Null_File_Descriptor);
 
    Standard_Error  : constant Pipe := (Write_End => POSIX.IO.Standard_Error,
+                                       Read_End  => Null_File_Descriptor);
+
+   Null_Pipe       : constant Pipe := (Write_End => Null_File_Descriptor,
                                        Read_End  => Null_File_Descriptor);
 
    protected Safe_Pipes
