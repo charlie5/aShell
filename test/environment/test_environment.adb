@@ -30,6 +30,7 @@ begin
       Put_Line ("Expected output:");
       Put_Line (Expected);
       Put_Line ("Actual output:");
+
       Start (Piped_Commands);
       delay 1.0;
 
@@ -38,6 +39,7 @@ begin
          Wait_On (Piped_Commands (i));
       end loop;
 
+      Put_Line (+Output_Of (Results_Of (Piped_Commands (2))));
       Put_Line ("End test 1");
    end Test_1;
 
@@ -70,6 +72,7 @@ begin
          Wait_On (Piped_Commands (i));
       end loop;
 
+      Put_Line (+Output_Of (Results_Of (Piped_Commands (2))));
       Put_Line ("End test 2");
    end Test_2;
 
