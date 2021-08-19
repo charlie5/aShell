@@ -11,7 +11,9 @@
 *.ali
 *.a
 *.o
+*-loc.xml
 .clang-format
+.clangd
 build
 test/test_ashell
 test/ashell/test_ashell
@@ -24,6 +26,8 @@ attic
 aShell_spawn_Server.error_log
 commands.log
 shell.log
+aShell_spawn_Server.log
+aShell_spawn_Client.log
 
 
 ## Binaries
