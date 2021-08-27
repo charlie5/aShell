@@ -1,6 +1,6 @@
 with
      "../../ashell",
-     "../../shared";
+     "../../ashell_shared";
 
 project Test_Nonblocking_Pipe
 is
@@ -8,6 +8,6 @@ is
    for Exec_Dir   use ".";
    for Main       use ("test_nonblocking_pipe.adb");
 
-   package Compiler renames Shared.Compiler;
+   package Compiler renames aShell_shared.Compiler;
 
 end Test_Nonblocking_Pipe;

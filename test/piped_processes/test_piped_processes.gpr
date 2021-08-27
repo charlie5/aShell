@@ -1,6 +1,6 @@
 with
      "../../ashell",
-     "../../shared";
+     "../../ashell_shared";
 
 project Test_Piped_Processes
 is
@@ -8,6 +8,6 @@ is
    for Exec_Dir   use ".";
    for Main       use ("test_piped_processes.adb");
 
-   package Compiler renames Shared.Compiler;
+   package Compiler renames aShell_shared.Compiler;
 
 end Test_Piped_Processes;

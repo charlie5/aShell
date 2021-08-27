@@ -1,5 +1,5 @@
 abstract 
-project Shared
+project aShell_Shared
 is
    for Source_Files use ();
 
@@ -159,4 +159,4 @@ is
       for Default_Switches ("ada") use Binder_Options;
    end Binder;
 
-end Shared;
+end aShell_Shared;

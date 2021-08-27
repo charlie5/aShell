@@ -11,7 +11,7 @@ with
      "../wait_on_process/test_wait_on_process",
 
      "../../ashell",
-     "../../shared";
+     "../../ashell_shared";
 
 project All_Tests
 is
@@ -19,6 +19,6 @@ is
    for Exec_Dir   use ".";
    for Main       use ("test_all.adb");
 
-   package Compiler renames Shared.Compiler;
+   package Compiler renames aShell_shared.Compiler;
 
 end All_Tests;

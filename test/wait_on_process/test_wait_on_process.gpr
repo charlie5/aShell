@@ -1,6 +1,6 @@
 with
      "../../ashell",
-     "../../shared";
+     "../../ashell_shared";
 
 project Test_Wait_On_Process
 is
@@ -8,6 +8,6 @@ is
    for Exec_Dir   use ".";
    for Main       use ("test_wait_on_process.adb");
 
-   package Compiler renames Shared.Compiler;
+   package Compiler renames aShell_shared.Compiler;
 
 end Test_Wait_On_Process;

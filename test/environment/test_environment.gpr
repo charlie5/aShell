@@ -8,6 +8,6 @@ is
    for Exec_Dir   use ".";
    for Main       use ("test_environment.adb");
 
-   package Compiler renames Ashell.Compiler;
+   package Compiler renames aShell.Compiler;
 
 end Test_Environment;

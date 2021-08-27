@@ -1,7 +1,7 @@
 with
      "ashell",
      "florist",
-     "shared";
+     "ashell_shared";
 
 project spawn_Server
 is
@@ -16,8 +16,8 @@ is
       for Executable ("shell-commands-spawn_server") use "ashell_spawn_server";
    end Builder;
 
-   package Compiler renames Shared.Compiler;
-   package Binder   renames Shared.Binder;
+   package Compiler renames aShell_shared.Compiler;
+   package Binder   renames aShell_shared.Binder;
 
    package IDE is
       for VCS_Kind use "Git";

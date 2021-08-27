@@ -1,6 +1,6 @@
 with
      "florist",
-     "shared";
+     "ashell_shared";
 
 --library
 project aShell
@@ -12,8 +12,8 @@ is
    for Source_Dirs  use ("source");
 --   for Library_Name use "aShell";
 
-   package Compiler renames Shared.Compiler;
-   package Binder   renames Shared.Binder;
+   package Compiler renames aShell_Shared.Compiler;
+   package Binder   renames aShell_Shared.Binder;
 
    package IDE is
       for VCS_Kind use "Git";

@@ -1,6 +1,6 @@
 with
      "ashell",
-     "shared";
+     "ashell_shared";
 
 project test_spawn_Server
 is
@@ -11,8 +11,8 @@ is
    for Exec_Dir    use ".";
    for Main        use ("test_spawn_server");
 
-   package Compiler renames Shared.Compiler;
-   package Binder   renames Shared.Binder;
+   package Compiler renames aShell_shared.Compiler;
+   package Binder   renames aShell_shared.Binder;
 
    package IDE is
       for VCS_Kind use "Git";
