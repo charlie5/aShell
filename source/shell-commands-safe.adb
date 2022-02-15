@@ -1,5 +1,6 @@
 with
      Ada.Unchecked_Conversion,
+     Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
      Ada.Text_IO,
      Ada.Exceptions;
@@ -7,30 +8,9 @@ with
 package body Shell.Commands.Safe
 is
 
-   ----------------------
-   --- Safe_Client_Output
+   -----------------------
+   --- Safe_Client_Outputs
    --
-
-   protected
-   type Safe_Client_Outputs
-   is
-      procedure Add_Outputs (Output : in     Shell.Data;
-                             Errors : in     Shell.Data);
-
-      entry     Get_Outputs (Output      :    out Data_Vector;
-                             Errors      :    out Data_Vector;
-                             Normal_Exit :    out Boolean);
-
-      procedure Set_Done (Normal_Exit : in   Boolean);
-
-   private
-      All_Output : Data_Vector;
-      All_Errors : Data_Vector;
-
-      Exit_Is_Normal : Boolean;
-      Done           : Boolean := False;
-   end Safe_Client_Outputs;
-
 
    protected
    body Safe_Client_Outputs
@@ -51,7 +31,8 @@ is
 
       entry Get_Outputs (Output      : out Data_Vector;
                          Errors      : out Data_Vector;
-                         Normal_Exit : out Boolean) when Done
+                         Normal_Exit : out Boolean)
+        when Done
       is
       begin
          Output      := All_Output;
@@ -67,10 +48,18 @@ is
          Done           := True;
       end Set_Done;
 
+
+      entry Wait_Til_Done
+        when Done
+      is
+      begin
+         null;
+      end Wait_Til_Done;
+
    end Safe_Client_Outputs;
 
 
-   type Safe_Client_Outputs_Access is access all Safe_Client_Outputs;
+   --  type Safe_Client_Outputs_Access is access all Safe_Client_Outputs;
 
 
    ----------------
@@ -232,22 +221,22 @@ is
 
 
 
+   overriding
    procedure Run (The_Command : in out Command;
                   Input       : in     Data    := No_Data;
                   Raise_Error : in     Boolean := False)
    is
-      Outputs     : aliased Safe_Client_Outputs;
       Output      :         Data_Vector;
       Errors      :         Data_Vector;
       Normal_Exit :         Boolean;
    begin
       Spawn_Client.Add (The_Command,
                         Input,
-                        Outputs'Unchecked_Access);
+                        The_Command.Safe_Outputs);
 
-      Outputs.Get_Outputs (Output,
-                           Errors,
-                           Normal_Exit);
+      The_Command.Safe_Outputs.Get_Outputs (Output,
+                                            Errors,
+                                            Normal_Exit);
 
       The_Command.Output := Output;
       The_Command.Errors := Errors;
@@ -264,6 +253,8 @@ is
    end Run;
 
 
+
+   overriding
    function Run (The_Command   : in out Command;
                  Input         : in     Data    := No_Data;
                  Raise_Error   : in     Boolean := False) return Command_Results
@@ -274,11 +265,38 @@ is
    end Run;
 
 
+
+   overriding
+   procedure Wait_On (The_Command : in out Command)
+   is
+   begin
+      The_Command.Safe_Outputs.Wait_Til_Done;
+   end Wait_On;
+
+
+
+   overriding
+   procedure Finalize (The_Command : in out Command)
+   is
+      procedure Deallocate is new Ada.Unchecked_Deallocation (Safe_Client_Outputs,
+                                                              Safe_Client_Outputs_Access);
+   begin
+      if The_Command.Copy_Count.all = 1
+      then
+         Deallocate (The_Command.Safe_Outputs);
+      end if;
+
+      Finalize (Commands.Command (The_Command));
+   end Finalize;
+
+
+
    procedure Stop_Spawn_Client
    is
    begin
       Spawn_Client.Stop;
    end Stop_Spawn_Client;
+
 
 
 end Shell.Commands.Safe;
