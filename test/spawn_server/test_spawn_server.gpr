@@ -1,6 +1,6 @@
 with
-     "ashell",
-     "ashell_shared";
+     "../../ashell",
+     "../../ashell_shared";
 
 project test_spawn_Server
 is
