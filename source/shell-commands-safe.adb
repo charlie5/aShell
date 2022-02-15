@@ -575,6 +575,33 @@ is
 
 
    overriding
+   procedure Interrupt (The_Command : in Command)
+   is
+   begin
+      Spawn_Client.Kill (The_Command);
+   end Interrupt;
+
+
+
+   overriding
+   procedure Pause (The_Command : in Command)
+   is
+   begin
+      Spawn_Client.Kill (The_Command);
+   end Pause;
+
+
+
+   overriding
+   procedure Resume (The_Command : in Command)
+   is
+   begin
+      Spawn_Client.Kill (The_Command);
+   end Resume;
+
+
+
+   overriding
    procedure Finalize (The_Command : in out Command)
    is
       procedure Deallocate is new Ada.Unchecked_Deallocation (Safe_Client_Outputs,
