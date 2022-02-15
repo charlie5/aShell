@@ -18,8 +18,7 @@ is
             use Shell,
                 Shell.Commands,
                 Shell.Commands.Forge;
-            The_Command :          Command := To_Command ("ls /home");
-            --  Output      : constant String  := +Output_Of (Safe.Runn (The_Command));
+            The_Command : Command := To_Command ("ls /home");
          begin
             Safe.Run (The_Command);
 
@@ -55,9 +54,7 @@ is
             use Shell,
                 Shell.Commands,
                 Shell.Commands.Forge;
-            The_Command :          Command :=  To_Command ("pwd");
-            --  The_Command :          Command :=  To_Command ("sleep 2");
-            --  Output      : constant String  := +Output_Of (Safe.Runn (The_Command));
+            The_Command : Command :=  To_Command ("pwd");
          begin
             Safe.Run (The_Command);
 
