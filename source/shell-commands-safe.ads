@@ -68,6 +68,9 @@ is
    function  Normal_Exit    (The_Command : in     Command) return Boolean;
 
 
+   overriding
+   procedure Kill      (The_Command : in Command);
+
 
    procedure Stop_Spawn_Client;
    --
@@ -116,6 +119,7 @@ private
 
    type Command is new Commands.Command with
       record
+         Id           : Command_Id                 := Null_Id;
          Safe_Outputs : Safe_Client_Outputs_Access := new Safe_Client_Outputs;
       end record;
 

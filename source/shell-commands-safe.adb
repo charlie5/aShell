@@ -87,9 +87,12 @@ is
 
    task Spawn_Client
    is
-      entry Add (The_Command : in Command;
-                 Input       : in Data   := No_Data;
-                 Outputs     : in Safe_Client_Outputs_Access);
+      entry Add  (The_Command : in Command;
+                  Input       : in Data   := No_Data;
+                  Outputs     : in Safe_Client_Outputs_Access);
+
+      entry Kill (The_Command : in Command);
+
       entry Stop;
    end Spawn_Client;
 
@@ -111,6 +114,8 @@ is
       Command_Line     : Unbounded_String;
       Have_New_Command : Boolean := False;
       Command_Input    : Data_Holder;
+
+      Killing_Command  : Command_Id := Null_Id;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
@@ -154,6 +159,14 @@ is
                                            Outputs);
             end Add;
          or
+            accept Kill (The_Command : in Command)
+            do
+               Log ("");
+               Log ("Client: Killing command.");
+
+               Killing_Command := The_Command.Id;
+            end Kill;
+         or
             accept Stop
             do
                Log ("Client: Stopping.");
@@ -168,8 +181,8 @@ is
          then
             Log ("Client is stopping.");
             Server_Action'Output (Server_Input_Stream'Access,
-                                  (Stop,
-                                   Null_Id));
+                                  Server_Action' (Stop,
+                                                  Null_Id));
             Log ("Client asks server to stop.");
             Stopping := False;
 
@@ -178,13 +191,21 @@ is
             Log ("New Command:" & Next_Id'Image & "   '" & (+Command_Line) & "'");
 
             Server_Action'Output (Server_Input_Stream'Access,
-                                  (New_Command,
-                                   Next_Id,
-                                   Command_Line,
-                                   Command_Input));
+                                  Server_Action' (New_Command,
+                                                  Next_Id,
+                                                  Command_Line,
+                                                  Command_Input));
 
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
+
+         elsif Killing_Command /= Null_Id
+         then
+            Log ("Sending 'Kill' action for command" & Killing_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (Kill,
+                                                  Killing_Command));
          end if;
 
          if not Is_Empty (Server_Out_Pipe, Timeout => 0.06)
@@ -541,6 +562,15 @@ is
    begin
       return The_Command.Safe_Outputs.Normal_Exit;
    end Normal_Exit;
+
+
+
+   overriding
+   procedure Kill (The_Command : in Command)
+   is
+   begin
+      Spawn_Client.Kill (The_Command);
+   end Kill;
 
 
 

@@ -28,7 +28,7 @@ is
       end Add;
 
 
-      procedure Get (Action :    out Server_Action)
+      procedure Get (Action : out Server_Action)
       is
       begin
          if not Actions.Is_Empty
@@ -120,18 +120,29 @@ begin
                         Command_Map.Insert (Action.Id, The_Command);
                      end;
 
+                  when Kill =>
+                     Log ("Kill action.");
+
+                     declare
+                        The_Command : constant Command := Command_Map.Element (Action.Id);
+                     begin
+                        The_Command.Kill;
+                        Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                     end;
+
                   when Stop =>
                      Log ("Stop action.");
                      Stopping := True;
                end case;
             end;
 
+
             declare
                use Id_Maps_of_Command;
                package Command_Id_Vectors is new Ada.Containers.Vectors (Positive, Command_Id);
 
-               Done_Comands : Command_Id_Vectors.Vector;
-               Cursor       : Id_Maps_of_Command.Cursor := Command_Map.First;
+               Done_Commands : Command_Id_Vectors.Vector;
+               Cursor        : Id_Maps_of_Command.Cursor := Command_Map.First;
             begin
                -- Send ongoing command results to the client.
                --
@@ -175,7 +186,7 @@ begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;
 
-                        Done_Comands.Append (Id);
+                        Done_Commands.Append (Id);
                      end if;
                   end;
 
@@ -184,11 +195,12 @@ begin
 
                -- Rid completed commands.
                --
-               for Each of Done_Comands
+               for Each of Done_Commands
                loop
                   Command_Map.Delete (Each);
                end loop;
             end;
+
 
             exit when Stopping
                   and Command_Map.Is_Empty;
@@ -197,9 +209,9 @@ begin
             then
                delay 0.1;
             end if;
-
          end;
       end loop;
+
 
       declare
          Act : constant Client_Action := (Server_Done, Null_Id);
