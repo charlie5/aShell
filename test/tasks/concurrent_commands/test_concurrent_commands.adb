@@ -17,8 +17,9 @@ is
          declare
             use Shell,
                 Shell.Commands,
-                Shell.Commands.Forge;
-            The_Command : Command := To_Command ("ls /home");
+                Shell.Commands.Safe,
+                Shell.Commands.Safe.Forge;
+            The_Command : Safe.Command := To_Command ("ls /home");
          begin
             Safe.Run (The_Command);
 
@@ -53,8 +54,9 @@ is
          declare
             use Shell,
                 Shell.Commands,
-                Shell.Commands.Forge;
-            The_Command : Command :=  To_Command ("pwd");
+                Shell.Commands.Safe,
+                Shell.Commands.Safe.Forge;
+            The_Command : Safe.Command := To_Command ("pwd");
          begin
             Safe.Run (The_Command);
 

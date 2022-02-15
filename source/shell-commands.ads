@@ -146,6 +146,8 @@ private
    overriding
    procedure Finalize (The_Command : in out Command);
 
+   procedure Define   (The_Command :    out Command;   Command_Line : in String);
+
    procedure Gather_Results (The_Command : in out Command);
    procedure Stop           (The_Command : in out Command);
 
@@ -155,6 +157,10 @@ private
          Output  : Data (1 .. Output_Size);
          Errors  : Data (1 ..  Error_Size);
       end record;
+
+
+
+   function To_String_Array (Strings : String_Vector) return String_Array;
 
 
    -----------------------

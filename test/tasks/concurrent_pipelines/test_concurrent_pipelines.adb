@@ -17,8 +17,9 @@ is
          declare
             use Shell,
                 Shell.Commands,
-                Shell.Commands.Forge;
-            Commands : Command_Array :=  To_Commands ("ls -alh | grep test_concurrent_pipelines");
+                Shell.Commands.Safe,
+                Shell.Commands.Safe.Forge;
+            Commands : Safe.Command_Array := To_Commands ("ls -alh | grep test_concurrent_pipelines");
          begin
             declare
                Output : constant String := +Output_Of (Safe.Run (Commands));
@@ -50,9 +51,10 @@ is
          declare
             use Shell,
                 Shell.Commands,
-                Shell.Commands.Forge;
-            Commands : Command_Array   :=  To_Commands ("ps -Af | grep test_concurrent_pipelines");
-            Output   : constant String := +Output_Of (Safe.Run (Commands));
+                Shell.Commands.Safe,
+                Shell.Commands.Safe.Forge;
+            Commands : Safe.Command_Array :=  To_Commands ("ps -Af | grep test_concurrent_pipelines");
+            Output   : constant String    := +Output_Of (Safe.Run (Commands));
          begin
             Put_Line ("Task 2   i =" & i'Image & " =>");
             Put_Line ("'" & Output & "'");

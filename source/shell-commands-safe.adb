@@ -2,6 +2,8 @@ with
      Ada.Unchecked_Conversion,
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
+     Ada.Strings.Fixed,
+     Ada.Strings.Maps,
      Ada.Text_IO,
      Ada.Exceptions;
 
@@ -58,8 +60,6 @@ is
 
    end Safe_Client_Outputs;
 
-
-   --  type Safe_Client_Outputs_Access is access all Safe_Client_Outputs;
 
 
    ----------------
@@ -221,6 +221,171 @@ is
 
 
 
+   ---------
+   --- Forge
+   --
+   package body Forge
+   is
+
+      function To_Command (Command_Line : in String) return Command
+      is
+         --  use Ada.Strings.Fixed;
+         --  I : constant Natural := Index (Command_Line, " ");
+      begin
+         --  if I = 0
+         --  then
+         --     return Result : Command
+         --     do
+         --        Result.Name       := +Command_Line;
+         --        Result.Copy_Count := new Count' (1);
+         --     end return;
+         --  end if;
+
+         declare
+            --  Name      : constant String       :=               Command_Line (Command_Line'First .. I - 1);
+            --  Arguments : constant String_Array := To_Arguments (Command_Line (I + 1              .. Command_Line'Last));
+         begin
+            return Result : Command
+            do
+               Define (Result, Command_Line);
+               --  Result.Name       := +(Name);
+               --  Result.Arguments  := To_String_Vector (Arguments);
+               --  Result.Copy_Count := new Count' (1);
+            end return;
+         end;
+      end to_Command;
+
+
+      function To_Commands (Pipeline : in String) return Command_Array
+      is
+         use Ada.Strings.Fixed;
+
+         Cursor : Positive := Pipeline'First;
+         First,
+         Last   : Positive;
+         Count  : Natural := 0;
+
+         Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
+
+         All_Commands : String_Array (1 .. Max_Commands_In_Pipeline);
+      begin
+         loop
+            Find_Token (Source => Pipeline,
+                        Set    => Ada.Strings.Maps.To_Set ('|'),
+                        From   => Cursor,
+                        Test   => Ada.Strings.Outside,
+                        First  => First,
+                        Last   => Last);
+            declare
+               Full_Command : constant String := Trim (Pipeline (First .. Last),
+                                                       Ada.Strings.Both);
+            begin
+               Count                :=  Count + 1;
+               All_Commands (Count) := +Full_Command;
+            end;
+
+            exit when Last = Pipeline'Last;
+
+            Cursor := Last + 1;
+         end loop;
+
+         return Result : Command_Array (1 .. Count)
+         do
+            for i in 1 .. Count
+            loop
+               Define ( Result (i),
+                       +All_Commands (i));
+            end loop;
+         end return;
+      end To_Commands;
+
+   end Forge;
+
+
+
+   --- Start
+   --
+
+   overriding
+   procedure Start (The_Command : in out Command;
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := False)
+   is
+   begin
+      if Input /= No_Data
+      then
+         The_Command.Input_Pipe := To_Pipe;
+         Write_To (The_Command.Input_Pipe, Input);
+      end if;
+
+      if The_Command.Output_Pipe = Null_Pipe
+      then
+         The_Command.Owns_Output_Pipe := True;
+         The_Command.Output_Pipe      := To_Pipe (Blocking => False);
+      end if;
+
+      if The_Command.Error_Pipe = Null_Pipe
+      then
+         The_Command. Error_Pipe := To_Pipe (Blocking => False);
+      end if;
+
+      The_Command.Process := Start (Program   => +The_Command.Name,
+                                    Arguments =>  To_String_Array (The_Command.Arguments),
+                                    Input     =>  The_Command.Input_Pipe,
+                                    Output    =>  The_Command.Output_Pipe,
+                                    Errors    =>  The_Command.Error_Pipe,
+                                    Pipeline  =>  Pipeline);
+   end Start;
+
+
+
+   procedure Start (Commands : in out Command_Array;
+                    Input    : in     Data    := No_Data;
+                    Pipeline : in     Boolean := True)
+   is
+   begin
+      if not Pipeline
+      then
+         for Each of Commands
+         loop
+            Start (Each, Input);
+         end loop;
+
+         return;
+      end if;
+
+      --  Connect (Commands);
+
+      for i in Commands'Range
+      loop
+         if i = Commands'First
+         then
+            Start (Commands (i),
+                   Input,
+                   Pipeline => True);
+         else
+            Start (Commands (i),
+                   Pipeline => True);
+         end if;
+
+         -- Since we are making a pipeline, we need to close the write ends of
+         -- the Output & Errors pipes ourselves.
+         --
+         --  if i /= Commands'First
+         --  then
+         --     Close_Pipe_Write_Ends (Commands (i - 1));    -- Close ends for the prior command.
+         --  end if;
+
+      end loop;
+
+      --  Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+   end Start;
+
+
+
+   --- Run
+   --
+
    overriding
    procedure Run (The_Command : in out Command;
                   Input       : in     Data    := No_Data;
@@ -263,6 +428,73 @@ is
       Run (The_Command, Input, Raise_Error);
       return Results_Of (The_Command);
    end Run;
+
+
+
+   procedure Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False)
+   is
+      Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
+      i            : Positive     := 1;
+   begin
+      Last_Command.Output_Pipe := To_Pipe;
+
+      Start (The_Pipeline, Input);
+
+      loop
+         Gather_Results (Last_Command);            -- Gather on-going results.
+
+         if Has_Terminated (The_Pipeline (i).Process)
+         then
+            if Normal_Exit (The_Pipeline (i).Process)
+            then
+               i := i + 1;
+
+               if i > The_Pipeline'Last
+               then
+                  Gather_Results (Last_Command);   -- Gather any final results.
+                  exit;
+               end if;
+
+            else
+               declare
+                  Error : constant String :=   "Pipeline command" & Integer'Image (i)
+                                             & " '" & (+The_Pipeline (i).Name) & "' failed.";
+               begin
+                  -- Stop the pipeline.
+                  --
+                  while i <= The_Pipeline'Last
+                  loop
+                     Stop (The_Pipeline (i));
+                     i := i + 1;
+                  end loop;
+
+                  if Raise_Error
+                  then
+                     raise Command_Error with Error;
+                  else
+                     exit;
+                  end if;
+               end;
+            end if;
+         end if;
+      end loop;
+   end Run;
+
+
+   function Run (The_Pipeline : in out Command_Array;
+                 Input        : in     Data    := No_Data;
+                 Raise_Error  : in     Boolean := False) return Command_Results
+   is
+      Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
+   begin
+      Run (The_Pipeline, Input, Raise_Error);
+
+      return Results_Of (Last_Command);
+   end Run;
+
+
 
 
 

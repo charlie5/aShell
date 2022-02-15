@@ -6,8 +6,33 @@ package Shell.Commands.Safe
 -- in a folder on the users PATH (such as /usr/bin).
 --
 is
-   type Command is new Commands.Command with private;
+   type Command       is new Commands.Command with private;
+   type Command_Array is array (Positive range <>) of Command;
 
+
+
+   package Forge
+   is
+      function To_Command  (Command_Line  : in String) return Command;           -- An example 'Command_Line' is "ps -A".
+      function To_Commands (Pipeline      : in String) return Command_Array;     -- An example 'Pipeline' is "ps -A | grep bash | wc".
+
+      function "+"         (Command_Line  : in String) return Command       renames To_Command;
+      function "+"         (Pipeline      : in String) return Command_Array renames To_Commands;
+   end Forge;
+
+
+
+   --- The Start subprograms return before the process completes.
+   --
+
+   overriding
+   procedure Start (The_Command : in out Command;
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := False);
+
+   procedure Start (Commands    : in out Command_Array;
+                    Input       : in     Data    := No_Data;
+                    Pipeline    : in     Boolean := True);
 
 
    --- Run - Block until process completes.
@@ -22,6 +47,15 @@ is
    function  Run (The_Command   : in out Command;
                   Input         : in     Data    := No_Data;
                   Raise_Error   : in     Boolean := False) return Command_Results;
+
+
+   procedure Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False);
+
+   function  Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False) return Command_Results;
 
 
    overriding
