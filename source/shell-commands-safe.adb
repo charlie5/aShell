@@ -58,6 +58,13 @@ is
          null;
       end Wait_Til_Done;
 
+
+      function Is_Done return Boolean
+      is
+      begin
+         return Done;
+      end Is_Done;
+
    end Safe_Client_Outputs;
 
 
@@ -504,6 +511,15 @@ is
    begin
       The_Command.Safe_Outputs.Wait_Til_Done;
    end Wait_On;
+
+
+
+   overriding
+   function Has_Terminated (The_Command : in out Command) return Boolean
+   is
+   begin
+      return The_Command.Safe_Outputs.Is_Done;
+   end Has_Terminated;
 
 
 

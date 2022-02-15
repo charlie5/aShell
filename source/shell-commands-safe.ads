@@ -61,6 +61,8 @@ is
    overriding
    procedure Wait_On        (The_Command : in out Command);
 
+   overriding
+   function  Has_Terminated (The_Command : in out Command) return Boolean;
 
 
    procedure Stop_Spawn_Client;
@@ -88,6 +90,7 @@ private
       procedure Set_Done (Normal_Exit : in   Boolean);
 
       entry     Wait_Til_Done;
+      function        Is_Done return Boolean;
 
    private
       All_Output : Data_Vector;
