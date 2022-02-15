@@ -450,7 +450,7 @@ is
    begin
       if not Status_Available (Process.Status)
       then
-         return False;
+         return False;     -- TODO: Should this raise an exception ?
       end if;
 
       if Exit_Status_Of (Process.Status) = POSIX.Process_Primitives.Normal_Exit
