@@ -64,6 +64,10 @@ is
    overriding
    function  Has_Terminated (The_Command : in out Command) return Boolean;
 
+   overriding
+   function  Normal_Exit    (The_Command : in     Command) return Boolean;
+
+
 
    procedure Stop_Spawn_Client;
    --
@@ -90,7 +94,8 @@ private
       procedure Set_Done (Normal_Exit : in   Boolean);
 
       entry     Wait_Til_Done;
-      function        Is_Done return Boolean;
+      function  Is_Done     return Boolean;
+      function  Normal_Exit return Boolean;
 
    private
       All_Output : Data_Vector;

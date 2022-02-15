@@ -175,10 +175,10 @@ private
 
 
    package Data_Holders is new Ada.Containers.Indefinite_Holders (Element_Type => Data);
-   subtype Data_Holder  is Data_Holders.Holder;
+   subtype Data_Holder  is     Data_Holders.Holder;
 
 
-   type Server_Action_Kind is (Nil, New_Command, Stop);
+   type Server_Action_Kind is (Nil, New_Command, Kill, Stop);
 
    type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
@@ -190,7 +190,7 @@ private
             Command_Line  : Unbounded_String;
             Command_Input : Data_Holder;
 
-         when Nil | Stop =>
+         when Nil | Kill | Stop =>
             null;
          end case;
       end record;

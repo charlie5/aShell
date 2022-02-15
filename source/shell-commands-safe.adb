@@ -65,6 +65,18 @@ is
          return Done;
       end Is_Done;
 
+
+      function Normal_Exit return Boolean
+      is
+      begin
+         if Done
+         then
+            return Exit_Is_Normal;
+         else
+            raise Process_Error with "Process has not terminated.";
+         end if;
+      end Normal_Exit;
+
    end Safe_Client_Outputs;
 
 
@@ -520,6 +532,15 @@ is
    begin
       return The_Command.Safe_Outputs.Is_Done;
    end Has_Terminated;
+
+
+
+   overriding
+   function Normal_Exit (The_Command : in Command) return Boolean
+   is
+   begin
+      return The_Command.Safe_Outputs.Normal_Exit;
+   end Normal_Exit;
 
 
 
