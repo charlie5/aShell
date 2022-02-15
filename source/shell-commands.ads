@@ -105,10 +105,12 @@ is
    function  Has_Terminated (The_Command : in out Command) return Boolean;
    function  Normal_Exit    (The_Command : in     Command) return Boolean;
 
-   procedure Kill      (The_Command : in Command);
-   procedure Interrupt (The_Command : in Command);
-   procedure Pause     (The_Command : in Command);
-   procedure Resume    (The_Command : in Command);
+   procedure Kill      (The_Command : in     Command);
+   procedure Interrupt (The_Command : in     Command);
+   procedure Pause     (The_Command : in out Command);
+   procedure Resume    (The_Command : in out Command);
+
+   function  Is_Paused (The_Command : in     Command) return Boolean;
 
 
 
@@ -121,25 +123,26 @@ private
    package Data_Vectors is new Ada.Containers.Indefinite_Vectors (Data_Index, Data);
    subtype Data_Vector  is Data_Vectors.Vector;
 
-   type Command is new Ada.Finalization.Controlled
-     with
-         record
-            Name        : Unbounded_String;
-            Arguments   : String_Vector;
+   type Command is new Ada.Finalization.Controlled with
+      record
+         Name        : Unbounded_String;
+         Arguments   : String_Vector;
 
-            Input_Pipe  : Pipe := Standard_Input;
-            Output_Pipe : Pipe := Null_Pipe;
-            Error_Pipe  : Pipe := Null_Pipe;
+         Input_Pipe  : Pipe := Standard_Input;
+         Output_Pipe : Pipe := Null_Pipe;
+         Error_Pipe  : Pipe := Null_Pipe;
 
-            Owns_Output_Pipe : Boolean := False;
-            Owns_Input_Pipe  : Boolean := False;
+         Owns_Output_Pipe : Boolean := False;
+         Owns_Input_Pipe  : Boolean := False;
 
-            Process     : aliased Shell.Process;
-            Copy_Count  :         Count_Access;
+         Process     : aliased Shell.Process;
+         Copy_Count  :         Count_Access;
 
-            Output      : Data_Vector;
-            Errors      : Data_Vector;
-         end record;
+         Output      : Data_Vector;
+         Errors      : Data_Vector;
+
+         Paused      : Boolean := False;
+      end record;
 
    overriding
    procedure Adjust   (The_Command : in out Command);
@@ -178,7 +181,7 @@ private
    subtype Data_Holder  is     Data_Holders.Holder;
 
 
-   type Server_Action_Kind is (Nil, New_Command, Kill, Stop);
+   type Server_Action_Kind is (Nil, New_Command, Kill, Interrupt, Pause, Resume, Stop);
 
    type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
@@ -190,7 +193,7 @@ private
             Command_Line  : Unbounded_String;
             Command_Input : Data_Holder;
 
-         when Nil | Kill | Stop =>
+         when Nil | Kill | Interrupt | Pause | Resume | Stop =>
             null;
          end case;
       end record;

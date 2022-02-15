@@ -69,16 +69,16 @@ is
 
 
    overriding
-   procedure Kill      (The_Command : in Command);
+   procedure Kill      (The_Command : in     Command);
 
    overriding
-   procedure Interrupt (The_Command : in Command);
+   procedure Interrupt (The_Command : in     Command);
 
    overriding
-   procedure Pause     (The_Command : in Command);
+   procedure Pause     (The_Command : in out Command);
 
    overriding
-   procedure Resume    (The_Command : in Command);
+   procedure Resume    (The_Command : in out Command);
 
 
    procedure Stop_Spawn_Client;

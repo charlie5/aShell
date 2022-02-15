@@ -705,18 +705,28 @@ is
    end Interrupt;
 
 
-   procedure Pause (The_Command : in Command)
+   procedure Pause (The_Command : in out Command)
    is
    begin
       Pause (The_Command.Process);
+      The_Command.Paused := True;
    end Pause;
 
 
-   procedure Resume (The_Command : in Command)
+   procedure Resume (The_Command : in out Command)
    is
    begin
       Resume (The_Command.Process);
+      The_Command.Paused := False;
    end Resume;
+
+
+   function Is_Paused (The_Command : in Command) return Boolean
+   is
+   begin
+      return The_Command.Paused;
+   end Is_Paused;
+
 
 
    --- Controlled

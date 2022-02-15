@@ -91,7 +91,10 @@ is
                   Input       : in Data   := No_Data;
                   Outputs     : in Safe_Client_Outputs_Access);
 
-      entry Kill (The_Command : in Command);
+      entry Kill      (The_Command : in Command);
+      entry Interrupt (The_Command : in Command);
+      entry Pause     (The_Command : in Command);
+      entry Resume    (The_Command : in Command);
 
       entry Stop;
    end Spawn_Client;
@@ -115,7 +118,10 @@ is
       Have_New_Command : Boolean := False;
       Command_Input    : Data_Holder;
 
-      Killing_Command  : Command_Id := Null_Id;
+      Killing_Command      : Command_Id := Null_Id;
+      Interrupting_Command : Command_Id := Null_Id;
+      Pausing_Command      : Command_Id := Null_Id;
+      Resuming_Command     : Command_Id := Null_Id;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
@@ -167,6 +173,30 @@ is
                Killing_Command := The_Command.Id;
             end Kill;
          or
+            accept Interrupt (The_Command : in Command)
+            do
+               Log ("");
+               Log ("Client: Interrupt command.");
+
+               Interrupting_Command := The_Command.Id;
+            end Interrupt;
+         or
+            accept Pause (The_Command : in Command)
+            do
+               Log ("");
+               Log ("Client: Pause command.");
+
+               Pausing_Command := The_Command.Id;
+            end Pause;
+         or
+            accept Resume (The_Command : in Command)
+            do
+               Log ("");
+               Log ("Client: Resume command.");
+
+               Resuming_Command := The_Command.Id;
+            end Resume;
+         or
             accept Stop
             do
                Log ("Client: Stopping.");
@@ -206,7 +236,36 @@ is
             Server_Action'Output (Server_Input_Stream'Access,
                                   Server_Action' (Kill,
                                                   Killing_Command));
+            Killing_Command := Null_Id;
+
+         elsif Interrupting_Command /= Null_Id
+         then
+            Log ("Sending 'Interrupt' action for command" & Interrupting_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (Interrupt,
+                                                  Interrupting_Command));
+            Interrupting_Command := Null_Id;
+
+         elsif Pausing_Command /= Null_Id
+         then
+            Log ("Sending 'Pause' action for command" & Pausing_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (Pause,
+                                                  Pausing_Command));
+            Pausing_Command := Null_Id;
+
+         elsif Resuming_Command /= Null_Id
+         then
+            Log ("Sending 'Resume' action for command" & Resuming_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (Resume,
+                                                  Resuming_Command));
+            Resuming_Command := Null_Id;
          end if;
+
 
          if not Is_Empty (Server_Out_Pipe, Timeout => 0.06)
          then
@@ -578,25 +637,27 @@ is
    procedure Interrupt (The_Command : in Command)
    is
    begin
-      Spawn_Client.Kill (The_Command);
+      Spawn_Client.Interrupt (The_Command);
    end Interrupt;
 
 
 
    overriding
-   procedure Pause (The_Command : in Command)
+   procedure Pause (The_Command : in out Command)
    is
    begin
-      Spawn_Client.Kill (The_Command);
+      Spawn_Client.Pause (The_Command);
+      The_Command.Paused := True;
    end Pause;
 
 
 
    overriding
-   procedure Resume (The_Command : in Command)
+   procedure Resume (The_Command : in out Command)
    is
    begin
-      Spawn_Client.Kill (The_Command);
+      Spawn_Client.Resume (The_Command);
+      The_Command.Paused := False;
    end Resume;
 
 

@@ -130,6 +130,36 @@ begin
                         Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
                      end;
 
+                  when Interrupt =>
+                     Log ("Interrupt action.");
+
+                     declare
+                        The_Command : constant Command := Command_Map.Element (Action.Id);
+                     begin
+                        The_Command.Interrupt;
+                        Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                     end;
+
+                  when Pause =>
+                     Log ("Pause action.");
+
+                     declare
+                        The_Command : Command := Command_Map.Element (Action.Id);
+                     begin
+                        The_Command.Pause;
+                        Log ("Paused Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                     end;
+
+                  when Resume =>
+                     Log ("Resume action.");
+
+                     declare
+                        The_Command : Command := Command_Map.Element (Action.Id);
+                     begin
+                        The_Command.Resume;
+                        Log ("Resumes Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                     end;
+
                   when Stop =>
                      Log ("Stop action.");
                      Stopping := True;
