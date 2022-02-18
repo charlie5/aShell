@@ -396,6 +396,7 @@ is
    is
    begin
       Start (The_Command, Input);
+
       loop
          Gather_Results (The_Command);   -- Gather on-going results.
          exit when Has_Terminated (The_Command.Process);
@@ -600,7 +601,7 @@ is
    -- Command Results
    --
 
-   function Results_Of (The_Command : in out Command) return Command_Results
+   function Results_Of (The_Command : in out Command'Class) return Command_Results
    is
       use Data_Vectors;
 

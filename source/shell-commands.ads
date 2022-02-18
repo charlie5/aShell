@@ -58,7 +58,7 @@ is
    type Command_Results (Output_Size : Data_Offset;
                          Error_Size  : Data_Offset) is private;
 
-   function  Results_Of (The_Command : in out Command) return Command_Results;
+   function  Results_Of (The_Command : in out Command'Class) return Command_Results;
 
    function  Output_Of  (The_Results : in     Command_Results) return Data;
    function  Errors_Of  (The_Results : in     Command_Results) return Data;
@@ -109,7 +109,6 @@ is
    procedure Interrupt (The_Command : in     Command);
    procedure Pause     (The_Command : in out Command);
    procedure Resume    (The_Command : in out Command);
-
    function  Is_Paused (The_Command : in     Command) return Boolean;
 
 
