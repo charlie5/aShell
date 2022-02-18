@@ -39,6 +39,9 @@ is
          Output      := All_Output;
          Errors      := All_Errors;
          Normal_Exit := Exit_Is_Normal;
+
+         All_Output.Clear;
+         All_Errors.Clear;
       end Get_Outputs;
 
 
