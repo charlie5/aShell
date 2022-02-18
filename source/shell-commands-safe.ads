@@ -102,7 +102,7 @@ private
       procedure Add_Outputs (Output : in     Shell.Data;
                              Errors : in     Shell.Data);
 
-      entry     Get_Outputs (Output      :    out Data_Vector;
+      procedure Get_Outputs (Output      :    out Data_Vector;
                              Errors      :    out Data_Vector;
                              Normal_Exit :    out Boolean);
 

@@ -31,10 +31,9 @@ is
       end Add_Outputs;
 
 
-      entry Get_Outputs (Output      : out Data_Vector;
-                         Errors      : out Data_Vector;
-                         Normal_Exit : out Boolean)
-        when Done
+      procedure Get_Outputs (Output      : out Data_Vector;
+                             Errors      : out Data_Vector;
+                             Normal_Exit : out Boolean)
       is
       begin
          Output      := All_Output;
@@ -507,6 +506,7 @@ is
                         Input,
                         The_Command.Safe_Outputs);
 
+      The_Command.Safe_Outputs.Wait_Til_Done;
       The_Command.Safe_Outputs.Get_Outputs (Output,
                                             Errors,
                                             Normal_Exit);
