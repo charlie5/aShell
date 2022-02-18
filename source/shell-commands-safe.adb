@@ -402,6 +402,15 @@ is
 
 
 
+   overriding
+   function Failed (The_Command : in Command) return Boolean
+   is
+   begin
+      return The_Command.Safe_Outputs.Normal_Exit;
+   end Failed;
+
+
+
    --- Start
    --
 

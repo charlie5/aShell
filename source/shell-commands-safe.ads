@@ -21,6 +21,9 @@ is
    end Forge;
 
 
+   overriding
+   function  Failed     (The_Command : in     Command) return Boolean;
+
 
    --- The Start subprograms return before the process completes.
    --
