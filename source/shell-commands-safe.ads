@@ -137,6 +137,9 @@ private
 
 
    overriding
+   procedure Gather_Results (The_Command : in out Command);
+
+   overriding
    procedure Finalize (The_Command : in out Command);
 
 end Shell.Commands.Safe;

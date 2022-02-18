@@ -493,6 +493,31 @@ is
 
 
 
+   overriding
+   procedure Gather_Results (The_Command : in out Command)
+   is
+      use type Ada.Containers.Count_Type;
+
+      The_Output : Data_Vector;
+      The_Errors : Data_Vector;
+      Unused     : Boolean;
+
+   begin
+      The_Command.Safe_Outputs.Get_Outputs (The_Output, The_Errors, Unused);
+
+      if The_Output.Length /= 0
+      then
+         The_Command.Output.Append (The_Output);
+      end if;
+
+      if The_Errors.Length /= 0
+      then
+         The_Command.Errors.Append (The_Errors);
+      end if;
+   end Gather_Results;
+
+
+
    --- Run
    --
 
