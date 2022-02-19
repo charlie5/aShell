@@ -355,30 +355,11 @@ is
 
       function To_Command (Command_Line : in String) return Command
       is
-         --  use Ada.Strings.Fixed;
-         --  I : constant Natural := Index (Command_Line, " ");
       begin
-         --  if I = 0
-         --  then
-         --     return Result : Command
-         --     do
-         --        Result.Name       := +Command_Line;
-         --        Result.Copy_Count := new Count' (1);
-         --     end return;
-         --  end if;
-
-         declare
-            --  Name      : constant String       :=               Command_Line (Command_Line'First .. I - 1);
-            --  Arguments : constant String_Array := To_Arguments (Command_Line (I + 1              .. Command_Line'Last));
-         begin
-            return Result : Command
-            do
-               Define (Result, Command_Line);
-               --  Result.Name       := +(Name);
-               --  Result.Arguments  := To_String_Vector (Arguments);
-               --  Result.Copy_Count := new Count' (1);
-            end return;
-         end;
+         return Result : Command
+         do
+            Define (Result, Command_Line);
+         end return;
       end to_Command;
 
 
