@@ -164,7 +164,11 @@ private
 
 
 
-   function To_String_Array (Strings : String_Vector) return String_Array;
+   function To_String_Array (Strings  : in String_Vector) return String_Array;
+   function To_Strings      (Pipeline : in String)        return String_Array;
+   --
+   -- Split a pipeline into separate command strings.
+
 
 
    -----------------------

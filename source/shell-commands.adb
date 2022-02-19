@@ -92,6 +92,44 @@ is
 
 
 
+   function To_Strings (Pipeline : in String) return String_Array
+   is
+      use Ada.Strings.Fixed;
+
+      Cursor : Positive := Pipeline'First;
+      First,
+      Last   : Positive;
+      Count  : Natural := 0;
+
+      Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
+
+      Result : String_Array (1 .. Max_Commands_In_Pipeline);
+   begin
+      loop
+         Find_Token (Source => Pipeline,
+                     Set    => Ada.Strings.Maps.To_Set ('|'),
+                     From   => Cursor,
+                     Test   => Ada.Strings.Outside,
+                     First  => First,
+                     Last   => Last);
+         declare
+            Full_Command : constant String := Trim (Pipeline (First .. Last),
+                                                    Ada.Strings.Both);
+         begin
+            Count          :=  Count + 1;
+            Result (Count) := +Full_Command;
+         end;
+
+         exit when Last = Pipeline'Last;
+
+         Cursor := Last + 1;
+      end loop;
+
+      return Result (1 .. Count);
+   end To_Strings;
+
+
+
    procedure Define (The_Command : out Command;   Command_Line : in String)
    is
       use Ada.Strings.Fixed;
@@ -132,40 +170,11 @@ is
 
       function To_Commands (Pipeline : in String) return Command_Array
       is
-         use Ada.Strings.Fixed;
-
-         Cursor : Positive := Pipeline'First;
-         First,
-         Last   : Positive;
-         Count  : Natural := 0;
-
-         Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
-
-         All_Commands : String_Array (1 .. Max_Commands_In_Pipeline);
+         All_Commands : constant String_Array := To_Strings (Pipeline);
       begin
-         loop
-            Find_Token (Source => Pipeline,
-                        Set    => Ada.Strings.Maps.To_Set ('|'),
-                        From   => Cursor,
-                        Test   => Ada.Strings.Outside,
-                        First  => First,
-                        Last   => Last);
-            declare
-               Full_Command : constant String := Trim (Pipeline (First .. Last),
-                                                       Ada.Strings.Both);
-            begin
-               Count                :=  Count + 1;
-               All_Commands (Count) := +Full_Command;
-            end;
-
-            exit when Last = Pipeline'Last;
-
-            Cursor := Last + 1;
-         end loop;
-
-         return Result : Command_Array (1 .. Count)
+         return Result : Command_Array (1 .. All_Commands'Length)
          do
-            for i in 1 .. Count
+            for i in 1 .. All_Commands'Length
             loop
                Define ( Result (i),
                        +All_Commands (i));
