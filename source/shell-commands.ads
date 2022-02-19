@@ -186,7 +186,7 @@ private
    subtype Data_Holder  is     Data_Holders.Holder;
 
 
-   type Server_Action_Kind is (Nil, New_Command, New_Input, Kill, Interrupt, Pause, Resume, Stop);
+   type Server_Action_Kind is (Nil, New_Command, New_Pipeline, New_Input, Kill, Interrupt, Pause, Resume, Stop);
 
    type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
@@ -197,6 +197,10 @@ private
          when New_Command =>
             Command_Line  : Unbounded_String;
             Command_Input : Data_Holder;
+
+         when New_Pipeline =>
+            Pipeline       : Unbounded_String;
+            Pipeline_Input : Data_Holder;
 
          when New_Input =>
             Data : Data_Holder;

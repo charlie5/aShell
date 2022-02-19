@@ -89,9 +89,12 @@ is
 
    task Spawn_Client
    is
-      entry Add  (The_Command : in out Command;
-                  Input       : in     Data   := No_Data;
-                  Outputs     : in     Safe_Client_Outputs_Access);
+      entry Add  (The_Command  : in out Command;
+                  Input        : in     Data   := No_Data;
+                  Outputs      : in     Safe_Client_Outputs_Access);
+
+      entry Add  (The_Pipeline : in out Command_Array;
+                  Input        : in     Data := No_Data);
 
       entry Send (The_Command : in Command;
                   Input       : in Data);
@@ -123,6 +126,11 @@ is
       Have_New_Command : Boolean := False;
       Command_Input    : Data_Holder;
       New_Input_Data   : Data_Holder;
+
+      Pipeline          : Unbounded_String;
+      Have_New_Pipeline : Boolean := False;
+      Pipeline_Input    : Data_Holder;
+      Pipeline_First_Id : Command_Id;
 
       Sending_Input_To_Command : Command_Id := Null_Id;
       Killing_Command          : Command_Id := Null_Id;
@@ -171,6 +179,46 @@ is
                Command_Input.Replace_Element (Input);
                Command_Outputs_Map.Insert (The_Command.Id,
                                            Outputs);
+            end Add;
+         or
+            accept Add (The_Pipeline : in out Command_Array;
+                        Input        : in     Data := No_Data)
+            do
+               Log ("");
+               Log ("Client: Accepting new pipeline.");
+
+               Have_New_Pipeline := True;
+
+               for i in The_Pipeline'Range
+               loop
+                  declare
+                     The_Command : Command renames The_Pipeline (i);
+                  begin
+                     The_Command.Id := Next_Id;
+                     Next_Id        := Next_Id + 1;
+
+                     if i = 1
+                     then
+                        Pipeline_First_Id := The_Command.Id;
+
+                        Set_Unbounded_String (Pipeline,
+                                              Name (The_Command)
+                                              & " "
+                                              & Arguments (The_Command));
+                     else
+                        Append (Pipeline,
+                                " | "
+                                & Name (The_Command)
+                                & " "
+                                & Arguments (The_Command));
+                     end if;
+
+                     Command_Outputs_Map.Insert (The_Command.Id,
+                                                 The_Command.Safe_Outputs);
+                  end;
+               end loop;
+
+               Pipeline_Input.Replace_Element (Input);
             end Add;
          or
             accept Send (The_Command : in Command;
@@ -243,9 +291,19 @@ is
                                                   Next_Id,
                                                   Command_Line,
                                                   Command_Input));
-
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
+
+         elsif Have_New_Pipeline
+         then
+            Log ("New Pipeline: '" & (+Pipeline) & "'");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (New_Pipeline,
+                                                  Pipeline_First_Id,
+                                                  Pipeline,
+                                                  Pipeline_Input));
+            Have_New_Pipeline := False;
 
          elsif Sending_Input_To_Command /= Null_Id
          then
@@ -454,31 +512,7 @@ is
          return;
       end if;
 
-      --  Connect (Commands);
-
-      for i in Commands'Range
-      loop
-         if i = Commands'First
-         then
-            Start (Commands (i),
-                   Input,
-                   Pipeline => True);
-         else
-            Start (Commands (i),
-                   Pipeline => True);
-         end if;
-
-         -- Since we are making a pipeline, we need to close the write ends of
-         -- the Output & Errors pipes ourselves.
-         --
-         --  if i /= Commands'First
-         --  then
-         --     Close_Pipe_Write_Ends (Commands (i - 1));    -- Close ends for the prior command.
-         --  end if;
-
-      end loop;
-
-      --  Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+      Spawn_Client.Add (Commands, Input);
    end Start;
 
 
