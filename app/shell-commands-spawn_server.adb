@@ -120,6 +120,25 @@ begin
                         Command_Map.Insert (Action.Id, The_Command);
                      end;
 
+                  when New_Pipeline =>
+                     Log ("New_Pipeline action.");
+
+                     declare
+                        The_Commands : Command_Array := Forge.To_Commands (+Action.Pipeline);
+                     begin
+                        Start (The_Commands,
+                               Input    => Action.Pipeline_Input.Element,
+                               Pipeline => True);
+
+                        Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
+
+                        for Each of The_Commands
+                        loop
+                           Command_Map.Insert (Action.Id, Each);
+                           Action.Id := Action.Id + 1;
+                        end loop;
+                     end;
+
                   when New_Input =>
                      Log ("New_Input action.");
 
