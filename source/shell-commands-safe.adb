@@ -93,6 +93,9 @@ is
                   Input       : in Data   := No_Data;
                   Outputs     : in Safe_Client_Outputs_Access);
 
+      entry Send (The_Command : in Command;
+                  Input       : in Data);
+
       entry Kill      (The_Command : in Command);
       entry Interrupt (The_Command : in Command);
       entry Pause     (The_Command : in Command);
@@ -119,11 +122,13 @@ is
       Command_Line     : Unbounded_String;
       Have_New_Command : Boolean := False;
       Command_Input    : Data_Holder;
+      New_Input_Data   : Data_Holder;
 
-      Killing_Command      : Command_Id := Null_Id;
-      Interrupting_Command : Command_Id := Null_Id;
-      Pausing_Command      : Command_Id := Null_Id;
-      Resuming_Command     : Command_Id := Null_Id;
+      Sending_Input_To_Command : Command_Id := Null_Id;
+      Killing_Command          : Command_Id := Null_Id;
+      Interrupting_Command     : Command_Id := Null_Id;
+      Pausing_Command          : Command_Id := Null_Id;
+      Resuming_Command         : Command_Id := Null_Id;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
@@ -166,6 +171,16 @@ is
                Command_Outputs_Map.Insert (Next_Id,
                                            Outputs);
             end Add;
+         or
+            accept Send (The_Command : in Command;
+                         Input       : in Data)
+            do
+               Log ("");
+               Log ("Client: Sending data to command.");
+
+               Sending_Input_To_Command := The_Command.Id;
+               New_Input_Data.Replace_Element (Input);
+            end Send;
          or
             accept Kill (The_Command : in Command)
             do
@@ -230,6 +245,16 @@ is
 
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
+
+         elsif Sending_Input_To_Command /= Null_Id
+         then
+            Log ("Sending 'New_Input' action for command" & Sending_Input_To_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (New_Input,
+                                                  Sending_Input_To_Command,
+                                                  New_Input_Data));
+            Sending_Input_To_Command := Null_Id;
 
          elsif Killing_Command /= Null_Id
          then
@@ -490,6 +515,16 @@ is
 
       --  Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
    end Start;
+
+
+
+   overriding
+   procedure Send (To    : in Command;
+                   Input : in Data)
+   is
+   begin
+      Spawn_Client.Send (To, Input);
+   end Send;
 
 
 

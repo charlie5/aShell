@@ -37,6 +37,10 @@ is
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := True);
 
+   overriding
+   procedure Send  (To    : in Command;
+                    Input : in Data);
+
 
    --- Run - Block until process completes.
    --

@@ -120,6 +120,16 @@ begin
                         Command_Map.Insert (Action.Id, The_Command);
                      end;
 
+                  when New_Input =>
+                     Log ("New_Input action.");
+
+                     declare
+                        The_Command : constant Command := Command_Map.Element (Action.Id);
+                     begin
+                        The_Command.Send (Action.Data.Element);
+                        Log ("New Input sent to Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                     end;
+
                   when Kill =>
                      Log ("Kill action.");
 
