@@ -447,29 +447,12 @@ is
                     Pipeline    : in     Boolean := False)
    is
    begin
-      if Input /= No_Data
-      then
-         The_Command.Input_Pipe := To_Pipe;
-         Write_To (The_Command.Input_Pipe, Input);
-      end if;
-
-      if The_Command.Output_Pipe = Null_Pipe
-      then
-         The_Command.Owns_Output_Pipe := True;
-         The_Command.Output_Pipe      := To_Pipe (Blocking => False);
-      end if;
-
-      if The_Command.Error_Pipe = Null_Pipe
-      then
-         The_Command. Error_Pipe := To_Pipe (Blocking => False);
-      end if;
-
-      The_Command.Process := Start (Program   => +The_Command.Name,
-                                    Arguments =>  To_String_Array (The_Command.Arguments),
-                                    Input     =>  The_Command.Input_Pipe,
-                                    Output    =>  The_Command.Output_Pipe,
-                                    Errors    =>  The_Command.Error_Pipe,
-                                    Pipeline  =>  Pipeline);
+      Spawn_Client.Add (The_Command,
+                        Input,
+                        The_Command.Safe_Outputs);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. The Spawn client has shut down.";
    end Start;
 
 
