@@ -364,6 +364,15 @@ is
    end Start;
 
 
+
+   procedure Send (To    : in Command;
+                   Input : in Data)
+   is
+   begin
+      Write_To (To.Input_Pipe, Input);
+   end Send;
+
+
    --- Run
    --
 

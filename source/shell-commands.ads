@@ -51,6 +51,8 @@ is
                     Input       : in     Data    := No_Data;
                     Pipeline    : in     Boolean := True);
 
+   procedure Send (To    : in Command;
+                   Input : in Data);
 
    --- Command Results
    --
