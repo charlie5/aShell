@@ -89,9 +89,9 @@ is
 
    task Spawn_Client
    is
-      entry Add  (The_Command : in Command;
-                  Input       : in Data   := No_Data;
-                  Outputs     : in Safe_Client_Outputs_Access);
+      entry Add  (The_Command : in out Command;
+                  Input       : in     Data   := No_Data;
+                  Outputs     : in     Safe_Client_Outputs_Access);
 
       entry Send (The_Command : in Command;
                   Input       : in Data);
@@ -153,14 +153,15 @@ is
 
       loop
          select
-            accept Add (The_Command : in Command;
-                        Input       : in Data   := No_Data;
-                        Outputs     : in Safe_Client_Outputs_Access)
+            accept Add (The_Command : in out Command;
+                        Input       : in     Data   := No_Data;
+                        Outputs     : in     Safe_Client_Outputs_Access)
             do
                Log ("");
                Log ("Client: Accepting new command.");
 
                Have_New_Command := True;
+               The_Command.Id   := Next_Id;
 
                Set_Unbounded_String (Command_Line,
                                      Name (The_Command)
@@ -168,7 +169,7 @@ is
                                      & Arguments (The_Command));
 
                Command_Input.Replace_Element (Input);
-               Command_Outputs_Map.Insert (Next_Id,
+               Command_Outputs_Map.Insert (The_Command.Id,
                                            Outputs);
             end Add;
          or
