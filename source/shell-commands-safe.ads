@@ -61,6 +61,12 @@ is
                   Raise_Error  : in     Boolean := False) return Command_Results;
 
 
+   function  Failed       (The_Pipeline : in Command_Array) return Boolean;
+   function  Which_Failed (The_Pipeline : in Command_Array) return Natural;
+   --
+   -- Returns 0 if no command failed.
+
+
    overriding
    procedure Wait_On        (The_Command : in out Command);
 

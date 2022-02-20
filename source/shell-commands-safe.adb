@@ -653,6 +653,38 @@ is
 
 
 
+   function Failed (The_Pipeline : in Command_Array) return Boolean
+   is
+   begin
+      for Each of The_Pipeline
+      loop
+         if Each.Failed
+         then
+            return True;
+         end if;
+      end loop;
+
+      return False;
+   end Failed;
+
+
+
+   function Which_Failed (The_Pipeline : in Command_Array) return Natural
+   is
+   begin
+      for i in The_Pipeline'Range
+      loop
+         if not The_Pipeline (i).Normal_Exit
+         then
+            return i;
+         end if;
+      end loop;
+
+      return 0;
+   end Which_Failed;
+
+
+
    overriding
    procedure Wait_On (The_Command : in out Command)
    is
