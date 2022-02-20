@@ -36,8 +36,8 @@ is
    function  Name      (The_Command : in     Command) return String;
    function  Arguments (The_Command : in     Command) return String;
 
-   function  Process (The_Command : in out Command) return access Shell.Process;
-   function  Failed  (The_Command : in     Command) return Boolean;
+   function  Process (The_Command : in out Command)       return access Shell.Process;
+   function  Failed  (The_Command : in     Command'Class) return Boolean;
 
 
    --- The Start subprograms return before the process completes.

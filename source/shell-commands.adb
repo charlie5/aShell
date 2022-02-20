@@ -561,10 +561,10 @@ is
    end Stop;
 
 
-   function Failed (The_Command : in Command) return Boolean
+   function Failed (The_Command : in Command'Class) return Boolean
    is
    begin
-      return not Normal_Exit (The_Command.Process);
+      return not Normal_Exit (The_Command);
    end Failed;
 
 
