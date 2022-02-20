@@ -27,7 +27,6 @@ begin
          Safe.Run (The_Command);
 
          declare
-            use Shell.Commands.Safe;
             Output : constant String := +Output_Of (Results_Of (The_Command));
          begin
             Put_Line ("Output =>");
