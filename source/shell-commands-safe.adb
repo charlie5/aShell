@@ -2,8 +2,6 @@ with
      Ada.Unchecked_Conversion,
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
-     Ada.Strings.Fixed,
-     Ada.Strings.Maps,
      Ada.Text_IO,
      Ada.Exceptions;
 
