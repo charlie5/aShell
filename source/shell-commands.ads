@@ -144,6 +144,8 @@ private
          Errors      : Data_Vector;
 
          Paused      : Boolean := False;
+
+         Is_Within_A_Pipeline : Boolean := False;
       end record;
 
    overriding
@@ -187,7 +189,10 @@ private
    subtype Data_Holder  is     Data_Holders.Holder;
 
 
-   type Server_Action_Kind is (Nil, New_Command, New_Pipeline, New_Input, Kill, Interrupt, Pause, Resume, Stop);
+   type Server_Action_Kind is (Nil,
+                               New_Command, New_Pipeline, New_Input,
+                               Kill, Interrupt, Pause, Resume, Stop,
+                               Shutdown);
 
    type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
@@ -206,7 +211,7 @@ private
          when New_Input =>
             Data : Data_Holder;
 
-         when Nil | Kill | Interrupt | Pause | Resume | Stop =>
+         when Nil | Kill | Interrupt | Pause | Resume | Stop | Shutdown =>
             null;
          end case;
       end record;

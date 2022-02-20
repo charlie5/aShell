@@ -81,7 +81,7 @@ begin
                                                                     Equivalent_Keys =>  "=");
       Command_Map   :         Id_Maps_of_Command.Map;
       Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
-      Stopping      :         Boolean     := False;
+      Shutting_Down :         Boolean     := False;
    begin
       Log ("Starting Spawn Manager");
 
@@ -132,10 +132,15 @@ begin
 
                         Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
 
-                        for Each of The_Commands
+                        for i in The_Commands'Range
                         loop
-                           Command_Map.Insert (Action.Id, Each);
+                           Command_Map.Insert (Action.Id, The_Commands (1));
                            Action.Id := Action.Id + 1;
+
+                           if i /= The_Commands'Last
+                           then
+                              The_Commands (i).Is_Within_A_Pipeline := True;
+                           end if;
                         end loop;
                      end;
 
@@ -191,7 +196,17 @@ begin
 
                   when Stop =>
                      Log ("Stop action.");
-                     Stopping := True;
+
+                     declare
+                        The_Command : Command := Command_Map.Element (Action.Id);
+                     begin
+                        The_Command.Stop;
+                        Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                     end;
+
+                  when Shutdown =>
+                     Log ("Stop action.");
+                     Shutting_Down := True;
                end case;
             end;
 
@@ -215,17 +230,23 @@ begin
 
                      procedure Send_New_Results
                      is
-                        Output : constant Data := Output_Of (The_Command.Output_Pipe);
-                        Errors : constant Data := Output_Of (The_Command.Error_Pipe);
                      begin
-                        if not (    Output'Length = 0
-                                and Errors'Length = 0)
+                        if not The_Command.Is_Within_A_Pipeline
                         then
-                           Client_Action'Output (Output_Stream'Access,
-                                                 (New_Outputs,
-                                                  Id,
-                                                  To_Holder (Output),
-                                                  To_Holder (Errors)));
+                           declare
+                              Output : constant Data := Output_Of (The_Command.Output_Pipe);
+                              Errors : constant Data := Output_Of (The_Command.Error_Pipe);
+                           begin
+                              if not (    Output'Length = 0
+                                      and Errors'Length = 0)
+                              then
+                                 Client_Action'Output (Output_Stream'Access,
+                                                       (New_Outputs,
+                                                        Id,
+                                                        To_Holder (Output),
+                                                        To_Holder (Errors)));
+                              end if;
+                           end;
                         end if;
                      end Send_New_Results;
 
@@ -261,7 +282,7 @@ begin
             end;
 
 
-            exit when Stopping
+            exit when Shutting_Down
                   and Command_Map.Is_Empty;
 
             if Command_Map.Is_Empty

@@ -108,8 +108,9 @@ is
       entry Interrupt (The_Command : in Command);
       entry Pause     (The_Command : in Command);
       entry Resume    (The_Command : in Command);
+      entry Stop      (The_Command : in Command);
 
-      entry Stop;
+      entry Shutdown;
    end Spawn_Client;
 
 
@@ -142,12 +143,13 @@ is
       Interrupting_Command     : Command_Id := Null_Id;
       Pausing_Command          : Command_Id := Null_Id;
       Resuming_Command         : Command_Id := Null_Id;
+      Stopping_Command         : Command_Id := Null_Id;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
 
       Next_Id        : Command_Id := 1;
-      Stopping       : Boolean    := False;
+      Shutting_Down  : Boolean    := False;
       Server_Is_Done : Boolean    := False;
 
       Spawn_Server : Shell.Process with Unreferenced;
@@ -268,24 +270,32 @@ is
                Resuming_Command := The_Command.Id;
             end Resume;
          or
-            accept Stop
+            accept Stop (The_Command : in Command)
             do
-               Log ("Client: Stopping.");
-               Stopping := True;
+               Log ("");
+               Log ("Client: Stop command.");
+
+               Stopping_Command := The_Command.Id;
             end Stop;
+         or
+            accept Shutdown
+            do
+               Log ("Client: Shutting down.");
+               Shutting_Down := True;
+            end Shutdown;
          or
             delay 0.01;
          end select;
 
 
-         if Stopping
+         if Shutting_Down
          then
-            Log ("Client is stopping.");
+            Log ("Client is shutting down.");
             Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Stop,
+                                  Server_Action' (Shutdown,
                                                   Null_Id));
             Log ("Client asks server to stop.");
-            Stopping := False;
+            Shutting_Down := False;
 
          elsif Have_New_Command
          then
@@ -355,6 +365,15 @@ is
                                   Server_Action' (Resume,
                                                   Resuming_Command));
             Resuming_Command := Null_Id;
+
+         elsif Stopping_Command /= Null_Id
+         then
+            Log ("Sending 'Stop' action for command" & Stopping_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (Stop,
+                                                  Stopping_Command));
+            Stopping_Command := Null_Id;
          end if;
 
 
@@ -576,16 +595,14 @@ is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
       i            : Positive     := 1;
    begin
-      Last_Command.Output_Pipe := To_Pipe;
-
-      Start (The_Pipeline, Input);
+      Spawn_Client.Add (The_Pipeline, Input);
 
       loop
          Gather_Results (Last_Command);            -- Gather on-going results.
 
-         if Has_Terminated (The_Pipeline (i).Process)
+         if Has_Terminated (The_Pipeline (i))
          then
-            if Normal_Exit (The_Pipeline (i).Process)
+            if Normal_Exit (The_Pipeline (i))
             then
                i := i + 1;
 
@@ -604,7 +621,7 @@ is
                   --
                   while i <= The_Pipeline'Last
                   loop
-                     Stop (The_Pipeline (i));
+                     Spawn_Client.Stop (The_Pipeline (i));
                      i := i + 1;
                   end loop;
 
@@ -719,7 +736,7 @@ is
    procedure Stop_Spawn_Client
    is
    begin
-      Spawn_Client.Stop;
+      Spawn_Client.Shutdown;
    end Stop_Spawn_Client;
 
 
