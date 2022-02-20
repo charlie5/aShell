@@ -7,6 +7,7 @@ with
      Ada.Unchecked_Deallocation,
      Ada.Unchecked_Conversion;
 
+
 package body Shell.Commands
 is
 
@@ -27,6 +28,7 @@ is
    end To_String_Vector;
 
 
+
    function To_String_Array (Strings : String_Vector) return String_Array
    is
       use String_Vectors;
@@ -39,6 +41,7 @@ is
 
       return The_Array;
    end To_String_Array;
+
 
 
    function To_Arguments (All_Arguments : in String) return String_Array
@@ -168,6 +171,7 @@ is
       end to_Command;
 
 
+
       function To_Commands (Pipeline : in String) return Command_Array
       is
          All_Commands : constant String_Array := To_Strings (Pipeline);
@@ -198,6 +202,7 @@ is
    end Connect;
 
 
+
    procedure Connect (Commands : in out Command_Array)
    is
    begin
@@ -207,6 +212,7 @@ is
                   To   => Commands (i + 1));
       end loop;
    end Connect;
+
 
 
    procedure Close_Pipe_Write_Ends (The_Command : in out Command)
@@ -224,11 +230,13 @@ is
    end Close_Pipe_Write_Ends;
 
 
+
    function Input_Pipe (The_Command : in Command) return Pipe
    is
    begin
       return The_Command.Input_Pipe;
    end Input_Pipe;
+
 
 
    function Output_Pipe (The_Command : in Command) return Pipe
@@ -238,6 +246,7 @@ is
    end Output_Pipe;
 
 
+
    function Error_Pipe (The_Command : in Command) return Pipe
    is
    begin
@@ -245,11 +254,13 @@ is
    end Error_Pipe;
 
 
+
    function Name (The_Command : in Command) return String
    is
    begin
       return +The_Command.Name;
    end Name;
+
 
 
    function Arguments (The_Command : in Command) return String
@@ -271,11 +282,13 @@ is
    end Arguments;
 
 
+
    function Process (The_Command : in out Command) return access Shell.Process
    is
    begin
       return The_Command.Process'Unchecked_Access;
    end Process;
+
 
 
    --- Start
@@ -310,6 +323,7 @@ is
                                     Errors    =>  The_Command.Error_Pipe,
                                     Pipeline  =>  Pipeline);
    end Start;
+
 
 
    procedure Start (Commands : in out Command_Array;
@@ -364,6 +378,7 @@ is
    end Send;
 
 
+
    --- Run
    --
 
@@ -388,6 +403,7 @@ is
          end if;
       end;
    end Gather_Results;
+
 
 
    procedure Run (The_Command : in out Command;
@@ -416,6 +432,7 @@ is
    end Run;
 
 
+
    function Run (The_Command : in out Command;
                  Input       : in     Data    := No_Data;
                  Raise_Error : in     Boolean := False) return Command_Results
@@ -425,6 +442,7 @@ is
 
       return Results_Of (The_Command);
    end Run;
+
 
 
    procedure Run (The_Pipeline : in out Command_Array;
@@ -479,6 +497,7 @@ is
    end Run;
 
 
+
    function Run (The_Pipeline : in out Command_Array;
                  Input        : in     Data    := No_Data;
                  Raise_Error  : in     Boolean := False) return Command_Results
@@ -489,6 +508,7 @@ is
 
       return Results_Of (Last_Command);
    end Run;
+
 
 
    function Run (Command_Line : in String;
@@ -517,6 +537,7 @@ is
    end Run;
 
 
+
    procedure Run (Command_Line : in String;
                   Input        : in Data  := No_Data)
    is
@@ -524,6 +545,7 @@ is
    begin
       null;
    end Run;
+
 
 
    procedure Stop (The_Command : in out Command)
@@ -561,11 +583,13 @@ is
    end Stop;
 
 
+
    function Failed (The_Command : in Command'Class) return Boolean
    is
    begin
       return not Normal_Exit (The_Command);
    end Failed;
+
 
 
    function Failed (The_Pipeline : in Command_Array) return Boolean
@@ -583,6 +607,7 @@ is
    end Failed;
 
 
+
    function Which_Failed (The_Pipeline : in Command_Array) return Natural
    is
    begin
@@ -596,6 +621,7 @@ is
 
       return 0;
    end Which_Failed;
+
 
 
    -- Command Results
@@ -657,11 +683,13 @@ is
    end Results_Of;
 
 
+
    function Output_Of (The_Results : in Command_Results) return Data
    is
    begin
       return The_Results.Output;
    end Output_Of;
+
 
 
    function Errors_Of (The_Results : in Command_Results) return Data
@@ -671,11 +699,13 @@ is
    end Errors_Of;
 
 
+
    procedure Wait_On (The_Command : in out Command)
    is
    begin
       Wait_On (The_Command.Process);
    end Wait_On;
+
 
 
    function Has_Terminated (The_Command : in out Command) return Boolean
@@ -685,11 +715,13 @@ is
    end Has_Terminated;
 
 
+
    function Normal_Exit (The_Command : in Command) return Boolean
    is
    begin
       return Normal_Exit (The_Command.Process);
    end Normal_Exit;
+
 
 
    procedure Kill (The_Command : in Command)
@@ -699,11 +731,13 @@ is
    end Kill;
 
 
+
    procedure Interrupt (The_Command : in Command)
    is
    begin
       Interrupt (The_Command.Process);
    end Interrupt;
+
 
 
    procedure Pause (The_Command : in out Command)
@@ -714,12 +748,14 @@ is
    end Pause;
 
 
+
    procedure Resume (The_Command : in out Command)
    is
    begin
       Resume (The_Command.Process);
       The_Command.Paused := False;
    end Resume;
+
 
 
    function Is_Paused (The_Command : in Command) return Boolean
@@ -739,6 +775,7 @@ is
    begin
       The_Command.Copy_Count.all := The_Command.Copy_Count.all + 1;
    end Adjust;
+
 
 
    overriding
@@ -765,6 +802,7 @@ is
       end if;
 
    end Finalize;
+
 
 
    function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type

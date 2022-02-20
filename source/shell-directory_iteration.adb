@@ -3,6 +3,7 @@ with
      Ada.Unchecked_Deallocation,
      Ada.IO_Exceptions;
 
+
 package body Shell.Directory_Iteration
 is
 
@@ -29,11 +30,13 @@ is
    end To_Directory;
 
 
+
    function Path (Container : in Directory) return String
    is
    begin
       return +Container.Path;
    end Path;
+
 
 
    function Iterate (Container : in Directory) return Directory_Iterators.Forward_Iterator'Class
@@ -54,6 +57,7 @@ is
    end Iterate;
 
 
+
    function Element_Value (Container : in Directory;
                            Pos       : in Cursor) return Constant_Reference_Type
    is
@@ -61,6 +65,7 @@ is
    begin
       return (Element => Pos.Directory_Entry);
    end Element_Value;
+
 
 
    procedure Get_Next_Directory_Entry (Object          : in Iterator;
@@ -88,6 +93,7 @@ is
    end Get_Next_Directory_Entry;
 
 
+
    overriding
    function First (Object : in Iterator) return Cursor
    is
@@ -101,6 +107,7 @@ is
 
       return C;
    end First;
+
 
 
    overriding
@@ -175,6 +182,7 @@ is
 
       return No_Element;
    end Next;
+
 
 
    overriding

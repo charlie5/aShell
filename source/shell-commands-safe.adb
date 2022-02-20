@@ -7,9 +7,9 @@ with
      Ada.Text_IO,
      Ada.Exceptions;
 
+
 package body Shell.Commands.Safe
 is
-
    -----------------------
    --- Safe_Client_Outputs
    --
@@ -31,6 +31,7 @@ is
       end Add_Outputs;
 
 
+
       procedure Get_Outputs (Output      : out Data_Vector;
                              Errors      : out Data_Vector;
                              Normal_Exit : out Boolean)
@@ -45,12 +46,14 @@ is
       end Get_Outputs;
 
 
+
       procedure Set_Done (Normal_Exit : in Boolean)
       is
       begin
          Exit_Is_Normal := Normal_Exit;
          Done           := True;
       end Set_Done;
+
 
 
       entry Wait_Til_Done
@@ -61,11 +64,13 @@ is
       end Wait_Til_Done;
 
 
+
       function Is_Done return Boolean
       is
       begin
          return Done;
       end Is_Done;
+
 
 
       function Normal_Exit return Boolean
@@ -422,6 +427,7 @@ is
       end to_Command;
 
 
+
       function To_Commands (Pipeline : in String) return Command_Array
       is
          All_Commands : constant String_Array := To_Strings (Pipeline);
@@ -615,6 +621,7 @@ is
    end Run;
 
 
+
    function Run (The_Pipeline : in out Command_Array;
                  Input        : in     Data    := No_Data;
                  Raise_Error  : in     Boolean := False) return Command_Results
@@ -625,8 +632,6 @@ is
 
       return Results_Of (Last_Command);
    end Run;
-
-
 
 
 
@@ -716,7 +721,6 @@ is
    begin
       Spawn_Client.Stop;
    end Stop_Spawn_Client;
-
 
 
 end Shell.Commands.Safe;

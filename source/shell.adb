@@ -12,6 +12,7 @@ with
      Ada.Unchecked_Conversion,
      Ada.Text_IO;
 
+
 package body Shell
 is
    --- Strings
@@ -24,11 +25,13 @@ is
    end "+";
 
 
+
    function "+" (Item : in Unbounded_String) return String
    is
    begin
       return To_String (Item);
    end "+";
+
 
 
    --- Data
@@ -44,6 +47,7 @@ is
    end To_String;
 
 
+
    function To_Data (From : in String) return Data
    is
       subtype  My_String is String (From'Range);
@@ -52,6 +56,7 @@ is
    begin
       return Convert (From);
    end To_Data;
+
 
 
    --- Pipes
@@ -66,6 +71,7 @@ is
          Create_Pipe (Read_End  => Pipe.Read_End,
                       Write_End => Pipe.Write_End);
       end Open;
+
 
 
       procedure Close (Pipe           : in Shell.Pipe;
@@ -92,6 +98,7 @@ is
    end Safe_Pipes;
 
 
+
    function To_Pipe (Blocking : in Boolean := True) return Pipe
    is
       use POSIX.IO;
@@ -107,6 +114,7 @@ is
 
       return The_Pipe;
    end To_Pipe;
+
 
 
    procedure Close (Pipe           : in Shell.Pipe;
@@ -131,6 +139,7 @@ is
    end Close;
 
 
+
    function Image (Pipe : in Shell.Pipe) return String
    is
    begin
@@ -142,6 +151,7 @@ is
    end Image;
 
 
+
    function Is_Readable (Pipe : in Shell.Pipe) return Boolean
    is
       use POSIX.IO;
@@ -150,12 +160,14 @@ is
    end Is_Readable;
 
 
+
    function Is_Writeable (Pipe : in Shell.Pipe) return Boolean
    is
       use POSIX.IO;
    begin
       return Is_Open (Pipe.Write_End);
    end Is_Writeable;
+
 
 
    function Is_Empty (Pipe    : in Shell.Pipe;
@@ -182,6 +194,7 @@ is
 
       return Count = 0;
    end Is_Empty;
+
 
 
    function Output_Of (Pipe : in Shell.Pipe) return Data
@@ -215,6 +228,7 @@ is
    end Output_Of;
 
 
+
    procedure Write_To (Pipe : in Shell.Pipe;   Input : in Data)
    is
    begin
@@ -230,11 +244,13 @@ is
    end Write_To;
 
 
+
    procedure Close_Write_End (Pipe : in Shell.Pipe)
    is
    begin
       Safe_Pipes.Close (Pipe, Only_Write_End => True);
    end Close_Write_End;
+
 
 
    function Close_Write_End (Pipe : in Shell.Pipe) return Boolean
@@ -245,6 +261,7 @@ is
    end Close_Write_End;
 
 
+
    --- Pipe Streams
    --
 
@@ -253,6 +270,7 @@ is
    begin
       return (Root_Stream_Type with Pipe => Pipe);
    end Stream;
+
 
 
    overriding
@@ -267,6 +285,7 @@ is
    end Read;
 
 
+
    overriding
    procedure Write (Stream : in out Pipe_Stream;
                     Item   : in     Stream_Element_Array)
@@ -278,6 +297,7 @@ is
                       Buffer => Item,
                       Last   => Last);
    end Write;
+
 
 
    --- Processes
@@ -379,6 +399,7 @@ is
    end Start;
 
 
+
    function Start (Command           : in String;
                    Working_Directory : in String  := ".";
                    Input             : in Pipe    := Standard_Input;
@@ -411,6 +432,7 @@ is
    end Start;
 
 
+
    procedure Wait_On (Process : in out Shell.Process)
    is
       use POSIX.Process_Primitives;
@@ -419,6 +441,7 @@ is
                               Child  => Process.Id,
                               Block  => True);
    end Wait_On;
+
 
 
    function Has_Terminated (Process : in out Shell.Process) return Boolean
@@ -444,6 +467,7 @@ is
    end Has_Terminated;
 
 
+
    function Normal_Exit (Process : in Shell.Process) return Boolean
    is
       use POSIX.Process_Primitives;
@@ -462,12 +486,14 @@ is
    end Normal_Exit;
 
 
+
    function Image (Process : in Shell.Process) return String
    is
       use POSIX.Process_Identification;
    begin
       return Image (Process.Id);
    end Image;
+
 
 
    procedure Kill (Process : in Shell.Process)
@@ -478,6 +504,7 @@ is
    end Kill;
 
 
+
    procedure Interrupt (Process : in Shell.Process)
    is
       use POSIX.Signals;
@@ -486,12 +513,14 @@ is
    end Interrupt;
 
 
+
    procedure Pause (Process : in Shell.Process)
    is
       use POSIX.Signals;
    begin
       Send_Signal (Process.Id, Signal_Stop);
    end Pause;
+
 
 
    procedure Resume (Process : in Shell.Process)
@@ -518,6 +547,7 @@ is
    end Logger;
 
 
+
    protected body Logger
    is
       procedure Open (Name : in String)
@@ -532,6 +562,7 @@ is
          Log_Enabled := True;
          Create (Log_File, Out_File, Name);
       end Open;
+
 
 
       procedure Close
@@ -551,6 +582,7 @@ is
       end Close;
 
 
+
       procedure Log (Message : in String)
       is
          use Ada.Text_IO;
@@ -565,11 +597,13 @@ is
    end Logger;
 
 
+
    procedure Open_Log (Name : in String)
    is
    begin
       Logger.Open (Name);
    end Open_Log;
+
 
 
    procedure Close_Log
@@ -579,11 +613,13 @@ is
    end Close_Log;
 
 
+
    procedure Log (Message : in String)
    is
    begin
       Logger.Log (Message);
    end Log;
+
 
 
    function Log (Message : in String) return Boolean
