@@ -60,6 +60,18 @@ is
                   Input        : in     Data    := No_Data;
                   Raise_Error  : in     Boolean := False) return Command_Results;
 
+   function  Run (Command_Line : in     String;
+                  Input        : in     Data  := No_Data) return Command_Results;
+   --
+   -- Takes a command line and runs a Command or a Pipeline, as appropriate.
+
+   procedure Run (Command_Line : in     String;
+                  Input        : in     Data  := No_Data);
+   --
+   -- Takes a command line (single or multiple piped commands).
+   -- Wait for (final) process completion and raise a Command_Error on failure.
+   -- Any process error message is attached to the exception.
+
 
    function  Failed       (The_Pipeline : in Command_Array) return Boolean;
    function  Which_Failed (The_Pipeline : in Command_Array) return Natural;

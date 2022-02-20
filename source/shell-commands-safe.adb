@@ -2,6 +2,7 @@ with
      Ada.Unchecked_Conversion,
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
+     Ada.Strings.Fixed,
      Ada.Text_IO,
      Ada.Exceptions;
 
@@ -649,6 +650,42 @@ is
       return Results_Of (Last_Command);
    end Run;
 
+
+
+   function Run (Command_Line : in String;
+                 Input        : in Data  := No_Data) return Command_Results
+   is
+      use Ada.Strings.Fixed,
+          Safe.Forge;
+
+      The_Index   : constant Natural := Index (Command_Line, " | ");
+      Is_Pipeline : constant Boolean := The_Index /= 0;
+   begin
+      if Is_Pipeline
+      then
+         declare
+            The_Commands : Command_Array := To_Commands (Command_Line);
+         begin
+            return Run (The_Commands, Input);
+         end;
+      else
+         declare
+            The_Command : Command := To_Command (Command_Line);
+         begin
+            return Run (The_Command, Input);
+         end;
+      end if;
+   end Run;
+
+
+
+   procedure Run (Command_Line : in String;
+                  Input        : in Data  := No_Data)
+   is
+      Results : Command_Results := Run (Command_Line, Input) with Unreferenced;
+   begin
+      null;
+   end Run;
 
 
    function Failed (The_Pipeline : in Command_Array) return Boolean
