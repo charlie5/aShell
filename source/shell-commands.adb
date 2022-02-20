@@ -95,7 +95,7 @@ is
 
 
 
-   function To_Strings (Pipeline : in String) return String_Array
+   function To_Command_Lines (Pipeline : in String) return String_Array
    is
       use Ada.Strings.Fixed;
 
@@ -129,7 +129,7 @@ is
       end loop;
 
       return Result (1 .. Count);
-   end To_Strings;
+   end To_Command_Lines;
 
 
 
@@ -174,7 +174,7 @@ is
 
       function To_Commands (Pipeline : in String) return Command_Array
       is
-         All_Commands : constant String_Array := To_Strings (Pipeline);
+         All_Commands : constant String_Array := To_Command_Lines (Pipeline);
       begin
          return Result : Command_Array (1 .. All_Commands'Length)
          do
