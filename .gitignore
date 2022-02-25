@@ -47,4 +47,7 @@ test_wait_on_process
 test_concurrent_commands
 test_concurrent_pipelines
 test_spawn_server
+test_safe_pipeline_output
 ashell_spawn_server
+test_ashell
+test_environment
