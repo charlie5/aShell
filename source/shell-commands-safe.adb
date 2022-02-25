@@ -575,18 +575,6 @@ is
 
 
 
-   overriding
-   function Run (The_Command   : in out Command;
-                 Input         : in     Data    := No_Data;
-                 Raise_Error   : in     Boolean := False) return Command_Results
-   is
-   begin
-      Run (The_Command, Input, Raise_Error);
-      return Results_Of (The_Command);
-   end Run;
-
-
-
    procedure Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
                   Raise_Error  : in     Boolean := False)
