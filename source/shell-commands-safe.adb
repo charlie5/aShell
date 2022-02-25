@@ -10,11 +10,11 @@ with
 package body Shell.Commands.Safe
 is
    -----------------------
-   --- Safe_Client_Outputs
+   --- Safe Client Outputs
    --
 
    protected
-   body Safe_Client_Outputs
+   body Client_Outputs
    is
       procedure Add_Outputs (Output : in Shell.Data;
                              Errors : in Shell.Data)
@@ -83,7 +83,7 @@ is
          end if;
       end Normal_Exit;
 
-   end Safe_Client_Outputs;
+   end Client_Outputs;
 
 
 
@@ -95,13 +95,13 @@ is
    is
       entry Add  (The_Command  : in out Command;
                   Input        : in     Data   := No_Data;
-                  Outputs      : in     Safe_Client_Outputs_Access);
+                  Outputs      : in     Client_Outputs_Access);
 
       entry Add  (The_Pipeline : in out Command_Array;
                   Input        : in     Data := No_Data);
 
-      entry Send (The_Command : in Command;
-                  Input       : in Data);
+      entry Send (The_Command : in      Command;
+                  Input       : in      Data);
 
       entry Kill      (The_Command : in Command);
       entry Interrupt (The_Command : in Command);
@@ -118,7 +118,7 @@ is
       use Ada.Strings.Unbounded;
 
       package Id_Maps_of_Command_Outputs is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
-                                                                            Element_Type    => Safe_Client_Outputs_Access,
+                                                                            Element_Type    => Client_Outputs_Access,
                                                                             Hash            => Hash,
                                                                             Equivalent_Keys => "=");
       Command_Outputs_Map : Id_Maps_of_Command_Outputs.Map;
@@ -169,7 +169,7 @@ is
          select
             accept Add (The_Command : in out Command;
                         Input       : in     Data   := No_Data;
-                        Outputs     : in     Safe_Client_Outputs_Access)
+                        Outputs     : in     Client_Outputs_Access)
             do
                Log ("");
                Log ("Client: Accepting new command.");
@@ -382,23 +382,26 @@ is
 
             declare
                Action          : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
-               Command_Outputs : Safe_Client_Outputs_Access;
+               Command_Outputs : Client_Outputs_Access;
             begin
                case Action.Kind
                is
                   when New_Outputs =>
                      Log ("New Outputs for Command:" & Action.Id'Image);
+
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
                      Command_Outputs.Add_Outputs (Action.Output.Element,
                                                   Action.Errors.Element);
                   when Command_Done =>
                      Log ("Command Done:" & Action.Id'Image);
+
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
-                     Command_Outputs.Set_Done (Normal_Exit => Action.Normal_Exit);
+                     Command_Outputs.Set_Done   (Normal_Exit => Action.Normal_Exit);
                      Command_Outputs_Map.Delete (Action.Id);
 
                   when Server_Done =>
                      Log ("Server is done.");
+
                      Server_Is_Done := True;
                end case;
             end;
@@ -464,6 +467,7 @@ is
 
 
 
+   ---------
    --- Start
    --
 
@@ -546,9 +550,9 @@ is
                   Input       : in     Data    := No_Data;
                   Raise_Error : in     Boolean := False)
    is
-      Output      :         Data_Vector;
-      Errors      :         Data_Vector;
-      Normal_Exit :         Boolean;
+      Output      : Data_Vector;
+      Errors      : Data_Vector;
+      Normal_Exit : Boolean;
    begin
       Spawn_Client.Add (The_Command,
                         Input,
@@ -558,7 +562,6 @@ is
       The_Command.Safe_Outputs.Get_Outputs (Output,
                                             Errors,
                                             Normal_Exit);
-
       The_Command.Output := Output;
       The_Command.Errors := Errors;
 
@@ -580,7 +583,7 @@ is
                   Raise_Error  : in     Boolean := False)
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-      i            : Positive     := 1;
+      i            : Positive := 1;
    begin
       Spawn_Client.Add (The_Pipeline, Input);
 
@@ -601,8 +604,11 @@ is
 
             else
                declare
-                  Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                             & " '" & (+The_Pipeline (i).Name) & "' failed.";
+                  Error : constant String := "Pipeline command"
+                                             & Integer'Image (i)
+                                             & " '"
+                                             & (+The_Pipeline (i).Name)
+                                             & "' failed.";
                begin
                   -- Stop the pipeline.
                   --
@@ -674,6 +680,7 @@ is
    begin
       null;
    end Run;
+
 
 
    function Failed (The_Pipeline : in Command_Array) return Boolean
@@ -776,8 +783,8 @@ is
    overriding
    procedure Finalize (The_Command : in out Command)
    is
-      procedure Deallocate is new Ada.Unchecked_Deallocation (Safe_Client_Outputs,
-                                                              Safe_Client_Outputs_Access);
+      procedure Deallocate is new Ada.Unchecked_Deallocation (Client_Outputs,
+                                                              Client_Outputs_Access);
    begin
       if The_Command.Copy_Count.all = 1
       then
