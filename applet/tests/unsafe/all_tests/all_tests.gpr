@@ -1,0 +1,25 @@
+with
+     "../ashell/test_ashell",
+     "../command_error/test_command_error",
+     "../command_output_to_string/test_command_output_to_string",
+     "../environment/test_environment",
+     "../piped_processes/test_piped_processes",
+     "../pipeline_error/test_pipeline_error",
+     "../pipeline_output/test_pipeline_output",
+     "../pipe_output_to_string/test_pipe_output_to_string",
+     "../wait_on_process/test_wait_on_process",
+
+     "../../iterate_directory/test_iterate_directory",
+
+     "../../../../library/ashell",
+     "../../../../library/ashell_shared";
+
+project All_Tests
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_all.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end All_Tests;

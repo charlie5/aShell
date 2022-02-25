@@ -1,0 +1,13 @@
+with
+     "../../../../library/ashell";
+
+project Test_Environment
+is
+
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_environment.adb");
+
+   package Compiler renames aShell.Compiler;
+
+end Test_Environment;

@@ -1,0 +1,14 @@
+with
+     "../../../../library/ashell",
+     "../../../../library/ashell_shared";
+
+project Test_Concurrent_Commands
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_concurrent_commands.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+   package Binder   renames aShell_shared.Binder;
+
+end Test_Concurrent_Commands;
