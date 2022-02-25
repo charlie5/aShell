@@ -1,7 +1,10 @@
 with
+     Shell.Commands.Unsafe.Privy,
+
      Ada.Containers.Indefinite_Vectors,
      Ada.Containers.Hashed_Maps,
      Ada.Exceptions;
+
 
 procedure Shell.Commands.Spawn_Server
 is
@@ -75,15 +78,16 @@ begin
    Open_Log ("aShell_spawn_Server.log");
 
    declare
+      use type Unsafe.Command;
       package Id_Maps_of_Command is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
-                                                                    Element_Type    => Command,
+                                                                    Element_Type    => Unsafe.Command,
                                                                     Hash            => Hash,
                                                                     Equivalent_Keys =>  "=");
       Command_Map   :         Id_Maps_of_Command.Map;
       Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
       Shutting_Down :         Boolean     := False;
    begin
-      Log ("Starting Spawn Manager");
+      Log ("Starting Spawn Server");
 
       New_Action_Fetcher.Start;
 
@@ -93,6 +97,7 @@ begin
 
          begin
             declare
+               use Shell.Commands.Unsafe;
                Action : Server_Action;
             begin
                New_Actions.Get (Action);
@@ -100,20 +105,14 @@ begin
                case Action.Kind
                is
                   when Nil =>
-                     Log ("Nil action.");
                      delay 0.02;
 
                   when New_Command =>
                      Log ("New_Command action.");
 
                      declare
-                        The_Command : Command := Forge.To_Command (+Action.Command_Line);
+                        The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
                      begin
-                        The_Command.Owns_Output_Pipe := True;
-
-                        The_Command.Output_Pipe := To_Pipe (Blocking => False);
-                        The_Command. Error_Pipe := To_Pipe (Blocking => False);
-
                         The_Command.Start (Input => Action.Command_Input.Element);
                         Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
 
@@ -124,7 +123,9 @@ begin
                      Log ("New_Pipeline action.");
 
                      declare
-                        The_Commands : Command_Array := Forge.To_Commands (+Action.Pipeline);
+                        use Shell.Commands.Unsafe.Privy;
+
+                        The_Commands : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
                      begin
                         Start (The_Commands,
                                Input    => Action.Pipeline_Input.Element,
@@ -134,13 +135,13 @@ begin
 
                         for i in The_Commands'Range
                         loop
-                           Command_Map.Insert (Action.Id, The_Commands (1));
-                           Action.Id := Action.Id + 1;
-
                            if i /= The_Commands'Last
                            then
-                              The_Commands (i).Is_Within_A_Pipeline := True;
+                              Is_Within_A_Pipeline (The_Commands (i));
                            end if;
+
+                           Command_Map.Insert (Action.Id, The_Commands (i));
+                           Action.Id := Action.Id + 1;
                         end loop;
                      end;
 
@@ -148,7 +149,7 @@ begin
                      Log ("New_Input action.");
 
                      declare
-                        The_Command : constant Command := Command_Map.Element (Action.Id);
+                        The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Send (Action.Data.Element);
                         Log ("New Input sent to Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
@@ -158,7 +159,7 @@ begin
                      Log ("Kill action.");
 
                      declare
-                        The_Command : constant Command := Command_Map.Element (Action.Id);
+                        The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Kill;
                         Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
@@ -168,7 +169,7 @@ begin
                      Log ("Interrupt action.");
 
                      declare
-                        The_Command : constant Command := Command_Map.Element (Action.Id);
+                        The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Interrupt;
                         Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
@@ -178,7 +179,7 @@ begin
                      Log ("Pause action.");
 
                      declare
-                        The_Command : Command := Command_Map.Element (Action.Id);
+                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Pause;
                         Log ("Paused Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
@@ -188,7 +189,7 @@ begin
                      Log ("Resume action.");
 
                      declare
-                        The_Command : Command := Command_Map.Element (Action.Id);
+                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Resume;
                         Log ("Resumes Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
@@ -198,14 +199,16 @@ begin
                      Log ("Stop action.");
 
                      declare
-                        The_Command : Command := Command_Map.Element (Action.Id);
+                        use Shell.Commands.Unsafe.Privy;
+
+                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
-                        The_Command.Stop;
+                        Stop (The_Command);
                         Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
                      end;
 
                   when Shutdown =>
-                     Log ("Stop action.");
+                     Log ("Shutdown action.");
                      Shutting_Down := True;
                end case;
             end;
@@ -223,19 +226,23 @@ begin
                while Has_Element (Cursor)
                loop
                   declare
-                     use Data_Holders;
+                     use Data_Holders,
+                         Shell.Commands.Unsafe.Privy,
+                         Shell.Commands.Unsafe;
 
                      Id          : constant Command_Id := Key     (Cursor);
-                     The_Command :          Command    := Element (Cursor);
+                     The_Command :   Unsafe.Command    := Element (Cursor);
 
                      procedure Send_New_Results
                      is
                      begin
-                        if not The_Command.Is_Within_A_Pipeline
+                        if not Is_Within_A_Pipeline (The_Command)
                         then
+                           --  log ("Send new results for command: " & Image (The_Command));
+
                            declare
-                              Output : constant Data := Output_Of (The_Command.Output_Pipe);
-                              Errors : constant Data := Output_Of (The_Command.Error_Pipe);
+                              Output : constant Data := Privy.Output_Of (The_Command.Output_Pipe);
+                              Errors : constant Data := Privy.Output_Of (The_Command. Error_Pipe);
                            begin
                               if not (    Output'Length = 0
                                       and Errors'Length = 0)
@@ -255,7 +262,8 @@ begin
 
                      if The_Command.Has_Terminated
                      then
-                        Log ("Command: " & Id'Image & " has terminated.");
+                        Log ("Command: " & Id'Image & " has terminated. Normal exit: " & The_Command.Normal_Exit'Image);
+
                         Send_New_Results;     -- Send any final results.
 
                         declare
@@ -299,7 +307,7 @@ begin
          Client_Action'Output (Output_Stream'Access, Act);
       end;
 
-      Log ("Spawn Server: Done");
+      Log ("Ending Spawn Server");
    end;
 
    Close_Log;
