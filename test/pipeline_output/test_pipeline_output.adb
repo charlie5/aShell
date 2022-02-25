@@ -1,5 +1,5 @@
 with
-     Shell.Commands,
+     Shell.Commands.Unsafe,
      Ada.Text_IO;
 
 procedure Test_Pipeline_Output
@@ -12,7 +12,8 @@ begin
    declare
       use Shell,
           Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       Commands : Command_Array   :=  To_Commands ("ps -A | grep bash | wc");
       Output   : constant String := +Output_Of (Run (Commands));
    begin

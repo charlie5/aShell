@@ -1,5 +1,5 @@
 with
-     Shell.Commands,
+     Shell.Commands.Unsafe,
      Ada.Text_IO;
 
 procedure Test_Pipeline_Error
@@ -13,8 +13,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       Commands : Command_Array := To_Commands ("ls /non_existent_file | cat");
    begin
       Run (Commands);
@@ -22,6 +22,8 @@ begin
       if Failed (Commands)
       then
          declare
+            use Shell.Commands;
+
             Which : constant Natural :=  Which_Failed (Commands);
             Error : constant String  := +Errors_Of (Results_Of (Commands (Which)));
          begin
@@ -38,8 +40,8 @@ begin
 
    declare
       use Shell,
-          Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       Commands : Command_Array := To_Commands ("ls /non_existent_file | cat");
    begin
       Run (Commands, Raise_Error => True);
@@ -47,6 +49,8 @@ begin
    exception
       when Command_Error =>
          declare
+            use Shell.Commands;
+
             Which : constant Natural :=  Which_Failed (Commands);
             Error : constant String  := +Errors_Of (Results_Of (Commands (Which)));
          begin

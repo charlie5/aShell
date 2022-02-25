@@ -1,6 +1,7 @@
 with
-     Shell.Commands,
+     Shell.Commands.Unsafe,
      Ada.Text_IO;
+
 
 procedure Test_Command_Error
 is
@@ -10,14 +11,13 @@ begin
    New_Line (2);
 
    declare
-      use Shell,
-          Shell.Commands,
-          Shell.Commands.Forge;
+      use Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       The_Command : Command := To_Command ("ls /non_existent_file");
    begin
       Run (The_Command);
 
-      if Failed (The_Command)
+      if The_Command.Failed
       then
          Put_Line ("Failed on command '" & The_Command.Name & "' as expected.");
       end if;
@@ -26,9 +26,8 @@ begin
    New_Line (2);
 
    declare
-      use Shell,
-          Shell.Commands,
-          Shell.Commands.Forge;
+      use Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       The_Command : Command := To_Command ("ls /non_existent_file");
    begin
       Run (The_Command, Raise_Error => True);

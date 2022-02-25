@@ -1,5 +1,5 @@
 with
-     Shell.Commands,
+     Shell.Commands.Unsafe,
      Ada.Text_IO;
 
 
@@ -13,9 +13,10 @@ begin
    declare
       use Shell,
           Shell.Commands,
-          Shell.Commands.Forge;
-      The_Command :          Command :=  To_Command ("ls -alh");
-      Output      : constant String  := +Output_Of (Run (The_Command));
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
+      The_Command :          Unsafe.Command :=  To_Command ("ls -alh");
+      Output      : constant String         := +Output_Of (The_Command.Run);
    begin
       Put_Line ("'" & Output & "'");
    end;

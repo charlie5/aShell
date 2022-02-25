@@ -1,5 +1,5 @@
 with
-     Shell.Commands,
+     Shell.Commands.Unsafe,
      Ada.Environment_Variables,
      Ada.Text_IO;
 
@@ -20,7 +20,8 @@ begin
 
       use Shell,
           Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
       Put_Line ("Test 1 ~ Run piped commands => '" & Commands & "'");
@@ -54,7 +55,8 @@ begin
 
       use Shell,
           Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
       Put_Line ("Test 2 ~ Run piped commands => '" & Commands & "'");

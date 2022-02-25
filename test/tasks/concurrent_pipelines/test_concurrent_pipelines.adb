@@ -46,14 +46,14 @@ is
    task body Task_2
    is
    begin
-      for i in 1 .. 500
+      for i in 1 .. 5_000
       loop
          declare
             use Shell,
                 Shell.Commands,
                 Shell.Commands.Safe,
                 Shell.Commands.Safe.Forge;
-            Commands : Safe.Command_Array :=  To_Commands ("ps -Af | grep test_concurrent_pipelines");
+            Commands : Safe.Command_Array :=  To_Commands ("ps -Af | wc"); -- grep test_concurrent_pipelines");
             Output   : constant String    := +Output_Of (Safe.Run (Commands));
          begin
             Put_Line ("Task 2   i =" & i'Image & " =>");
@@ -74,5 +74,6 @@ is
 
 
 begin
-   delay 5.0 * 60.0;   -- Allow time to check for open pipes and zombie processes.
+   delay 160.0 * 60.0;   -- Allow time to check for open pipes and zombie processes.
+   Shell.Commands.Safe.Stop_Spawn_Client;
 end Test_Concurrent_Pipelines;

@@ -1,5 +1,5 @@
 with
-     Shell.Commands,
+     Shell.Commands.Unsafe,
      Ada.Text_IO;
 
 
@@ -21,8 +21,9 @@ begin
    declare
       use Shell,
           Shell.Commands,
-          Shell.Commands.Forge;
-      The_Command : Command := To_Command ("ls -alh");
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
+      The_Command : Unsafe.Command := To_Command ("ls -alh");
    begin
       Start   (The_Command);
       Wait_On (The_Command);
@@ -36,9 +37,10 @@ begin
    declare
       use Shell,
           Shell.Commands,
-          Shell.Commands.Forge;
-      Piped_Commands : Command_Array := To_Commands ("ls -alh | wc");
-      Last_Command   : Command  renames Piped_Commands (Piped_Commands'Last);
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
+      Piped_Commands : Command_Array       := To_Commands ("ls -alh | wc");
+      Last_Command   : Unsafe.Command renames Piped_Commands (Piped_Commands'Last);
    begin
       Start (Piped_Commands);
       Wait_On (Last_Command);
@@ -57,8 +59,8 @@ begin
    Test_3:
    declare
       use Shell,
-          Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       The_Command : Command := To_Command ("sleep 3");
    begin
       Start    (The_Command);
@@ -72,8 +74,8 @@ begin
    Test_4:
    declare
       use Shell,
-          Shell.Commands,
-          Shell.Commands.Forge;
+          Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
       The_Commands : Command_Array := To_Commands ("sleep 3 | sleep 3");
    begin
       Start (The_Commands, Pipeline => False);
