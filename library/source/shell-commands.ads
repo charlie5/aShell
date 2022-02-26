@@ -37,9 +37,10 @@ is
    --- Start ~ Commands return before the process completes.
    --
 
-   procedure Start (The_Command : in out Command;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := False) is abstract;
+   procedure Start (The_Command   : in out Command;
+                    Input         : in     Data    := No_Data;
+                    Accepts_Input : in     Boolean := False;
+                    Pipeline      : in     Boolean := False) is abstract;
 
    procedure Send  (To    : in Command;
                     Input : in Data) is abstract;
@@ -157,6 +158,7 @@ private
          when New_Command =>
             Command_Line  : Unbounded_String;
             Command_Input : Data_Holder;
+            Accepts_Input : Boolean;
 
          when New_Pipeline =>
             Pipeline       : Unbounded_String;

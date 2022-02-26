@@ -93,9 +93,10 @@ is
 
    task Spawn_Client
    is
-      entry Add  (The_Command  : in out Command;
-                  Input        : in     Data   := No_Data;
-                  Outputs      : in     Client_Outputs_Access);
+      entry Add  (The_Command   : in out Command;
+                  Input         : in     Data    := No_Data;
+                  Accepts_Input : in     Boolean := False;
+                  Outputs       : in     Client_Outputs_Access);
 
       entry Add  (The_Pipeline : in out Command_Array;
                   Input        : in     Data := No_Data);
@@ -127,10 +128,11 @@ is
       Server_Out_Pipe : constant Shell.Pipe := To_Pipe (Blocking => False);
       Server_Err_Pipe : constant Shell.Pipe := To_Pipe;
 
-      Command_Line     : Unbounded_String;
-      Have_New_Command : Boolean := False;
-      Command_Input    : Data_Holder;
-      New_Input_Data   : Data_Holder;
+      Command_Line              : Unbounded_String;
+      Have_New_Command          : Boolean := False;
+      Command_Input             : Data_Holder;
+      New_Input_Data            : Data_Holder;
+      New_Command_Accepts_Input : Boolean;
 
       Pipeline          : Unbounded_String;
       Have_New_Pipeline : Boolean := False;
@@ -167,15 +169,17 @@ is
 
       loop
          select
-            accept Add (The_Command : in out Command;
-                        Input       : in     Data   := No_Data;
-                        Outputs     : in     Client_Outputs_Access)
+            accept Add (The_Command   : in out Command;
+                        Input         : in     Data    := No_Data;
+                        Accepts_Input : in     Boolean := False;
+                        Outputs       : in     Client_Outputs_Access)
             do
                Log ("");
                Log ("Client: Accepting new command.");
 
-               Have_New_Command := True;
-               The_Command.Id   := Next_Id;
+               Have_New_Command          := True;
+               New_Command_Accepts_Input := Accepts_Input;
+               The_Command.Id            := Next_Id;
 
                Set_Unbounded_String (Command_Line,
                                      Name (The_Command)
@@ -304,7 +308,8 @@ is
                                   Server_Action' (New_Command,
                                                   Next_Id,
                                                   Command_Line,
-                                                  Command_Input));
+                                                  Command_Input,
+                                                  New_Command_Accepts_Input));
             Have_New_Command := False;
             Next_Id          := Next_Id + 1;
 
@@ -472,13 +477,15 @@ is
    --
 
    overriding
-   procedure Start (The_Command : in out Command;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := False)
+   procedure Start (The_Command   : in out Command;
+                    Input         : in     Data    := No_Data;
+                    Accepts_Input : in     Boolean := False;
+                    Pipeline      : in     Boolean := False)
    is
    begin
       Spawn_Client.Add (The_Command,
                         Input,
+                        Accepts_Input,
                         The_Command.Safe_Outputs);
    exception
       when Tasking_Error =>
@@ -556,7 +563,8 @@ is
    begin
       Spawn_Client.Add (The_Command,
                         Input,
-                        The_Command.Safe_Outputs);
+                        Accepts_Input => False,
+                        Outputs       => The_Command.Safe_Outputs);
 
       The_Command.Safe_Outputs.Wait_Til_Done;
       The_Command.Safe_Outputs.Get_Outputs (Output,

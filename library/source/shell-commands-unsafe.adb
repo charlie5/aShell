@@ -157,12 +157,14 @@ is
    --
 
    overriding
-   procedure Start (The_Command : in out Command;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := False)
+   procedure Start (The_Command   : in out Command;
+                    Input         : in     Data    := No_Data;
+                    Accepts_Input : in     Boolean := False;
+                    Pipeline      : in     Boolean := False)
    is
    begin
-      if Input /= No_Data
+      if   Input /= No_Data
+        or Accepts_Input
       then
          The_Command.Input_Pipe := To_Pipe;
          Write_To (The_Command.Input_Pipe, Input);

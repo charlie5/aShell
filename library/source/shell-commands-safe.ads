@@ -25,9 +25,10 @@ is
    --
 
    overriding
-   procedure Start (The_Command : in out Command;
-                    Input       : in     Data    := No_Data;
-                    Pipeline    : in     Boolean := False);
+   procedure Start (The_Command   : in out Command;
+                    Input         : in     Data    := No_Data;
+                    Accepts_Input : in     Boolean := False;
+                    Pipeline      : in     Boolean := False);
 
    procedure Start (Commands    : in out Command_Array;
                     Input       : in     Data    := No_Data;

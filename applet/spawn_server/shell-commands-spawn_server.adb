@@ -113,7 +113,8 @@ begin
                      declare
                         The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
                      begin
-                        The_Command.Start (Input => Action.Command_Input.Element);
+                        The_Command.Start (Input => Action.Command_Input.Element,
+                                           Accepts_Input => Action.Accepts_Input);
                         Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
 
                         Command_Map.Insert (Action.Id, The_Command);
