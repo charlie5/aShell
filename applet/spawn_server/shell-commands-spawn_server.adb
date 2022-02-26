@@ -36,8 +36,8 @@ is
       begin
          if not Actions.Is_Empty
          then
-            Action := Actions.Last_Element;
-            Actions.Delete_Last;
+            Action := Actions.First_Element;
+            Actions.Delete_First;
          else
             Action := (Nil, Null_Id);
          end if;
@@ -51,6 +51,7 @@ is
    is
       entry Start;
    end  New_Action_Fetcher;
+
 
    task body New_Action_Fetcher
    is
