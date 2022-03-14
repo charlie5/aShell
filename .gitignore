@@ -51,3 +51,4 @@ test_safe_pipeline_output
 ashell_spawn_server
 test_ashell
 test_environment
+test_command_input
