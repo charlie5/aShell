@@ -53,3 +53,4 @@ ashell_spawn_server
 test_ashell
 test_environment
 test_command_input
+test_max_processes
