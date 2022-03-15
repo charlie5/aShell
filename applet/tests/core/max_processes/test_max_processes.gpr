@@ -1,0 +1,13 @@
+with
+     "../../../../library/ashell",
+     "../../../../library/ashell_shared";
+
+project Test_Max_Processes
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_max_processes.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end Test_Max_Processes;
