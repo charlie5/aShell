@@ -91,7 +91,8 @@ is
    -- non-standard 'Output' and 'Errors' pipes becomes the callers responsibility.
    -- A 'Process_Error' is raised if 'Start' fails.
 
-   Process_Error : exception;
+   Process_Error            : exception;
+   Too_Many_Processes_Error : exception;
 
    function Start (Program           : in String;
                    Arguments         : in String_Array := Nil_Strings;
@@ -123,7 +124,7 @@ is
    --- Logging
    --
 
-   procedure Open_Log (Name : in String);
+   procedure  Open_Log (Name : in String);
    procedure Close_Log;
 
 

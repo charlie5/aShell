@@ -364,14 +364,33 @@ is
          Append (Args, To_POSIX_String (+Arguments (i)));
       end loop;
 
-      Start_Process_Search (The_Process_Id,
-                            Name,
-                            Working_Directory,
-                            The_Template,
-                            Args);
+
+      Start_Process:
+      begin
+         Start_Process_Search (The_Process_Id,
+                               Name,
+                               Working_Directory,
+                               The_Template,
+                               Args);
+      exception
+         when E : POSIX.POSIX_Error =>
+            Close_Template (The_Template);
+
+            if Ada.Exceptions.Exception_Message (E) = "RESOURCE_TEMPORARILY_UNAVAILABLE"
+            then
+               raise Too_Many_Processes_Error;
+            else
+               raise;
+            end if;
+
+         when others =>
+            Close_Template (The_Template);
+            raise;
+      end Start_Process;
+
 
       Close_Template (The_Template);
-      Make_Empty (Args);
+      Make_Empty     (Args);
 
       if Input /= Standard_Input
       then
