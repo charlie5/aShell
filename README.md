@@ -4,6 +4,16 @@ A component to aid in writing shell-like applications in Ada.
 
 Under an ISC license.
 
+## Install
+Add the following lines to your ~/.bashrc or equivalent ...
+
+ASHELL=/path/to/ashell/root
+export GPR_PROJECT_PATH=$ASHELL/library:$GPR_PROJECT_PATH
+
+
+Alire support is pending.
+
+
 ## Example
 
     declare
@@ -37,7 +47,3 @@ Might be written like this in Ada:
     begin
        null;
     end SDS_to_DS;
-
-This does not give us any gain, but once you can mix and match Ada entities with
-external filter commands, it may be easier to save time, as you don't have to
-reimplement the algorithm of any external filter in Ada, to finish your program.
