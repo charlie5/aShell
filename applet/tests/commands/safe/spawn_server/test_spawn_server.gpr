@@ -1,8 +1,8 @@
 with
-     "../../../library/ashell",
-     "../../../library/ashell_shared";
+     "ashell",
+     "ashell_shared";
 
-project test_spawn_Server
+project Test_Spawn_Server
 is
    for Create_Missing_Dirs use "True";
 
@@ -18,4 +18,4 @@ is
       for VCS_Kind use "Git";
    end IDE;
 
-end test_spawn_Server;
+end Test_Spawn_Server;

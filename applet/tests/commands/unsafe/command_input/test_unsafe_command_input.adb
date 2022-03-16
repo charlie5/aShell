@@ -3,7 +3,7 @@ with
      Ada.Text_IO;
 
 
-procedure Test_Command_Input
+procedure Test_Unsafe_Command_Input
 is
    procedure Log (Message : in String)
                   renames Ada.Text_IO.Put_Line;
@@ -36,4 +36,4 @@ begin
 
    NL (2);
    Log ("End Test_Command_Input test.");
-end Test_Command_Input;
+end Test_Unsafe_Command_Input;

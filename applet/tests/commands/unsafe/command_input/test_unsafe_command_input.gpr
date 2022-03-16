@@ -2,14 +2,12 @@ with
      "ashell",
      "ashell_shared";
 
-project Test_Max_Pipes
+project Test_Unsafe_Command_Input
 is
-   for Create_Missing_Dirs use "True";
-
    for Object_Dir use "build";
    for Exec_Dir   use ".";
-   for Main       use ("test_max_pipes.adb");
+   for Main       use ("test_unsafe_command_input.adb");
 
    package Compiler renames aShell_shared.Compiler;
 
-end Test_Max_Pipes;
+end Test_Unsafe_Command_Input;

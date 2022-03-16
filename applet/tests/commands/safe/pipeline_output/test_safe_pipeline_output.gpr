@@ -1,6 +1,6 @@
 with
-     "../../../../library/ashell",
-     "../../../../library/ashell_shared";
+     "ashell",
+     "ashell_shared";
 
 project Test_Safe_Pipeline_Output 
 is
