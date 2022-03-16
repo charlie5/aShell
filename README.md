@@ -8,6 +8,7 @@ Under an ISC license.
 Add the following lines to your ~/.bashrc or equivalent ...
 
 ASHELL=/path/to/ashell/root
+
 export GPR_PROJECT_PATH=$ASHELL/library:$GPR_PROJECT_PATH
 
 
