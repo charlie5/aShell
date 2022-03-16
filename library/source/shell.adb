@@ -70,6 +70,9 @@ is
       begin
          Create_Pipe (Read_End  => Pipe.Read_End,
                       Write_End => Pipe.Write_End);
+      exception
+         when POSIX.POSIX_Error =>
+            raise Too_Many_Pipes_Error;
       end Open;
 
 
