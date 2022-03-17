@@ -16,6 +16,8 @@ begin
    Put_Line ("Begin 'Nonblocking_Pipe' test.");
    New_Line (2);
 
+   Shell.Commands.Unsafe.Run ("touch test.log");
+
    declare
       use Shell,
           Shell.Commands,
