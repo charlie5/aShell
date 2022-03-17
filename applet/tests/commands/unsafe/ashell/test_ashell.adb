@@ -15,7 +15,7 @@ begin
    Log ("Begin aShell tests.");
 
    NL (2);
-   Log ("Test 1 ~ Run single command =>'ls -alh'");
+   Log ("Test 1 ~ Run single command => 'ls -alh'");
 
    Test_1:
    declare
