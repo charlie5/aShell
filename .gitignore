@@ -29,7 +29,7 @@ commands.log
 shell.log
 aShell_spawn_Server.log
 aShell_spawn_Client.log
-
+test.log
 
 ## Binaries
 #
@@ -55,3 +55,4 @@ test_environment
 test_command_input
 test_max_processes
 test_max_pipes
+test_unsafe_command_input
