@@ -25,6 +25,7 @@ begin
    begin
       The_Command.Start (Accepts_Input => True);
       The_Command.Send  (+"Hello world.");
+
       delay 0.5;
       Log ("Output: '" & (+Output_of (Results_Of (The_Command))) & "'");
 
@@ -35,39 +36,31 @@ begin
          Log ("Output: '" & (+Output_of (Results_Of (The_Command))) & "'");
       end loop;
 
-      --  delay 1.0;
 
-      The_Command.Send  (+"Goodbye world.");
-      --  The_Command.Send  ((1 => Character'Pos (Ada.Characters.Latin_1.CR)));
-      --  The_Command.Send  ((1 => Character'Pos (Ada.Characters.Latin_1.EOT)));
-      --  The_Command.Send  ((1 => 4));
+      The_Command.Send (+"Goodbye world.");
 
-      --  delay 1.0;
-      --  The_Command.Kill;
+      delay 1.0;
+      Log ("Output: '" & (+Output_of (Results_Of (The_Command))) & "'");
 
-      --  delay 1.0;
-      --  The_Command.Interrupt;
+      --  while not The_Command.Has_Terminated
+      --  loop
+      --     declare
+      --        Output : constant String := +Output_of (Results_Of (The_Command));
+      --     begin
+      --        if Output /= ""
+      --        then
+      --           Log ("Output: '" & Output & "'");
+      --        end if;
+      --
+      --        delay 0.5;
+      --     end;
+      --  end loop;
 
-      while not The_Command.Has_Terminated
-      loop
-         --  The_Command.Send  ((1 => 4));
-         declare
-            Output : constant String := +Output_of (Results_Of (The_Command));
-         begin
-            if Output /= ""
-            then
-               Log ("Output: '" & Output & "'");
-            end if;
-
-            delay 0.5;
-         end;
-      end loop;
+      The_Command.Kill;
    end;
 
-   Log ("Stop_Spawn_Client");
+   Log ("Stopping spawn client.");
    Shell.Commands.Safe.Stop_Spawn_Client;
-
-   --  delay 1.0;
 
    NL (2);
    Log ("End Test_Command_Input test.");
