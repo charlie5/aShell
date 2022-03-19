@@ -10,9 +10,9 @@ package Shell.Commands
 -- For commands and pipelines run from a single task, see the 'Unsafe' child package.
 --
 is
-   Command_Error : exception;
-
    type Command is abstract tagged private;
+
+   Command_Error : exception;
 
 
    function  Image     (The_Command : in Command)       return String;

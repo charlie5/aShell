@@ -1,6 +1,5 @@
 with
      Shell.Commands.Safe,
-     Ada.Characters.Latin_1,
      Ada.Text_IO;
 
 
