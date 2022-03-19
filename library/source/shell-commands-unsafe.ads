@@ -6,8 +6,6 @@ is
    type Command       is new Commands.Command with private;
    type Command_Array is array (Positive range <>) of Command;
 
-   Command_Error : exception;
-
 
    ---------
    --- Forge

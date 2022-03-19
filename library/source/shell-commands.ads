@@ -59,6 +59,10 @@ is
                   Raise_Error  : in     Boolean := False) return Command_Results;
 
 
+   type State is (Not_Started, Running, Paused, Normal_Exit, Interrupted, Killed);
+
+   function  Status         (The_Command : in out Command) return State;
+
    procedure Wait_On        (The_Command : in out Command)                is abstract;
    function  Has_Terminated (The_Command : in out Command) return Boolean is abstract;
    function  Normal_Exit    (The_Command : in     Command) return Boolean is abstract;
@@ -93,6 +97,7 @@ private
          Errors     : Data_Vector;
 
          Paused     : Boolean := False;
+         Status     : State   := Not_Started;
       end record;
 
    overriding

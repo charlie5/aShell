@@ -719,6 +719,14 @@ is
 
 
 
+   function Status (The_Command : in out Command) return State
+   is
+   begin
+      return The_Command.Status;
+   end Status;
+
+
+
    function Is_Paused (The_Command : in Command) return Boolean
    is
    begin
