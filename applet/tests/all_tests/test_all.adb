@@ -30,6 +30,7 @@ with
      --
      Test_Iterate_Directory,
 
+     Shell.Commands.Safe,
      Ada.Text_IO;
 
 
@@ -109,6 +110,8 @@ begin
    New_Line (2);
    Test_Iterate_Directory;
 
+
+   Shell.Commands.Safe.Stop_Spawn_Client;
 
    New_Line (2);
    Put_Line ("End all tests.");
