@@ -19,6 +19,7 @@ with
      --
      Test_Ashell,
      Test_Command_Error,
+     Test_Unsafe_Command_Status,
      Test_Unsafe_Command_Input,
      Test_Command_Output_To_String,
      Test_Environment,
@@ -88,6 +89,9 @@ begin
 
    New_Line (2);
    Test_Unsafe_Command_Input;
+
+   New_Line (2);
+   Test_Unsafe_Command_Status;
 
    New_Line (2);
    Test_Command_Output_To_String;
