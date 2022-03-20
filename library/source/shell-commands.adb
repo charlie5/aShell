@@ -719,19 +719,47 @@ is
 
 
 
+   procedure Start (The_Command   : in out Command;
+                    Input         : in     Data    := No_Data;
+                    Accepts_Input : in     Boolean := False;
+                    Pipeline      : in     Boolean := False)
+   is
+   begin
+      The_Command.Status := Running;
+   end Start;
+
+
+
+   procedure Pause (The_Command : in out Command)
+   is
+   begin
+      The_Command.Status := Paused;
+   end Pause;
+
+
+
+   procedure Resume (The_Command : in out Command)
+   is
+   begin
+      The_Command.Status := Running;
+   end Resume;
+
+
+
+   procedure Kill (The_Command : in out Command)
+   is
+   begin
+      The_Command.Status := Killed;
+   end Kill;
+
+
+
    function Status (The_Command : in out Command) return State
    is
    begin
       return The_Command.Status;
    end Status;
 
-
-
-   function Is_Paused (The_Command : in Command) return Boolean
-   is
-   begin
-      return The_Command.Paused;
-   end Is_Paused;
 
 
 

@@ -40,7 +40,7 @@ is
    procedure Start (The_Command   : in out Command;
                     Input         : in     Data    := No_Data;
                     Accepts_Input : in     Boolean := False;
-                    Pipeline      : in     Boolean := False) is abstract;
+                    Pipeline      : in     Boolean := False);
 
    procedure Send  (To    : in Command;
                     Input : in Data) is abstract;
@@ -59,7 +59,12 @@ is
                   Raise_Error  : in     Boolean := False) return Command_Results;
 
 
-   type State is (Not_Started, Running, Paused, Normal_Exit, Interrupted, Killed);
+   type State is (Not_Started,
+                  Running,
+                  Paused,
+                  Normal_Exit,
+                  Failed_Exit,
+                  Killed);
 
    function  Status         (The_Command : in out Command) return State;
 
@@ -67,11 +72,10 @@ is
    function  Has_Terminated (The_Command : in out Command) return Boolean is abstract;
    function  Normal_Exit    (The_Command : in     Command) return Boolean is abstract;
 
-   procedure Kill      (The_Command : in     Command) is abstract;
+   procedure Kill      (The_Command : in out Command);
    procedure Interrupt (The_Command : in     Command) is abstract;
-   procedure Pause     (The_Command : in out Command) is abstract;
-   procedure Resume    (The_Command : in out Command) is abstract;
-   function  Is_Paused (The_Command : in     Command) return Boolean;
+   procedure Pause     (The_Command : in out Command);
+   procedure Resume    (The_Command : in out Command);
 
 
 
@@ -96,8 +100,7 @@ private
          Output     : Data_Vector;
          Errors     : Data_Vector;
 
-         Paused     : Boolean := False;
-         Status     : State   := Not_Started;
+         Status     : State := Not_Started;
       end record;
 
    overriding

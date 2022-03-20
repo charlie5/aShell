@@ -163,6 +163,8 @@ is
                     Pipeline      : in     Boolean := False)
    is
    begin
+      Commands.Command (The_Command).Start (Input, Accepts_Input, Pipeline);
+
       if   Input /= No_Data
         or Accepts_Input
       then
@@ -283,12 +285,12 @@ is
 
       loop
          Gather_Results (The_Command);   -- Gather on-going results.
-         exit when Has_Terminated (The_Command.Process);
+         exit when The_Command.Has_Terminated;
       end loop;
 
       Gather_Results (The_Command);      -- Gather any final results.
 
-      if not Normal_Exit (The_Command.Process)
+      if not The_Command.Normal_Exit
          and Raise_Error
       then
          declare
@@ -477,6 +479,11 @@ is
    is
    begin
       Wait_On (The_Command.Process);
+
+      if not The_Command.Has_Terminated
+      then
+         raise Command_Error with "Command has not terminated after being waited on.";
+      end if;
    end Wait_On;
 
 
@@ -485,7 +492,34 @@ is
    function Has_Terminated (The_Command : in out Command) return Boolean
    is
    begin
-      return Has_Terminated (The_Command.Process);
+      case The_Command.Status
+      is
+         when Not_Started =>
+            return False;
+
+         when Running
+            | Paused =>
+            declare
+               Is_Terminated : constant Boolean := Has_Terminated (The_Command.Process);
+            begin
+               if Is_Terminated
+               then
+                  if The_Command.Normal_Exit
+                  then
+                     The_Command.Status := Normal_Exit;
+                  else
+                     The_Command.Status := Failed_Exit;
+                  end if;
+               end if;
+
+               return Is_Terminated;
+            end;
+
+         when Normal_Exit
+            | Failed_Exit
+            | Killed =>
+            return True;
+      end case;
    end Has_Terminated;
 
 
@@ -500,9 +534,10 @@ is
 
 
    overriding
-   procedure Kill (The_Command : in Command)
+   procedure Kill (The_Command : in out Command)
    is
    begin
+      Commands.Command (The_Command).Kill;
       Kill (The_Command.Process);
    end Kill;
 
@@ -521,8 +556,8 @@ is
    procedure Pause (The_Command : in out Command)
    is
    begin
-      Pause (The_Command.Process);
-      The_Command.Paused := True;
+      Commands.Command (The_Command).Pause;
+      Pause            (The_Command.Process);
    end Pause;
 
 
@@ -531,18 +566,9 @@ is
    procedure Resume (The_Command : in out Command)
    is
    begin
-      Resume (The_Command.Process);
-      The_Command.Paused := False;
+      Commands.Command (The_Command).Resume;
+      Resume           (The_Command.Process);
    end Resume;
-
-
-
-   overriding
-   function Is_Paused (The_Command : in Command) return Boolean
-   is
-   begin
-      return The_Command.Paused;
-   end Is_Paused;
 
 
 

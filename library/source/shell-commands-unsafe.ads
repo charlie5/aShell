@@ -96,15 +96,13 @@ is
    function  Normal_Exit    (The_Command : in     Command) return Boolean;
 
    overriding
-   procedure Kill      (The_Command : in     Command);
+   procedure Kill      (The_Command : in out Command);
    overriding
    procedure Interrupt (The_Command : in     Command);
    overriding
    procedure Pause     (The_Command : in out Command);
    overriding
    procedure Resume    (The_Command : in out Command);
-   overriding
-   function  Is_Paused (The_Command : in     Command) return Boolean;
 
 
 

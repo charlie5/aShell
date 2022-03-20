@@ -483,6 +483,8 @@ is
                     Pipeline      : in     Boolean := False)
    is
    begin
+      Commands.Command (The_Command).Start (Input, Accepts_Input, Pipeline);
+
       Spawn_Client.Add (The_Command,
                         Input,
                         Accepts_Input,
@@ -754,6 +756,7 @@ is
    procedure Kill (The_Command : in Command)
    is
    begin
+      Commands.Command (The_Command).Kill;
       Spawn_Client.Kill (The_Command);
    end Kill;
 
@@ -772,8 +775,8 @@ is
    procedure Pause (The_Command : in out Command)
    is
    begin
+      Commands.Command   (The_Command).Pause;
       Spawn_Client.Pause (The_Command);
-      The_Command.Paused := True;
    end Pause;
 
 
@@ -782,8 +785,8 @@ is
    procedure Resume (The_Command : in out Command)
    is
    begin
+      Commands.Command    (The_Command).Resume;
       Spawn_Client.Resume (The_Command);
-      The_Command.Paused := False;
    end Resume;
 
 
