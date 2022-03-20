@@ -161,7 +161,7 @@ begin
                      Log ("Kill action.");
 
                      declare
-                        The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
+                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Kill;
                         Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
