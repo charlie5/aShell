@@ -738,6 +738,11 @@ is
    procedure Pause (The_Command : in out Command)
    is
    begin
+      if The_Command.Status /= Running
+      then
+         raise Command_Error with "Cannot pause '" & (+The_Command.Name) & "' as it is not running.";
+      end if;
+
       The_Command.Status := Paused;
    end Pause;
 
