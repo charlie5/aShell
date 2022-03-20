@@ -56,3 +56,4 @@ test_command_input
 test_max_processes
 test_max_pipes
 test_unsafe_command_input
+test_unsafe_command_status
