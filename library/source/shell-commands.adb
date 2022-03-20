@@ -751,6 +751,11 @@ is
    procedure Resume (The_Command : in out Command)
    is
    begin
+      if The_Command.Status /= Paused
+      then
+         raise Command_Error with "Cannot resume '" & (+The_Command.Name) & "' as it is not paused.";
+      end if;
+
       The_Command.Status := Running;
    end Resume;
 
