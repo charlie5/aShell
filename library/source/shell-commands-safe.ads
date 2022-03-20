@@ -86,7 +86,7 @@ is
 
 
    overriding
-   procedure Kill      (The_Command : in     Command);
+   procedure Kill      (The_Command : in out Command);
 
    overriding
    procedure Interrupt (The_Command : in     Command);

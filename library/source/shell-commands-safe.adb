@@ -753,7 +753,7 @@ is
 
 
    overriding
-   procedure Kill (The_Command : in Command)
+   procedure Kill (The_Command : in out Command)
    is
    begin
       Commands.Command (The_Command).Kill;
