@@ -764,7 +764,22 @@ is
    procedure Kill (The_Command : in out Command)
    is
    begin
-      The_Command.Status := Killed;
+      case The_Command.Status
+      is
+         when Not_Started =>
+            raise Command_Error with "Cannot kill '" & (+The_Command.Name) & "' as it is not started.";
+
+         when Running
+            | Paused =>
+            The_Command.Status := Killed;
+
+         when Normal_Exit
+            | Failed_Exit =>
+            raise Command_Error with "Cannot kill '" & (+The_Command.Name) & "' as it has exited.";
+
+         when Killed =>
+            raise Command_Error with "Cannot kill '" & (+The_Command.Name) & "' as it is already killed.";
+      end case;
    end Kill;
 
 
