@@ -33,7 +33,7 @@ begin
       Run (The_Command, Raise_Error => True);
 
    exception
-      when Command_Error =>
+      when Shell.Commands.Command_Error =>
          Put_Line ("Command failed and raised an exception, as expected.");
          Put_Line ("Failed command was '" & The_Command.Name & "'.");
    end;

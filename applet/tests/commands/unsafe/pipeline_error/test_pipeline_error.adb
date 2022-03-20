@@ -47,7 +47,7 @@ begin
       Run (Commands, Raise_Error => True);
 
    exception
-      when Command_Error =>
+      when Shell.Commands.Command_Error =>
          declare
             use Shell.Commands;
 
