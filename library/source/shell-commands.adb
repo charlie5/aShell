@@ -725,6 +725,11 @@ is
                     Pipeline      : in     Boolean := False)
    is
    begin
+      if The_Command.Status /= Not_Started
+      then
+         raise Command_Error with "Cannot start '" & (+The_Command.Name) & "' as it is already started.";
+      end if;
+
       The_Command.Status := Running;
    end Start;
 
