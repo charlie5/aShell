@@ -165,6 +165,7 @@ begin
                      begin
                         The_Command.Kill;
                         Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                        Command_Map.Replace (Action.Id, The_Command);
                      end;
 
                   when Interrupt =>
@@ -175,6 +176,7 @@ begin
                      begin
                         The_Command.Interrupt;
                         Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                        Command_Map.Replace (Action.Id, The_Command);
                      end;
 
                   when Pause =>
@@ -185,6 +187,7 @@ begin
                      begin
                         The_Command.Pause;
                         Log ("Paused Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                        Command_Map.Replace (Action.Id, The_Command);
                      end;
 
                   when Resume =>
@@ -195,6 +198,7 @@ begin
                      begin
                         The_Command.Resume;
                         Log ("Resumes Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                        Command_Map.Replace (Action.Id, The_Command);
                      end;
 
                   when Stop =>
@@ -207,6 +211,7 @@ begin
                      begin
                         Stop (The_Command);
                         Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                        Command_Map.Replace (Action.Id, The_Command);
                      end;
 
                   when Shutdown =>
