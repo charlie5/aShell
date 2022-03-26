@@ -89,6 +89,19 @@ is
    type Process       is private;
    type Process_Array is array (Positive range <>) of Process;
 
+   type Process_State is (Not_Started,
+                          Running,
+                          Paused,
+                          Normal_Exit,
+                          Failed_Exit,
+                          Interrupted,
+                          Killed);
+
+   subtype  Terminated is Process_State range Normal_Exit .. Killed;
+
+   function Status (Process : in out Shell.Process) return Process_State;
+
+
    -- For 'Start', when pipeline is true, closing the write ends of any
    -- non-standard 'Output' and 'Errors' pipes becomes the callers responsibility.
    -- A 'Process_Error' is raised if 'Start' fails.
@@ -111,16 +124,18 @@ is
                    Errors            : in Pipe    := Standard_Error;
                    Pipeline          : in Boolean := False) return Process;
 
+   -- TODO: Make a 'Start' procedure.
+
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
    function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
 
-   function  Image     (Process : in Shell.Process) return String;
+   function  Image     (Process : in     Shell.Process) return String;
 
-   procedure Kill      (Process : in Shell.Process);
-   procedure Interrupt (Process : in Shell.Process);
-   procedure Pause     (Process : in Shell.Process);
-   procedure Resume    (Process : in Shell.Process);
+   procedure Kill      (Process : in out Shell.Process);
+   procedure Interrupt (Process : in     Shell.Process);
+   procedure Pause     (Process : in out Shell.Process);
+   procedure Resume    (Process : in out Shell.Process);
 
 
    --- Logging
@@ -195,8 +210,9 @@ private
 
    type Process is
       record
-         Id     : Process_ID := Null_Process_ID;
+         Id     : Process_ID    := Null_Process_ID;
          Status : POSIX.Process_Primitives.Termination_Status;
+         State  : Process_State := Not_Started;
       end record;
 
 

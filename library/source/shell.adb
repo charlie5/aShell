@@ -9,8 +9,10 @@ with
      Ada.Strings.Fixed,
      Ada.Exceptions,
      Ada.IO_Exceptions,
-     Ada.Unchecked_Conversion,
-     Ada.Text_IO;
+     Ada.Unchecked_Conversion;
+
+with Ada.Text_IO;
+--  use  Ada.Text_IO;
 
 
 package body Shell
@@ -306,6 +308,134 @@ is
    --- Processes
    --
 
+   procedure Update_Status (Process : in out Shell.Process)
+   is
+      use POSIX.Process_Primitives;
+          --  Ada.Exceptions;
+
+      POSIX_Status : POSIX.Process_Primitives.Termination_Status;
+
+   begin
+      Wait_For_Child_Process (Status => POSIX_Status,
+                              Child  => Process.Id,
+                              Block  => False);
+
+      if Status_Available (POSIX_Status)     -- A state change has occurred.
+      then
+         Process.Status := POSIX_Status;
+
+         declare
+            Cause : constant Termination_Cause := Termination_Cause_Of (POSIX_Status);
+         begin
+            case Process.State
+            is
+            when Not_Started =>
+               raise Program_Error with "Shell.Update_Status: Status is available for unstarted process.";
+
+
+            when Running =>
+               case Cause
+               is
+                  when Exited =>
+                     if Exit_Status_Of (POSIX_Status) = POSIX.Process_Primitives.Normal_Exit
+                     then
+                        Process.State := Normal_Exit;
+                     else
+                        Process.State := Failed_Exit;
+                     end if;
+
+                  when Terminated_By_Signal =>
+                     declare
+                        use POSIX.Signals;
+                        Signal : constant POSIX.Signals.Signal := Termination_Signal_Of (POSIX_Status);
+                     begin
+                        if    Signal = Signal_Interrupt then Process.State := Interrupted;
+                        elsif Signal = Signal_Kill      then Process.State := Killed;
+                        else
+                           raise Program_Error with "Shell.Update_Status: Unhandled termination signal (" & Signal'Image & ") while running.";
+                        end if;
+                     end;
+
+                  when Stopped_By_Signal =>
+                     declare
+                        use POSIX.Signals;
+                        Signal : constant POSIX.Signals.Signal := Stopping_Signal_Of (POSIX_Status);
+                     begin
+                        if Signal = Signal_Stop
+                        then
+                           Process.State := Paused;
+                        else
+                           raise Program_Error with "Shell.Update_Status: Unhandled stopping signal (" & Signal'Image & ") while running.";
+                        end if;
+                     end;
+               end case;
+
+
+            when Paused =>
+               case Cause
+               is
+                  when Exited =>
+                     raise Program_Error with "Shell.Update_Status: Paused process has exited.";
+
+                  when Terminated_By_Signal =>
+                     declare
+                        use POSIX.Signals;
+                        Signal : constant POSIX.Signals.Signal := Termination_Signal_Of (POSIX_Status);
+                     begin
+                        if    Signal = Signal_Interrupt then Process.State := Interrupted;
+                        elsif Signal = Signal_Kill      then Process.State := Killed;
+                        else
+                           raise Program_Error with "Shell.Update_Status: Unhandled termination signal (" & Signal'Image &") while paused.";
+                        end if;
+                     end;
+
+                  when Stopped_By_Signal =>
+                     declare
+                        use POSIX.Signals;
+                        Signal : constant POSIX.Signals.Signal := Stopping_Signal_Of (POSIX_Status);
+                     begin
+                        raise Program_Error with "Shell.Update_Status: Unhandled stopping signal (" & Signal'Image &") while paused.";
+                     end;
+               end case;
+
+            -- The following cases should never occur.
+            --
+            when Normal_Exit =>
+               raise Program_Error with "Shell.Update_Status: Process has already exited normally.";
+
+
+            when Failed_Exit =>
+               raise Program_Error with "Shell.Update_Status: Process has already exited due to failure.";
+
+
+            when Interrupted =>
+               raise Program_Error with "Shell.Update_Status: Process has already been interrupted.";
+
+
+            when Killed =>
+               raise Program_Error with "Shell.Update_Status: Process has already been killed.";
+            end case;
+         end;
+
+         --  Put_Line ("State changed to " & Image (Process));
+      end if;
+   end Update_Status;
+
+
+
+   function Status (Process : in out Shell.Process) return Process_State
+   is
+   begin
+      if Process.State not in Terminated
+      then
+         Update_Status (Process);
+      end if;
+
+      return Process.State;
+   end Status;
+
+
+
    function Start (Program           : in String;
                    Arguments         : in String_Array := Nil_Strings;
                    Working_Directory : in String       := ".";
@@ -416,7 +546,8 @@ is
          end if;
       end if;
 
-      The_Process.Id := The_Process_Id;
+      The_Process.Id    := The_Process_Id;
+      The_Process.State := Running;
       return The_Process;
    end Start;
 
@@ -457,11 +588,17 @@ is
 
    procedure Wait_On (Process : in out Shell.Process)
    is
-      use POSIX.Process_Primitives;
+      --  use POSIX.Process_Primitives;
+      --  POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
-      Wait_For_Child_Process (Status => Process.Status,
-                              Child  => Process.Id,
-                              Block  => True);
+      --  Wait_For_Child_Process (Status => POSIX_Status,
+      --                          Child  => Process.Id,
+      --                          Block  => True);
+
+      while Status (Process) = Running
+      loop
+         delay Duration'Small;
+      end loop;
    end Wait_On;
 
 
@@ -475,7 +612,6 @@ is
       Wait_For_Child_Process (Status => Process.Status,
                               Child  => Process.Id,
                               Block  => False);
-
       return Status_Available (Process.Status);
    exception
       when E : POSIX.POSIX_Error =>
@@ -513,16 +649,24 @@ is
    is
       use POSIX.Process_Identification;
    begin
-      return Image (Process.Id);
+      return
+        Image (Process.Id)
+        & " "
+        & Process.State'Image;
    end Image;
 
 
 
-   procedure Kill (Process : in Shell.Process)
+   procedure Kill (Process : in out Shell.Process)
    is
       use POSIX.Signals;
    begin
       Send_Signal (Process.Id, Signal_Kill);
+
+      while Status (Process) /= Killed
+      loop
+         delay Duration'Small;
+      end loop;
    end Kill;
 
 
@@ -536,20 +680,26 @@ is
 
 
 
-   procedure Pause (Process : in Shell.Process)
+   procedure Pause (Process : in out Shell.Process)
    is
       use POSIX.Signals;
    begin
       Send_Signal (Process.Id, Signal_Stop);
+
+      while Status (Process) /= Paused
+      loop
+         delay Duration'Small;
+      end loop;
    end Pause;
 
 
 
-   procedure Resume (Process : in Shell.Process)
+   procedure Resume (Process : in out Shell.Process)
    is
       use POSIX.Signals;
    begin
       Send_Signal (Process.Id, Signal_Continue);
+      Process.State := Running;
    end Resume;
 
 
