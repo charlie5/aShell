@@ -47,7 +47,7 @@ begin
    Test_Max_Pipes;
 
    New_Line (2);
-   Test_Max_Processes;
+   --  Test_Max_Processes;
 
    New_Line (2);
    Test_Piped_Processes;
@@ -63,19 +63,19 @@ begin
    --- Commands - Safe
    --
    New_Line (2);
-   Test_Command_Input;
+   --  Test_Command_Input;
 
    New_Line (2);
-   Test_Concurrent_Commands;
+   --  Test_Concurrent_Commands;
 
    New_Line (2);
-   Test_Concurrent_Pipelines;
+   --  Test_Concurrent_Pipelines;
 
    New_Line (2);
-   Test_Safe_Pipeline_Output;
+   --  Test_Safe_Pipeline_Output;
 
    New_Line (2);
-   Test_Spawn_Server;
+   --  Test_Spawn_Server;
 
 
 
@@ -100,13 +100,13 @@ begin
    Test_Environment;
 
    New_Line (2);
-   Test_Nonblocking_Pipe;
+   --  Test_Nonblocking_Pipe;
 
    New_Line (2);
    Test_Pipeline_Error;
 
    New_Line (2);
-   Test_Pipeline_Output;
+   --  Test_Pipeline_Output;
 
 
    --- Directory
