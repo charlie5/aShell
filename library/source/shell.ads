@@ -108,6 +108,7 @@ is
 
    Process_Error            : exception;
    Too_Many_Processes_Error : exception;
+   Process_Already_Started  : exception;
 
    function  Start (Program           : in String;
                     Arguments         : in String_Array := Nil_Strings;
@@ -124,14 +125,14 @@ is
                     Errors            : in Pipe    := Standard_Error;
                     Pipeline          : in Boolean := False) return Process;
 
-   procedure Start (Program           : in  String;
-                    Arguments         : in  String_Array := Nil_Strings;
-                    Working_Directory : in  String       := ".";
-                    Input             : in  Pipe         := Standard_Input;
-                    Output            : in  Pipe         := Standard_Output;
-                    Errors            : in  Pipe         := Standard_Error;
-                    Pipeline          : in  Boolean      := False;
-                    Process           : out Shell.Process);
+   procedure Start (Program           : in     String;
+                    Arguments         : in     String_Array := Nil_Strings;
+                    Working_Directory : in     String       := ".";
+                    Input             : in     Pipe         := Standard_Input;
+                    Output            : in     Pipe         := Standard_Output;
+                    Errors            : in     Pipe         := Standard_Error;
+                    Pipeline          : in     Boolean      := False;
+                    Process           : in out Shell.Process);
 
 
    procedure Wait_On        (Process : in out Shell.Process);

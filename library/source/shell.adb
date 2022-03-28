@@ -586,16 +586,21 @@ is
 
 
 
-   procedure Start (Program           : in  String;
-                    Arguments         : in  String_Array := Nil_Strings;
-                    Working_Directory : in  String       := ".";
-                    Input             : in  Pipe         := Standard_Input;
-                    Output            : in  Pipe         := Standard_Output;
-                    Errors            : in  Pipe         := Standard_Error;
-                    Pipeline          : in  Boolean      := False;
-                    Process           : out Shell.Process)
+   procedure Start (Program           : in     String;
+                    Arguments         : in     String_Array := Nil_Strings;
+                    Working_Directory : in     String       := ".";
+                    Input             : in     Pipe         := Standard_Input;
+                    Output            : in     Pipe         := Standard_Output;
+                    Errors            : in     Pipe         := Standard_Error;
+                    Pipeline          : in     Boolean      := False;
+                    Process           : in out Shell.Process)
    is
    begin
+      if Process.State /= Not_Started
+      then
+         raise Process_Already_Started;
+      end if;
+
       Process := Start (Program, Arguments, Working_Directory, Input, Output, Errors, Pipeline);
    end Start;
 
