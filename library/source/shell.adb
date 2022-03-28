@@ -426,7 +426,7 @@ is
    function Status (Process : in out Shell.Process) return Process_State
    is
    begin
-      if Process.State not in Terminated
+      if Process.State not in Not_Started | Terminated
       then
          Update_Status (Process);
       end if;
