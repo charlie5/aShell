@@ -146,6 +146,9 @@ is
    procedure Pause     (Process : in out Shell.Process);
    procedure Resume    (Process : in out Shell.Process);
 
+   Process_Already_Paused : exception;
+   Process_Not_Started    : exception;
+   Process_Has_Terminated : exception;
 
    --- Logging
    --

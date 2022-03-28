@@ -704,12 +704,30 @@ is
    is
       use POSIX.Signals;
    begin
-      Send_Signal (Process.Id, Signal_Stop);
+      case Process.State
+      is
+         when Not_Started =>
+            raise Process_Not_Started;
 
-      while Status (Process) /= Paused
-      loop
-         delay Duration'Small;
-      end loop;
+         when Running =>
+            Send_Signal (Process.Id, Signal_Stop);
+
+            while Status (Process) /= Paused
+            loop
+               delay Duration'Small;
+            end loop;
+
+         when Paused =>
+            raise Process_Already_Paused;
+
+         when Normal_Exit
+            | Failed_Exit
+            | Interrupted
+            | Killed =>
+            raise Process_Has_Terminated with "Status => " & Process.State'Image;
+
+      end case;
+
    end Pause;
 
 
