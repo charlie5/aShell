@@ -109,22 +109,30 @@ is
    Process_Error            : exception;
    Too_Many_Processes_Error : exception;
 
-   function Start (Program           : in String;
-                   Arguments         : in String_Array := Nil_Strings;
-                   Working_Directory : in String       := ".";
-                   Input             : in Pipe         := Standard_Input;
-                   Output            : in Pipe         := Standard_Output;
-                   Errors            : in Pipe         := Standard_Error;
-                   Pipeline          : in Boolean      := False) return Process;
+   function  Start (Program           : in String;
+                    Arguments         : in String_Array := Nil_Strings;
+                    Working_Directory : in String       := ".";
+                    Input             : in Pipe         := Standard_Input;
+                    Output            : in Pipe         := Standard_Output;
+                    Errors            : in Pipe         := Standard_Error;
+                    Pipeline          : in Boolean      := False) return Process;
 
-   function Start (Command           : in String;
-                   Working_Directory : in String  := ".";
-                   Input             : in Pipe    := Standard_Input;
-                   Output            : in Pipe    := Standard_Output;
-                   Errors            : in Pipe    := Standard_Error;
-                   Pipeline          : in Boolean := False) return Process;
+   function  Start (Command           : in String;
+                    Working_Directory : in String  := ".";
+                    Input             : in Pipe    := Standard_Input;
+                    Output            : in Pipe    := Standard_Output;
+                    Errors            : in Pipe    := Standard_Error;
+                    Pipeline          : in Boolean := False) return Process;
 
-   -- TODO: Make a 'Start' procedure.
+   procedure Start (Program           : in  String;
+                    Arguments         : in  String_Array := Nil_Strings;
+                    Working_Directory : in  String       := ".";
+                    Input             : in  Pipe         := Standard_Input;
+                    Output            : in  Pipe         := Standard_Output;
+                    Errors            : in  Pipe         := Standard_Error;
+                    Pipeline          : in  Boolean      := False;
+                    Process           : out Shell.Process);
+
 
    procedure Wait_On        (Process : in out Shell.Process);
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;
