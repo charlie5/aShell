@@ -68,9 +68,15 @@ is
    function  Output_Of (Pipe : in Shell.Pipe)       return Data;   -- Returns available output from the 'read end'.
    procedure Write_To  (Pipe : in Shell.Pipe;   Input : in Data);
 
+
+   Pipe_Error : exception;
+
    procedure Close (Pipe           : in Shell.Pipe;
                     Only_Write_End : in Boolean := False;
                     Only_Read_End  : in Boolean := False);
+   --
+   -- Only_Write_End and Only_Read_End are mutually exclusive.
+   -- Pipe_Error is raised when both are set to True.
 
    procedure Close_Write_End (Pipe : in Shell.Pipe);
    function  Close_Write_End (Pipe : in Shell.Pipe) return Boolean;

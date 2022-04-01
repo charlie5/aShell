@@ -144,14 +144,14 @@ is
       if    Only_Write_End
         and Only_Read_End
       then
-         raise Program_Error with "Closing pipe: 'Only_Write_End' and 'Only_Read_End' options are mutually exclusive";
+         raise Pipe_Error with "When closing a pipe, the 'Only_Write_End' and 'Only_Read_End' options are mutually exclusive.";
       end if;
 
       if    Pipe /= Standard_Input
         and Pipe /= Standard_Output
         and Pipe /= Standard_Error
       then
-         Safe_Pipes.Close (Pipe, Only_Write_End, Only_Read_End);
+         Safe_Pipes.Close (Pipe, Only_Write_End, Only_Read_End);     -- TODO: Should 'write end' and 'read end' be set to Null_File_Descriptor when closed ?
       end if;
 
    end Close;
