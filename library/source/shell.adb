@@ -122,12 +122,25 @@ is
 
 
 
+   procedure Check_Not_Null (Pipe : in Shell.Pipe)
+   is
+   begin
+      if Pipe = Null_Pipe
+      then
+         raise Null_Pipe_Error;
+      end if;
+   end Check_Not_Null;
+
+
+
    procedure Close (Pipe           : in Shell.Pipe;
                     Only_Write_End : in Boolean := False;
                     Only_Read_End  : in Boolean := False)
    is
       use POSIX.IO;
    begin
+      Check_Not_Null (Pipe);
+
       if    Only_Write_End
         and Only_Read_End
       then
@@ -148,6 +161,8 @@ is
    function Image (Pipe : in Shell.Pipe) return String
    is
    begin
+      Check_Not_Null (Pipe);
+
       return "(Write_End =>"
            & Pipe.Write_End'Image
            & ", Read_End =>"
@@ -161,6 +176,7 @@ is
    is
       use POSIX.IO;
    begin
+      Check_Not_Null (Pipe);
       return Is_Open (Pipe.Read_End);
    end Is_Readable;
 
@@ -170,6 +186,7 @@ is
    is
       use POSIX.IO;
    begin
+      Check_Not_Null (Pipe);
       return Is_Open (Pipe.Write_End);
    end Is_Writeable;
 
@@ -185,6 +202,8 @@ is
       FDS_E : File_Descriptor_Set;
       Count : Natural;
    begin
+      Check_Not_Null (Pipe);
+
       Make_Empty (FDS_R);
       Make_Empty (FDS_W);
       Make_Empty (FDS_E);
@@ -237,6 +256,8 @@ is
    procedure Write_To (Pipe : in Shell.Pipe;   Input : in Data)
    is
    begin
+      Check_Not_Null (Pipe);
+
       if Input'Length > 0
       then
          declare
@@ -253,6 +274,7 @@ is
    procedure Close_Write_End (Pipe : in Shell.Pipe)
    is
    begin
+      Check_Not_Null   (Pipe);
       Safe_Pipes.Close (Pipe, Only_Write_End => True);
    end Close_Write_End;
 
@@ -261,6 +283,7 @@ is
    function Close_Write_End (Pipe : in Shell.Pipe) return Boolean
    is
    begin
+      Check_Not_Null   (Pipe);
       Safe_Pipes.Close (Pipe, Only_Write_End => True);
       return True;
    end Close_Write_End;
@@ -273,6 +296,7 @@ is
    function Stream (Pipe : in Shell.Pipe) return Pipe_Stream
    is
    begin
+      Check_Not_Null (Pipe);
       return (Root_Stream_Type with Pipe => Pipe);
    end Stream;
 

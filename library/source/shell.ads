@@ -51,6 +51,7 @@ is
    type Pipe is private;
 
    Too_Many_Pipes_Error : exception;
+   Null_Pipe_Error      : exception;
 
    function  To_Pipe (Blocking : in Boolean := True) return Pipe;
 
