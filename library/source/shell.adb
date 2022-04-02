@@ -161,7 +161,10 @@ is
    function Image (Pipe : in Shell.Pipe) return String
    is
    begin
-      Check_Not_Null (Pipe);
+      if Pipe = Null_Pipe
+      then
+         return "Null_Pipe";
+      end if;
 
       return "(Write_End =>"
            & Pipe.Write_End'Image
