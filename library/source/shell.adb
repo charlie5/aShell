@@ -166,6 +166,21 @@ is
          return "Null_Pipe";
       end if;
 
+      if Pipe = Standard_Input
+      then
+         return "Standard_Input";
+      end if;
+
+      if Pipe = Standard_Output
+      then
+         return "Standard_Output";
+      end if;
+
+      if Pipe = Standard_Error
+      then
+         return "Standard_Error";
+      end if;
+
       return "(Write_End =>"
            & Pipe.Write_End'Image
            & ", Read_End =>"
