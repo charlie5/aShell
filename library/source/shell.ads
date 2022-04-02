@@ -65,8 +65,8 @@ is
    No_Output_Error   : exception;
    Pipe_Not_Readable : exception;
 
-   function  Output_Of (Pipe : in Shell.Pipe)       return Data;   -- Returns available output from the 'read end'.
    procedure Write_To  (Pipe : in Shell.Pipe;   Input : in Data);
+   function  Output_Of (Pipe : in Shell.Pipe)       return Data;   -- Returns available output from the 'read end'.
 
 
    Pipe_Error : exception;
