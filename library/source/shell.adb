@@ -628,14 +628,14 @@ is
 
 
 
-   procedure Start (Program           : in     String;
+   procedure Start (Process           : in out Shell.Process;
+                    Program           : in     String;
                     Arguments         : in     String_Array := Nil_Strings;
                     Working_Directory : in     String       := ".";
                     Input             : in     Pipe         := Standard_Input;
                     Output            : in     Pipe         := Standard_Output;
                     Errors            : in     Pipe         := Standard_Error;
-                    Pipeline          : in     Boolean      := False;
-                    Process           : in out Shell.Process)
+                    Pipeline          : in     Boolean      := False)
    is
    begin
       if Process.State /= Not_Started
