@@ -118,12 +118,12 @@ is
    Process_Already_Started  : exception;
 
    function  Start (Program           : in String;
-                    Arguments         : in String_Array := Nil_Strings;
-                    Working_Directory : in String       := ".";
-                    Input             : in Pipe         := Standard_Input;
-                    Output            : in Pipe         := Standard_Output;
-                    Errors            : in Pipe         := Standard_Error;
-                    Pipeline          : in Boolean      := False) return Process;
+                    Arguments         : in String_Array;
+                    Working_Directory : in String  := ".";
+                    Input             : in Pipe    := Standard_Input;
+                    Output            : in Pipe    := Standard_Output;
+                    Errors            : in Pipe    := Standard_Error;
+                    Pipeline          : in Boolean := False) return Process;
 
    function  Start (Command           : in String;
                     Working_Directory : in String  := ".";
@@ -134,12 +134,20 @@ is
 
    procedure Start (Process           : in out Shell.Process;
                     Program           : in     String;
-                    Arguments         : in     String_Array := Nil_Strings;
-                    Working_Directory : in     String       := ".";
-                    Input             : in     Pipe         := Standard_Input;
-                    Output            : in     Pipe         := Standard_Output;
-                    Errors            : in     Pipe         := Standard_Error;
-                    Pipeline          : in     Boolean      := False);
+                    Arguments         : in     String_Array;
+                    Working_Directory : in     String  := ".";
+                    Input             : in     Pipe    := Standard_Input;
+                    Output            : in     Pipe    := Standard_Output;
+                    Errors            : in     Pipe    := Standard_Error;
+                    Pipeline          : in     Boolean := False);
+
+   procedure Start (Process           : in out Shell.Process;
+                    Command           : in     String;
+                    Working_Directory : in     String  := ".";
+                    Input             : in     Pipe    := Standard_Input;
+                    Output            : in     Pipe    := Standard_Output;
+                    Errors            : in     Pipe    := Standard_Error;
+                    Pipeline          : in     Boolean := False);
 
 
    procedure Wait_On        (Process : in out Shell.Process);

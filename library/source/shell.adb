@@ -479,12 +479,12 @@ is
 
 
    function Start (Program           : in String;
-                   Arguments         : in String_Array := Nil_Strings;
-                   Working_Directory : in String       := ".";
-                   Input             : in Pipe         := Standard_Input;
-                   Output            : in Pipe         := Standard_Output;
-                   Errors            : in Pipe         := Standard_Error;
-                   Pipeline          : in Boolean      := False) return Process
+                   Arguments         : in String_Array;
+                   Working_Directory : in String  := ".";
+                   Input             : in Pipe    := Standard_Input;
+                   Output            : in Pipe    := Standard_Output;
+                   Errors            : in Pipe    := Standard_Error;
+                   Pipeline          : in Boolean := False) return Process
    is
       use POSIX,
           POSIX.Process_Primitives,
@@ -630,12 +630,12 @@ is
 
    procedure Start (Process           : in out Shell.Process;
                     Program           : in     String;
-                    Arguments         : in     String_Array := Nil_Strings;
-                    Working_Directory : in     String       := ".";
-                    Input             : in     Pipe         := Standard_Input;
-                    Output            : in     Pipe         := Standard_Output;
-                    Errors            : in     Pipe         := Standard_Error;
-                    Pipeline          : in     Boolean      := False)
+                    Arguments         : in     String_Array;
+                    Working_Directory : in     String  := ".";
+                    Input             : in     Pipe    := Standard_Input;
+                    Output            : in     Pipe    := Standard_Output;
+                    Errors            : in     Pipe    := Standard_Error;
+                    Pipeline          : in     Boolean := False)
    is
    begin
       if Process.State /= Not_Started
