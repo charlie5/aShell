@@ -544,7 +544,7 @@ is
 
 
    overriding
-   procedure Interrupt (The_Command : in Command)
+   procedure Interrupt (The_Command : in out Command)
    is
    begin
       Interrupt (The_Command.Process);

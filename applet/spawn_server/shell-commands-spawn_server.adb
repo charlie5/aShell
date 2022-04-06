@@ -172,7 +172,7 @@ begin
                      Log ("Interrupt action.");
 
                      declare
-                        The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
+                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
                         The_Command.Interrupt;
                         Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");

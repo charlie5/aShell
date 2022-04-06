@@ -89,7 +89,7 @@ is
    procedure Kill      (The_Command : in out Command);
 
    overriding
-   procedure Interrupt (The_Command : in     Command);
+   procedure Interrupt (The_Command : in out Command);
 
    overriding
    procedure Pause     (The_Command : in out Command);
