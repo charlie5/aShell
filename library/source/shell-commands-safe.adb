@@ -156,10 +156,11 @@ is
       Spawn_Server : Shell.Process with Unreferenced;
 
    begin
-      Spawn_Server := Start (Program => "ashell_spawn_server",
-                             Input   => Server_In_Pipe,
-                             Output  => Server_Out_Pipe,
-                             Errors  => Server_Err_Pipe);
+      Spawn_Server := Start (Program   => "ashell_spawn_server",
+                             Arguments => Nil_Strings,
+                             Input     => Server_In_Pipe,
+                             Output    => Server_Out_Pipe,
+                             Errors    => Server_Err_Pipe);
 
       Close (Server_In_Pipe,  Only_Read_End  => True);
       Close (Server_Out_Pipe, Only_Write_End => True);
