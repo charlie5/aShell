@@ -157,7 +157,7 @@ is
    function  Image     (Process : in     Shell.Process) return String;
 
    procedure Kill      (Process : in out Shell.Process);
-   procedure Interrupt (Process : in     Shell.Process);
+   procedure Interrupt (Process : in out Shell.Process);
    procedure Pause     (Process : in out Shell.Process);
    procedure Resume    (Process : in out Shell.Process);
 

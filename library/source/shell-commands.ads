@@ -73,7 +73,7 @@ is
    function  Normal_Exit    (The_Command : in     Command) return Boolean is abstract;
 
    procedure Kill      (The_Command : in out Command);
-   procedure Interrupt (The_Command : in     Command) is abstract;
+   procedure Interrupt (The_Command : in out Command) is abstract;
    procedure Pause     (The_Command : in out Command);
    procedure Resume    (The_Command : in out Command);
 

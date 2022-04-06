@@ -733,7 +733,7 @@ is
 
 
 
-   procedure Interrupt (Process : in Shell.Process)
+   procedure Interrupt (Process : in out Shell.Process)
    is
       use POSIX.Signals;
    begin
