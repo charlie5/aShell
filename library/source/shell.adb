@@ -648,6 +648,25 @@ is
 
 
 
+   procedure Start (Process           : in out Shell.Process;
+                    Command           : in     String;
+                    Working_Directory : in     String  := ".";
+                    Input             : in     Pipe    := Standard_Input;
+                    Output            : in     Pipe    := Standard_Output;
+                    Errors            : in     Pipe    := Standard_Error;
+                    Pipeline          : in     Boolean := False)
+   is
+   begin
+      if Process.State /= Not_Started
+      then
+         raise Process_Already_Started;
+      end if;
+
+      Process := Start (Command, Working_Directory, Input, Output, Errors, Pipeline);
+   end Start;
+
+
+
    procedure Wait_On (Process : in out Shell.Process)
    is
       --  use POSIX.Process_Primitives;
