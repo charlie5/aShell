@@ -350,18 +350,11 @@ is
    --- Processes
    --
 
-   procedure Update_Status (Process : in out Shell.Process)
+   procedure Update_Status (Process      : in out Shell.Process;
+                            POSIX_Status : in     POSIX.Process_Primitives.Termination_Status)
    is
       use POSIX.Process_Primitives;
-          --  Ada.Exceptions;
-
-      POSIX_Status : POSIX.Process_Primitives.Termination_Status;
-
    begin
-      Wait_For_Child_Process (Status => POSIX_Status,
-                              Child  => Process.Id,
-                              Block  => False);
-
       if Status_Available (POSIX_Status)     -- A state change has occurred.
       then
          Process.Status := POSIX_Status;
@@ -404,6 +397,7 @@ is
                         Signal : constant POSIX.Signals.Signal := Stopping_Signal_Of (POSIX_Status);
                      begin
                         if Signal = Signal_Stop
+                        --  if Signal = Signal_Terminal_Stop
                         then
                            Process.State := Paused;
                         else
@@ -458,8 +452,6 @@ is
                raise Program_Error with "Shell.Update_Status: Process has already been killed.";
             end case;
          end;
-
-         --  Put_Line ("State changed to " & Image (Process));
       end if;
    end Update_Status;
 
@@ -467,10 +459,17 @@ is
 
    function Status (Process : in out Shell.Process) return Process_State
    is
+      use POSIX.Process_Primitives;
+
+      POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
       if Process.State not in Not_Started | Terminated
       then
-         Update_Status (Process);
+         Wait_For_Child_Process (Status => POSIX_Status,
+                                 Child  => Process.Id,
+                                 Block  => False);
+
+         Update_Status (Process, POSIX_Status);
       end if;
 
       return Process.State;
@@ -669,17 +668,15 @@ is
 
    procedure Wait_On (Process : in out Shell.Process)
    is
-      --  use POSIX.Process_Primitives;
-      --  POSIX_Status : POSIX.Process_Primitives.Termination_Status;
+      use POSIX.Process_Primitives;
+      POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
-      --  Wait_For_Child_Process (Status => POSIX_Status,
-      --                          Child  => Process.Id,
-      --                          Block  => True);
+      Wait_For_Child_Process (Status => POSIX_Status,
+                              Child  => Process.Id,
+                              Block  => True);
 
-      while Status (Process) = Running
-      loop
-         delay Duration'Small;
-      end loop;
+      Update_Status (Process, POSIX_Status);
+
    end Wait_On;
 
 
@@ -757,6 +754,11 @@ is
       use POSIX.Signals;
    begin
       Send_Signal (Process.Id, Signal_Interrupt);
+
+      while Status (Process) /= Interrupted
+      loop
+         delay Duration'Small;
+      end loop;
    end Interrupt;
 
 
