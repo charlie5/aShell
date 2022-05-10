@@ -1,0 +1,13 @@
+with
+     "ashell",
+     "ashell_shared";
+
+project Test_Process_Status
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_process_status.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end Test_Process_Status;
