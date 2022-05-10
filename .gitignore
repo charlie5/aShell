@@ -59,3 +59,7 @@ test_unsafe_command_input
 test_unsafe_command_status
 test_pipes
 test_core
+test_pause_resume
+test_process_status
+test_processes
+test_safe_command_status
