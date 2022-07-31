@@ -338,7 +338,6 @@ is
                     Item   : in     Stream_Element_Array)
    is
       Last : Ada.Streams.Stream_Element_Offset;
-      pragma Unreferenced (Last);
    begin
       POSIX.IO.Write (File   => Stream.Pipe.Write_End,
                       Buffer => Item,
