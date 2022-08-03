@@ -26,6 +26,7 @@ with
      "../commands/unsafe/nonblocking_pipe/test_nonblocking_pipe",
      "../commands/unsafe/pipeline_error/test_pipeline_error",
      "../commands/unsafe/pipeline_output/test_pipeline_output",
+     "../commands/unsafe/unused_command/test_unused_command",
 
      --- Directory
      --

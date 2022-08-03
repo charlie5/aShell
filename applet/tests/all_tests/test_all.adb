@@ -26,6 +26,7 @@ with
      Test_Nonblocking_Pipe,
      Test_Pipeline_Error,
      Test_Pipeline_Output,
+     Test_Unused_Command,
 
      --- Directory
      --
@@ -108,6 +109,8 @@ begin
    New_Line (2);
    --  Test_Pipeline_Output;
 
+   New_Line (2);
+   Test_Unused_Command;
 
    --- Directory
    --
