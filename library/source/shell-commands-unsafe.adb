@@ -601,7 +601,10 @@ is
             Close (The_Command.Output_Pipe);
          end if;
 
-         Close (The_Command.Error_Pipe);
+         if The_Command.Error_Pipe /= Null_Pipe
+         then
+            Close (The_Command.Error_Pipe);
+         end if;
       end if;
 
       Commands.Command (The_Command).Finalize;
