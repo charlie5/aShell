@@ -26,6 +26,7 @@ begin
                                           Pipeline  => True);
 
       Sort_1 : Shell.Process    := Start (Program   => "sort",
+                                          Arguments => Nil_Strings,
                                           Input     => Sort_1_Pipe,
                                           Output    => Uniq_Pipe,
                                           Pipeline  => True);
@@ -46,6 +47,7 @@ begin
       CWE2   : constant Boolean := CWE (Sort_2_Pipe);
 
       Head   : Shell.Process    := Start (Program   => "head",
+                                          Arguments => Nil_Strings,
                                           Input     => Head_Pipe,
                                           Pipeline  => False);
       CWE3   : constant Boolean := CWE (Head_Pipe);
