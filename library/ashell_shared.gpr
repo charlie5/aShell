@@ -7,9 +7,9 @@ is
    -- Scenario Variables
    --
 
-   type Os_Type is
+   type OS_Type is
       ("Windows_NT", "Linux", "MacOSX");
-   Os : Os_Type := external ("OS");
+   OS : OS_Type := external ("OS", "Linux");
 
    type Build_Mode_Type is
       ("debug", "fast", "small");
