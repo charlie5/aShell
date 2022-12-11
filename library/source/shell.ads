@@ -15,6 +15,7 @@ package Shell
 -- Provides processes and pipes.
 --
 is
+   --------
    --- Data
    --
    use Ada.Streams;
@@ -25,6 +26,7 @@ is
    No_Data : constant Data;
 
 
+   -----------
    --- Strings
    --
    type Unbounded_String is new Ada.Strings.Unbounded.Unbounded_String;
@@ -37,8 +39,9 @@ is
    Nil_Strings : constant String_Array;
 
 
+   -------------
    -- Conversion
-
+   --
    function To_String (From : in Data)   return String;
    function To_Data   (From : in String) return Data;
 
@@ -46,6 +49,7 @@ is
    function "+"       (From : in String) return Data   renames To_Data;
 
 
+   ---------
    --- Pipes
    --
    type Pipe is private;
@@ -90,6 +94,7 @@ is
    function  Stream (Pipe : in Shell.Pipe) return Pipe_Stream;
 
 
+   -------------
    --- Processes
    --
 
@@ -114,8 +119,11 @@ is
    -- A 'Process_Error' is raised if 'Start' fails.
 
    Process_Error            : exception;
-   Too_Many_Processes_Error : exception;
    Process_Already_Started  : exception;
+   Process_Already_Paused   : exception;
+   Process_Not_Started      : exception;
+   Process_Has_Terminated   : exception;
+   Too_Many_Processes_Error : exception;
 
    function  Start (Program           : in String;
                     Arguments         : in String_Array;
@@ -161,11 +169,8 @@ is
    procedure Pause     (Process : in out Shell.Process);
    procedure Resume    (Process : in out Shell.Process);
 
-   Process_Already_Paused : exception;
-   Process_Not_Started    : exception;
-   Process_Has_Terminated : exception;
 
-
+   -----------
    --- Logging
    --
 
@@ -190,6 +195,7 @@ private
    subtype String_Vector  is String_Vectors.Vector;
 
 
+   ---------
    --- Pipes
    --
 
@@ -233,6 +239,7 @@ private
    procedure Write (Stream : in out Pipe_Stream;
                     Item   : in     Stream_Element_Array);
 
+   -------------
    --- Processes
    --
 
@@ -244,10 +251,11 @@ private
       end record;
 
 
+   -------------
    --- Debugging
    --
 
    procedure Log (Message : in String);
    function  Log (Message : in String) return Boolean;     -- Allow for logging in a declarative region.
-
+                                                           -- Always returns 'True'.
 end Shell;

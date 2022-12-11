@@ -588,6 +588,7 @@ is
 
       The_Process.Id    := The_Process_Id;
       The_Process.State := Running;
+
       return The_Process;
    end Start;
 
