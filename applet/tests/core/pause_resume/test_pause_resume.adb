@@ -7,8 +7,6 @@ procedure Test_Pause_Resume
 is
    use Ada.Text_IO;
 begin
-   Shell.Open_Log ("my_Log.txt");
-
    Put_Line ("Begin 'Test_Pause_Resume' test.");
    New_Line (2);
 
@@ -42,6 +40,4 @@ begin
    end;
 
    Put_Line ("End 'Test_Pause_Resume' test.");
-
-   shell.Close_Log;
 end Test_Pause_Resume;
