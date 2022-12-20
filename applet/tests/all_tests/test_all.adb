@@ -1,8 +1,6 @@
 with
      --- Core
      --
-     Test_Max_Pipes,
-     Test_Max_Processes,
      Test_Piped_Processes,
      Test_Pipe_Output_To_String,
      Test_Wait_On_Process,
@@ -44,12 +42,6 @@ begin
 
    --- Core
    --
-   New_Line (2);
-   Test_Max_Pipes;
-
-   New_Line (2);
-   --  Test_Max_Processes;
-
    New_Line (2);
    Test_Piped_Processes;
 
@@ -104,7 +96,7 @@ begin
    --  Test_Nonblocking_Pipe;
 
    New_Line (2);
-   Test_Pipeline_Error;
+   --  Test_Pipeline_Error;
 
    New_Line (2);
    --  Test_Pipeline_Output;
@@ -118,7 +110,7 @@ begin
    Test_Iterate_Directory;
 
 
-   Shell.Commands.Safe.Stop_Spawn_Client;
+   --  Shell.Commands.Safe.Stop_Spawn_Client;
 
    New_Line (2);
    Put_Line ("End all tests.");

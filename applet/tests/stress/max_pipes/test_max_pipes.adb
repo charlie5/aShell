@@ -11,7 +11,8 @@ is
    procedure NL  (Count   : in Ada.Text_IO.Positive_Count := 1)
                   renames Ada.Text_IO.New_Line;
 
-   Max_Pipes : constant Natural := POSIX.Configurable_System_Limits.Open_Files_Maximum;
+   Max_Pipes : constant Natural :=   POSIX.Configurable_System_Limits.Open_Files_Maximum / 2     -- Two files per pipe (read_end and write_end).
+                                   - 2;                                                          -- Two files allocated to the main process.
 
    Pipes     : array (1 .. Max_Pipes) of Shell.Pipe;
    Count     : Natural := 0;

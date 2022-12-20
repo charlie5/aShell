@@ -1,8 +1,6 @@
 with
      --- Core
      --
-     "../core/max_pipes/test_max_pipes",
-     "../core/max_processes/test_max_processes",
      "../core/piped_processes/test_piped_processes",
      "../core/pipe_output_to_string/test_pipe_output_to_string",
      "../core/wait_on_process/test_wait_on_process",

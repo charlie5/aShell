@@ -6,10 +6,8 @@ with
 
 procedure Test_Max_Processes
 is
-   procedure Log (Message : in String)
-                  renames Ada.Text_IO.Put_Line;
-   procedure NL  (Count   : in Ada.Text_IO.Positive_Count := 1)
-                  renames Ada.Text_IO.New_Line;
+   procedure Log (Message : in String)                          renames Ada.Text_IO.Put_Line;
+   procedure NL  (Count   : in Ada.Text_IO.Positive_Count := 1) renames Ada.Text_IO.New_Line;
 
    Max_Child_Processes : constant Natural := POSIX.Configurable_System_Limits.Child_Processes_Maximum;
 
@@ -39,6 +37,9 @@ begin
       begin
          Count             := Count + 1;
          Processes (Count) := Sleep;
+
+         Ada.Text_IO.Put_Line ("Count:" & Count'Image);
+
          exit when Count = Processes'Last;
       end;
    end loop;
@@ -46,12 +47,18 @@ begin
    Log ("All" & Processes'Length'Image & " processes started successfuly.");
    Kill_All;
    NL;
+   Log ("End max processes test.");
+   NL;
 
 exception
    when Shell.Too_Many_Processes_Error =>
       Kill_All;
 
+      Log ("Too many processes error." & Max_Child_Processes'Image);
+      NL;
+      Log ("Child processes maximum:" & Max_Child_Processes'Image);
       Log ("Started" & Count'Image & " processes.");
+      NL;
       Log ("End max processes test.");
       NL;
 
