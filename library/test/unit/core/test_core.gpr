@@ -1,7 +1,7 @@
 with
      "pipe/test_pipes",
      "process/test_processes",
-     "ashell_shared";
+     "../../../ashell_shared";
 
 project Test_Core
 is

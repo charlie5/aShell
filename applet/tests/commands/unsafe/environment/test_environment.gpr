@@ -1,5 +1,6 @@
 with
-     "ashell";
+     "../../../library/ashell";
+
 
 project Test_Environment
 is

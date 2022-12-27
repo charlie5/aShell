@@ -1,6 +1,6 @@
 with
-     "ashell",
-     "ashell_shared";
+     "../../../../library/ashell",
+     "../../../../library/ashell_shared";
 
 project Test_Wait_On_Process
 is

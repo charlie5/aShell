@@ -1,7 +1,7 @@
 with
      "ahven",
-     "ashell",
-     "ashell_shared";
+     "../../../../ashell",
+     "../../../../ashell_shared";
 
 project Test_Pipes
 is

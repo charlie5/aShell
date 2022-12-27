@@ -2,8 +2,8 @@ with
 --     "test/unit/core/pipe/test_pipes",
      "core/test_core",
      "ahven",
-     "ashell",
-     "ashell_shared";
+     "../../ashell",
+     "../../ashell_shared";
 
 project Test_All
 is
