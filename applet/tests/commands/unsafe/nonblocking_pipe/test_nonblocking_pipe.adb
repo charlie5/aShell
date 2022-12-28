@@ -2,6 +2,7 @@ with
      Shell.Commands.Unsafe,
      Ada.Text_IO;
 
+
 procedure Test_Nonblocking_Pipe
 is
    -- To do this test, run this executable in one terminal, open
@@ -31,7 +32,7 @@ begin
             Results : constant Command_Results :=  Results_Of (The_Command);
             Output  : constant String          := +Output_Of  (Results);
          begin
-            put_line ("'" & Output & "'");
+            Put_Line ("'" & Output & "'");
             delay 1.0;
             exit when          Output'Length >= 3
                       and then Output (1..3)  = "end";
