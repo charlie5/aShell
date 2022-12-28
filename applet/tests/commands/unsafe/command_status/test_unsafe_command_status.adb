@@ -85,6 +85,6 @@ begin
       end if;
    end;
 
-
+   Put_Line ("Status tests successful.");
    Put_Line ("End   'Test_Unsafe_Command_Status'.");
 end Test_Unsafe_Command_Status;
