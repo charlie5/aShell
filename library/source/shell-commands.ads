@@ -205,4 +205,16 @@ private
       end record;
 
 
+
+   --- Ensure mutual exclusion of 'Safe' and 'Unsafe' commands.
+   --
+
+     Safe_Commands_Are_Withed : Boolean := False;
+   UnSafe_Commands_Are_Withed : Boolean := False;
+
+   Halt_Spawn_Client : access procedure;     -- Used during elaboration of safe and unsafe command packages
+                                             -- to allow elaboration of the unsafe commands package to stop
+                                             -- safe commands 'Spawn_Client' task, if neccessary.
+
+
 end Shell.Commands;

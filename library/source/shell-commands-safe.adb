@@ -825,4 +825,16 @@ begin
       raise Process_Error with "'ashell_spawn_server' not found on PATH.";
    end if;
 
+
+   --- Ensure mutual exclusion of 'Safe' and 'Unsafe' commands.
+   --
+   if Unsafe_Commands_Are_Withed
+   then
+      Stop_Spawn_Client;
+      raise Program_Error with "'Safe' and 'Unsafe' commands may not be used in the same program.";
+   end if;
+
+   Safe_Commands_Are_Withed := True;
+   Halt_Spawn_Client        := Stop_Spawn_Client'Access;
+
 end Shell.Commands.Safe;

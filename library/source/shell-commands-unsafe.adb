@@ -611,4 +611,15 @@ is
    end Finalize;
 
 
+begin
+   --- Ensure mutual exclusion of 'Safe' and 'Unsafe' commands.
+   --
+   if Safe_Commands_Are_Withed
+   then
+      Halt_Spawn_Client.all;
+      raise Program_Error with "'Safe' and 'Unsafe' commands may not be used in the same program.";
+   end if;
+
+   Unsafe_Commands_Are_Withed := True;
+
 end Shell.Commands.Unsafe;
