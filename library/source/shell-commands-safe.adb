@@ -1,4 +1,7 @@
 with
+     Gnat.OS_Lib,
+     Gnat.Strings,
+
      Ada.Unchecked_Conversion,
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
@@ -423,14 +426,6 @@ is
       Log ("Client is done.");
 
    exception
-      when Process_Error =>
-         Ada.Text_IO.New_Line (2);
-         Ada.Text_IO.Put_Line ("__________________________________________________________________");
-         Ada.Text_IO.Put_Line ("Program 'ashell_spawn_server' not found on PATH. Please install it.");
-         Ada.Text_IO.Put_Line ("Spawn client is shutting down.");
-         Ada.Text_IO.Put_Line ("__________________________________________________________________");
-         Ada.Text_IO.New_Line (2);
-
       when E : others =>
          Log ("Unhandled error in Spawn_Client.");
          Log (Ada.Exceptions.Exception_Information (E));
@@ -814,5 +809,20 @@ is
       Spawn_Client.Shutdown;
    end Stop_Spawn_Client;
 
+
+
+   use type Gnat.Strings.String_Access;
+
+   Spawn_Server_Found : constant Boolean := Gnat.OS_Lib.Locate_Exec_On_Path ("ashell_spawn_server") /= null;
+
+begin
+   if not Spawn_Server_Found
+   then
+      Ada.Text_IO.Put_Line ("___________________________________________________________________");
+      Ada.Text_IO.Put_Line ("Program 'ashell_spawn_server' not found on PATH. Please install it.");
+      Ada.Text_IO.Put_Line ("___________________________________________________________________");
+
+      raise Process_Error with "'ashell_spawn_server' not found on PATH.";
+   end if;
 
 end Shell.Commands.Safe;
