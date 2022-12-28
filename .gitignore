@@ -17,7 +17,6 @@
 build
 test/test_ashell
 test/ashell/test_ashell
-attic
 Shell.log
 
 
@@ -64,3 +63,9 @@ test_process_status
 test_processes
 test_safe_command_status
 test_unused_command
+
+
+## Misc
+#
+
+attic
