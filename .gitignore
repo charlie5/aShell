@@ -33,7 +33,10 @@ test.log
 ## Binaries
 #
 
+test_all
 test_all_core
+test_all_safe_commands
+test_all_unsafe_commands
 test_command_error
 test_command_output_to_string
 test_iterate_directory
@@ -62,8 +65,8 @@ test_pause_resume
 test_process_status
 test_processes
 test_safe_command_status
-test_unused_command
-
+test_unused_safe_command
+test_unused_unsafe_command
 
 ## Misc
 #
