@@ -19,7 +19,7 @@ begin
 
       if The_Command.Failed
       then
-         Put_Line ("Failed on command '" & The_Command.Name & "' as expected.");
+         Put_Line ("Failed on command 'ls /non_existent_file' as expected.");
       end if;
    end;
 
@@ -35,7 +35,7 @@ begin
    exception
       when Shell.Commands.Command_Error =>
          Put_Line ("Command failed and raised an exception, as expected.");
-         Put_Line ("Failed command was '" & The_Command.Name & "'.");
+         Put_Line ("Failed command was 'ls /non_existent_file'.");
    end;
 
    New_Line (2);

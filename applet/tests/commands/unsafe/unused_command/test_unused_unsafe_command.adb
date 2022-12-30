@@ -17,5 +17,9 @@ begin
       null;
    end;
 
+   New_Line;
+   Put_Line ("Success.");
+   New_Line;
+
    Put_Line ("End 'unused_unsafe_Command' test.");
 end test_unused_unsafe_Command;

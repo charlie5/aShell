@@ -24,13 +24,14 @@ begin
           Shell.Commands.Unsafe.Forge;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
-      Put_Line ("Test 1 ~ Run piped commands => '" & Commands & "'");
+      Put_Line ("Begin Test 1 ~ Run piped commands => '" & Commands & "'");
+      New_Line;
 
       Ada.Environment_Variables.Set (Name  => Name,
                                      Value => Value);
-      Put_Line ("Expected output:");
+      Put      ("Expected output: ");
       Put_Line (Expected);
-      Put_Line ("Actual output:");
+      Put      ("Actual   output: ");
 
       Start (Piped_Commands);
       delay 1.0;
@@ -59,13 +60,14 @@ begin
           Shell.Commands.Unsafe.Forge;
       Piped_Commands : Command_Array := To_Commands (Commands);
    begin
-      Put_Line ("Test 2 ~ Run piped commands => '" & Commands & "'");
+      Put_Line ("Begin Test 2 ~ Run piped commands => '" & Commands & "'");
+      New_Line;
 
       Ada.Environment_Variables.Set (Name  => Name,
                                      Value => Value);
-      Put_Line ("Expected output:");
+      Put      ("Expected output: ");
       Put_Line (Expected);
-      Put_Line ("Actual output:");
+      Put      ("Actual   output: ");
       Start (Piped_Commands);
       delay 1.0;
 

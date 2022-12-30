@@ -1,5 +1,7 @@
 with
      Shell.Commands.Unsafe,
+     Shell.Testing,
+
      Ada.Text_IO;
 
 
@@ -9,6 +11,8 @@ is
                   renames Ada.Text_IO.Put_Line;
    procedure NL  (Count : in Ada.Text_IO.Positive_Count := 1)
                   renames Ada.Text_IO.New_Line;
+
+   use Shell.Testing;
 
    Error : exception;
 begin
@@ -29,6 +33,7 @@ begin
       Wait_On (The_Command);
       Log (+Output_of (Results_Of (The_Command)));
    end Test_1;
+   Pause_Til_Tester_Is_Ready;
 
 
    NL (5);
@@ -52,6 +57,7 @@ begin
 
       Log (+Output_of (Results_Of (Last_Command)));
    end Test_2;
+   Pause_Til_Tester_Is_Ready;
 
 
    NL (5);
@@ -67,6 +73,7 @@ begin
       Log ("Sleep process id: " & Image (The_Command.Process.all));
       Wait_On  (The_Command);
    end Test_3;
+   Pause_Til_Tester_Is_Ready;
 
 
    NL (5);
