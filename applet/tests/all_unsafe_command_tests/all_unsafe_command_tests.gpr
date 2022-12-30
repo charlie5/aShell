@@ -1,0 +1,23 @@
+with
+     "../commands/unsafe/ashell/test_ashell",
+     "../commands/unsafe/command_error/test_command_error",
+     "../commands/unsafe/command_input/test_unsafe_command_input",
+     "../commands/unsafe/command_status/test_unsafe_command_status",
+     "../commands/unsafe/command_output_to_string/test_command_output_to_string",
+     "../commands/unsafe/environment/test_environment",
+     "../commands/unsafe/pipeline_error/test_pipeline_error",
+     "../commands/unsafe/pipeline_output/test_pipeline_output",
+     "../commands/unsafe/unused_command/test_unused_unsafe_command",
+
+     "../../../library/ashell_shared";
+
+
+project All_Unsafe_Command_Tests
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_all_unsafe_commands.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end All_Unsafe_Command_Tests;
