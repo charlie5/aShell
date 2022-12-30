@@ -3,11 +3,11 @@ with
      Ada.Text_IO;
 
 
-procedure test_unused_unsafe_Command
+procedure Test_Unused_Unsafe_Command
 is
    use Ada.Text_IO;
 begin
-   Put_Line ("Begin 'unused_unsafe_Command' test.");
+   Put_Line ("Begin 'Unused_Unsafe_Command' test.");
 
    declare
       use Shell.Commands.Unsafe,
@@ -21,5 +21,5 @@ begin
    Put_Line ("Success.");
    New_Line;
 
-   Put_Line ("End 'unused_unsafe_Command' test.");
-end test_unused_unsafe_Command;
+   Put_Line ("End 'Unused_Unsafe_Command' test.");
+end Test_Unused_Unsafe_Command;
