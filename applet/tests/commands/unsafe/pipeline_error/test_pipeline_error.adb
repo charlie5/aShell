@@ -19,6 +19,14 @@ begin
    begin
       Run (Commands);
 
+      declare
+         use Shell.Commands;
+         Results : constant Command_Results := Results_of (Commands (2));
+         Output  : constant String          := +Output_of (Results);
+      begin
+         put_Line (Output);
+      end;
+
       if Failed (Commands)
       then
          declare
