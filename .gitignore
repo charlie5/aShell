@@ -33,7 +33,7 @@ test.log
 ## Binaries
 #
 
-test_all
+test_all_core
 test_command_error
 test_command_output_to_string
 test_iterate_directory

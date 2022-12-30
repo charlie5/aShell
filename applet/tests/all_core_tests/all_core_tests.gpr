@@ -1,0 +1,17 @@
+with
+     "../core/piped_processes/test_piped_processes",
+     "../core/pipe_output_to_string/test_pipe_output_to_string",
+     "../core/wait_on_process/test_wait_on_process",
+
+     "../../../library/ashell_shared";
+
+
+project All_Core_Tests
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_all_core.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end All_Core_Tests;
