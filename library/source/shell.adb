@@ -738,12 +738,15 @@ is
    procedure Kill (Process : in out Shell.Process)
    is
       use POSIX.Signals;
+
+      the_Status : Process_State := Status (Process);
    begin
       Send_Signal (Process.Id, Signal_Kill);
 
-      while Status (Process) /= Killed
+      while the_Status /= Killed
       loop
          delay Duration'Small;
+         the_Status := Status (Process);
       end loop;
    end Kill;
 

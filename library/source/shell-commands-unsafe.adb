@@ -338,7 +338,7 @@ is
                   --
                   while i <= The_Pipeline'Last
                   loop
-                     Stop (The_Pipeline (i));
+                     --  Stop (The_Pipeline (i));     -- TODO: Fix this (see 'test_pipeline_error').
                      i := i + 1;
                   end loop;
 
