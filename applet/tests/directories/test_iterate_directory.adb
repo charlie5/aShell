@@ -1,5 +1,5 @@
 with
-     Shell.Directory_Iteration,
+     Shell.Directories,
      Ada.Directories,
      Ada.Text_IO;
 
@@ -12,7 +12,7 @@ begin
    New_Line (2);
 
    declare
-      use Shell.Directory_Iteration,
+      use Shell.Directories,
           Ada  .Directories;
    begin
       for Each of To_Directory ("..", Recurse => True)
