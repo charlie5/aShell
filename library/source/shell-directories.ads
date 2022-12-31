@@ -9,6 +9,16 @@ with
 
 
 package Shell.Directories
+--
+-- Allows directories to be treated as a container using the new
+
+--   for Each of Container
+--   loop
+--      Operate_on (Each);
+--   end loop;
+--
+-- See 'Test_Iterate_Directory' for a simple example.
+--
 is
 
    type Directory is tagged private
