@@ -1,4 +1,5 @@
 # aShell
+[![Alire](https://img.shields.io/endpoint?url=https://alire.ada.dev/badges/ashell.json)](https://alire.ada.dev/crates/ashell.html)
 
 A component to aid in writing shell-like applications in Ada.
 
