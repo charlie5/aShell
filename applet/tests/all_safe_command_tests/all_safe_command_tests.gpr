@@ -1,0 +1,19 @@
+with
+     "../commands/safe/command_input/test_command_input",
+     "../commands/safe/concurrent_commands/test_concurrent_commands",
+     "../commands/safe/concurrent_pipelines/test_concurrent_pipelines",
+     "../commands/safe/pipeline_output/test_safe_pipeline_output",
+     "../commands/safe/spawn_server/test_spawn_server",
+
+     "../../../library/ashell_shared";
+
+
+project All_Safe_Command_Tests
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_all_safe_commands.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end All_Safe_Command_Tests;
