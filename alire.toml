@@ -21,5 +21,5 @@ project-files = ["library/ashell.gpr",
 
 
 [[depends-on]]
-florist_blady = "6.0.0"
-gcc = "11.2.4"
+florist_blady = "^6.0.0"
+gcc = "^11.2.4"
