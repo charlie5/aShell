@@ -1,5 +1,5 @@
 with
-     "florist",
+     "lib_florist",
      "ashell_shared";
 
 --library
