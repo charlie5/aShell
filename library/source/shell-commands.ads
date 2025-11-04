@@ -1,7 +1,8 @@
 private
 with
      Ada.Containers.Indefinite_Vectors,
-     Ada.Containers.Indefinite_Holders;
+     Ada.Containers.Indefinite_Holders,
+     Ada.Finalization;
 
 
 package Shell.Commands
