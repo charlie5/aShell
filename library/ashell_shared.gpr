@@ -27,7 +27,7 @@ is
                       "-gnatye",      --  Check that labels on end statements (ending subprograms), and on exit statements (exiting named loops), are present.
                       "-gnatyx");     --  Check x:no extra parens.
 
-   Compiler_Options :=   ("-gnat12",
+   Compiler_Options :=   ("-gnat2022",
                           "-gnatwa",
                           "-fno-strict-aliasing")
                         & Style_Options;
