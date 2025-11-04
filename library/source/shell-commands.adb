@@ -2,8 +2,7 @@ with
      GNAT.OS_Lib,
      Ada.Strings.Fixed,
      Ada.Strings.Maps,
-     Ada.Unchecked_Deallocation,
-     Ada.Unchecked_Conversion;
+     Ada.Unchecked_Deallocation;
 
 
 package body Shell.Commands

@@ -1,8 +1,7 @@
 with
      Ada.Strings.Fixed,
      Ada.Characters.Handling,
-     Ada.Exceptions,
-     Ada.Unchecked_Conversion;
+     Ada.Exceptions;
 
 
 package body Shell.Commands.Unsafe
