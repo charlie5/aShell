@@ -1,4 +1,4 @@
-abstract 
+abstract
 project aShell_Shared
 is
    for Source_Files use ();
@@ -32,7 +32,7 @@ is
                           "-fno-strict-aliasing")
                         & Style_Options;
 
-   Fast_Options := ("-O2", 
+   Fast_Options := ("-O2",
                     "-gnatn",
                     "-gnatp",
                     "-funroll-loops",
@@ -40,7 +40,7 @@ is
                     "-ftracer",
                     "-funswitch-loops",
                     "-fweb",
-                    "-frename-registers"); 
+                    "-frename-registers");
 
    Small_Options := ("-Os",
                      "-gnatp",
@@ -55,7 +55,7 @@ is
 
    -- Modify options to cater for the build mode.
    --
-   case Build_Mode 
+   case Build_Mode
    is
       when "debug" =>
          Binder_Options   := Binder_Options   & "-Es";
@@ -79,12 +79,12 @@ is
          case OS
          is
             when "Linux"  =>
-               Compiler_Options := Compiler_Options & Fast_Options 
+               Compiler_Options := Compiler_Options & Fast_Options
                                                     & "-fomit-frame-pointer";
             when "Windows_NT"  =>
                Compiler_Options := Compiler_Options & Fast_Options
                                                     & "-fipa-cp-clone"
-                                                    & "-fgcse-after-reload" 
+                                                    & "-fgcse-after-reload"
                                                     & "-ftree-vectorize"
                                                     & "-mfpmath=sse"
                                                     & "-msse3";
@@ -96,7 +96,7 @@ is
          case OS
          is
             when "Linux"  =>
-               Compiler_Options := Compiler_Options & Small_Options 
+               Compiler_Options := Compiler_Options & Small_Options
                                                     & "-fdata-sections";
             when "Windows_NT"  =>
                Compiler_Options := Compiler_Options & Small_Options;
@@ -112,8 +112,8 @@ is
    case OS
    is
       when "MacOSX" =>
-         Compiler_Options := Compiler_Options & "-gnatf" 
-                                              & "-gnatE" 
+         Compiler_Options := Compiler_Options & "-gnatf"
+                                              & "-gnatE"
                                               & "-gnatVcfimorst"
                                               & "-gnatyhiknp";
       when "Linux" =>
@@ -141,7 +141,7 @@ is
    package Builder is
       for Default_Switches ("ada") use ("-C", "-j5");
 
-      case Build_Mode 
+      case Build_Mode
       is
          when "debug" =>   for Global_Configuration_Pragmas use "debug.pra";
          when "fast"  =>   null;
