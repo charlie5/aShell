@@ -1,162 +1,117 @@
 abstract
-project aShell_Shared
+project aShell_shared
 is
-   for Source_Files use ();
-
-
    -- Scenario Variables
    --
 
-   type OS_Type is
-      ("Windows_NT", "Linux", "MacOSX");
-   OS : OS_Type := external ("OS", "Linux");
+   type build_Mode_type   is ("debug", "fast", "profile", "small");
 
-   type Build_Mode_Type is
-      ("debug", "fast", "small");
-   Build_Mode : Build_Mode_Type := external ("Build_Mode", "debug");
+   build_Mode   : build_Mode_type   := external ("Lace_Build_Mode", "debug");
+
+
+   -- Each build mode keeps its own objects, so switching modes forces no recompiles.
+   --
+   object_Dir   := "build/" & build_Mode;
 
 
    -- Declare various options.
    --
 
-   Binder_Options := ();
+   binder_Options   := ("-static");   -- Link the GNAT runtime statically, so executables run without a matching libgnat installed.
+                                      -- Each build mode adds tracebacks in exception occurrences: '-Es' (symbolic) where there is '-g', else '-E'.
+   linker_Options   := ();
 
-   Style_Options  := ("-gnatyaknp",   --  Check casings: a:attribute, k:keywords, n:package Standard identifiers, p:pragma, r:identifier references.
-                      "-gnatybfhi",   --  Check b:no blanks at end of lines, f:no ff/vtabs, h: no htabs, i:if-then layout, u:no unnecessary blank lines.
-                      "-gnatyO",      --  Check that overriding subprograms are explicitly marked as such.
-                      "-gnatye",      --  Check that labels on end statements (ending subprograms), and on exit statements (exiting named loops), are present.
-                      "-gnatyx");     --  Check x:no extra parens.
+   style_Options    := ("-gnaty3",     -- Check 3-space indentation.
+                        "-gnatyA",     -- Check that array attributes index one-dimensional arrays without an index.
+                        "-gnatyb",     -- Check no blanks at end of lines.
+                        "-gnatye",     -- Check that labels on end statements (ending subprograms), and on exit statements (exiting named loops), are present.
+                        "-gnatyf",     -- Check no ff/vtabs.
+                        "-gnatyh",     -- Check no htabs.
+                        "-gnatyi",     -- Check if-then layout.
+                        "-gnatyk",     -- Check keyword casings.
+                        "-gnatyl",     -- Check that layout follows the reference manual style.
+                        "-gnatyO",     -- Check that overriding subprograms are explicitly marked as such.
+                        "-gnatyx");    -- Check no extra parens.
 
-   Compiler_Options :=   ("-gnat2022",
+   compiler_Options :=   ("-gnat2022",
                           "-gnatwa",
-                          "-fno-strict-aliasing")
-                        & Style_Options;
+                          "-fno-strict-aliasing")     -- Pointers converted via Unchecked_Conversion alias objects of
+                       & style_Options;               -- other types, which the optimiser must not assume never happens.
 
-   Fast_Options := ("-O2",
-                    "-gnatn",
-                    "-gnatp",
-                    "-funroll-loops",
-                    "-fpeel-loops",
-                    "-ftracer",
-                    "-funswitch-loops",
-                    "-fweb",
-                    "-frename-registers");
+   fast_Options     := ("-O3",
+                        "-gnatn",
+                        "-funroll-loops",
+                        "-ftracer");
 
-   Small_Options := ("-Os",
-                     "-gnatp",
-                     "-fno-inline",
-                     "-march=i386",
-                     "-ffunction-sections",
-                     "-falign-jumps=0",
-                     "-falign-loops=0",
-                     "-falign-functions=0",
-                     "-mpreferred-stack-boundary=2");
+   small_Options    := ("-Os",
+                        "-ffunction-sections",     -- Give each subprogram and object its own section, so the
+                        "-fdata-sections");        -- linker can discard those which are unreferenced.
 
 
    -- Modify options to cater for the build mode.
    --
-   case Build_Mode
+
+   case build_Mode
    is
       when "debug" =>
-         Binder_Options   := Binder_Options   & "-Es";
-         Compiler_Options := Compiler_Options & "-gnato"
+         binder_Options   := binder_Options   & "-Es";
+         compiler_Options := compiler_Options & "-gnata"
+                                              & "-gnatVa"
                                               & "-fstack-check"
-                                              & "-g";
-         case OS
-         is
-            when "Linux"  =>
-               Compiler_Options := Compiler_Options & "-gnatVa";
-
-            when "Windows_NT"  =>
-               Compiler_Options := Compiler_Options & "-fno-inline"
-                                                    & "-gnatVcdeimoprst";
---                                                  & "-gnatVf"             -- (2016) turned off floating point validity check, seems to give false positives on a scalar product for collision detection
-            when "MacOSX" =>
-               null;
-         end case;
+                                              & "-gnateE"                -- Extra debug info in 'constraint_Error' messages.
+                                              & "-g"
+                                              & "-O0";
 
       when "fast" =>
-         case OS
-         is
-            when "Linux"  =>
-               Compiler_Options := Compiler_Options & Fast_Options
-                                                    & "-fomit-frame-pointer";
-            when "Windows_NT"  =>
-               Compiler_Options := Compiler_Options & Fast_Options
-                                                    & "-fipa-cp-clone"
-                                                    & "-fgcse-after-reload"
-                                                    & "-ftree-vectorize"
-                                                    & "-mfpmath=sse"
-                                                    & "-msse3";
-            when "MacOSX" =>
-               null;
-         end case;
+         binder_Options   := binder_Options   & "-E";
+         compiler_Options := compiler_Options & fast_Options;
+
+      when "profile" =>
+         binder_Options   := binder_Options   & "-Es";
+         compiler_Options := compiler_Options & fast_Options       -- As "fast", but keep debug info and frame
+                                              & "-g"               -- pointers so the profiler can see call chains.
+                                              & "-fno-omit-frame-pointer";
 
       when "small" =>
-         case OS
-         is
-            when "Linux"  =>
-               Compiler_Options := Compiler_Options & Small_Options
-                                                    & "-fdata-sections";
-            when "Windows_NT"  =>
-               Compiler_Options := Compiler_Options & Small_Options;
-
-            when "MacOSX" =>
-               null;
-         end case;
+         binder_Options   := binder_Options   & "-E";
+         compiler_Options := compiler_Options & small_Options;
+         linker_Options   := linker_Options   & "-Wl,--gc-sections";
    end case;
-
-
-   -- Modify options to cater for the operating system.
-   --
-   case OS
-   is
-      when "MacOSX" =>
-         Compiler_Options := Compiler_Options & "-gnatf"
-                                              & "-gnatE"
-                                              & "-gnatVcfimorst"
-                                              & "-gnatyhiknp";
-      when "Linux" =>
-         Binder_Options   := Binder_Options   & "-static";
-
-      when "Windows_NT" =>
-         null;
-   end case;
-
 
 
    -- Define the packages.
    --
 
-   package Ide is
-      case OS
-      is
-         when "Linux"      =>   for Default_Switches ("adacontrol") use ("-Ftgnat_short");
-         when "Windows_NT" =>   for Default_Switches ("adacontrol") use ("-F", "gnat_short");
-         when "MacOSX"     =>   for Default_Switches ("adacontrol") use ();
-      end case;
-   end Ide;
-
-
-   package Builder is
-      for Default_Switches ("ada") use ("-C", "-j5");
-
-      case Build_Mode
-      is
-         when "debug" =>   for Global_Configuration_Pragmas use "debug.pra";
-         when "fast"  =>   null;
-         when "small" =>   null;
-      end case;
+   package Builder
+   is
+      for Default_Switches ("ada") use ("-j0");
    end Builder;
 
 
-   package Compiler is
-      for Default_Switches ("ada") use Compiler_Options;
+   package Compiler
+   is
+      for Default_Switches ("ada") use compiler_Options;
+
+      case build_Mode
+      is
+         when "debug" =>
+            for Local_Configuration_Pragmas use Project'Project_Dir & "debug.pra";   -- Initialize_Scalars. Local, since gprbuild honours the Builder's global
+         when others =>                                                              -- pragmas only in the main project; and an attribute rather than a '-gnatec'
+            null;                                                                    -- switch, which gprbuild cannot track and so recompiles every unit, every build.
+      end case;
    end Compiler;
 
 
-   package Binder is
-      for Default_Switches ("ada") use Binder_Options;
+   package Binder
+   is
+      for Default_Switches ("ada") use binder_Options;
    end Binder;
 
-end aShell_Shared;
+
+   package Linker
+   is
+      for Linker_Options use linker_Options;   -- Reaches the link of every importing main, with no need to rename this package.
+   end Linker;
+
+
+end aShell_shared;

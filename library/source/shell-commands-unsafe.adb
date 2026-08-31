@@ -16,7 +16,7 @@ is
       Append (Result, "(" & The_Command.Name);
 
       if not The_Command.Arguments.Is_Empty
-        then
+      then
          Append (Result, ", (");
       end if;
 

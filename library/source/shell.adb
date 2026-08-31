@@ -616,8 +616,8 @@ is
       end if;
 
       return Start (Program           => "/bin/sh",
-                    Arguments         => (+"-c",
-                                          +Command),
+                    Arguments         => [+"-c",
+                                          +Command],
                     Working_Directory => Working_Directory,
                     Input             => Input,
                     Output            => Output,
@@ -854,7 +854,7 @@ is
          Close (Log_File);
       exception
          when Device_Error =>
-           null;
+            null;
       end Close;
 
 

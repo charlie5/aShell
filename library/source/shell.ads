@@ -188,8 +188,8 @@ private
    Null_Process_ID      : constant Process_ID      := POSIX.Process_Identification.Null_Process_ID;
    Null_File_Descriptor : constant File_Descriptor := File_Descriptor'Last;
 
-   No_Data     : constant Data (1 .. 0) := (others => <>);
-   Nil_Strings : constant String_Array  := (1 .. 0 => <>);
+   No_Data     : constant Data (1 .. 0) := [others => <>];
+   Nil_Strings : constant String_Array  := [1 .. 0 => <>];
 
    package String_Vectors is new Ada.Containers.Vectors (Positive, Unbounded_String);
    subtype String_Vector  is String_Vectors.Vector;
@@ -256,6 +256,6 @@ private
    --
 
    procedure Log (Message : in String);
-   function  Log (Message : in String) return Boolean;     -- Allow for logging in a declarative region.
-                                                           -- Always returns 'True'.
+   function  Log (Message : in String) return Boolean;      -- Allow for logging in a declarative region.
+                                                            -- Always returns 'True'.
 end Shell;

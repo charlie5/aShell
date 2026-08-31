@@ -35,7 +35,7 @@ with Ada.Directories;
 
 with POSIX.Implementation,
      POSIX.Unsafe_Process_Primitives,
-     Unchecked_Conversion;
+     Ada.Unchecked_Conversion;
 
 package body POSIX.Process_Primitives.Extensions is
 
@@ -44,23 +44,23 @@ package body POSIX.Process_Primitives.Extensions is
        POSIX.Process_Identification;
 
    C_File_Mode : constant array (POSIX.IO.File_Mode) of Bits :=
-     (POSIX.IO.Read_Only  => O_RDONLY,
+     [POSIX.IO.Read_Only  => O_RDONLY,
       POSIX.IO.Write_Only => O_WRONLY,
-      POSIX.IO.Read_Write => O_RDWR);
+      POSIX.IO.Read_Write => O_RDWR];
 
    -----------------------------
    --  Unchecked Conversions  --
    -----------------------------
 
-   function To_int is new Unchecked_Conversion (Bits, int);
+   function To_int is new Ada.Unchecked_Conversion (Bits, int);
 
    function To_String_List_Ptr is
-     new Unchecked_Conversion (POSIX_String_List, String_List_Ptr);
+     new Ada.Unchecked_Conversion (POSIX_String_List, String_List_Ptr);
 
    function To_Process_ID is new
-      Unchecked_Conversion (pid_t, Process_ID);
+      Ada.Unchecked_Conversion (pid_t, Process_ID);
    function To_pid_t is new
-      Unchecked_Conversion (Process_ID, pid_t);
+      Ada.Unchecked_Conversion (Process_ID, pid_t);
 
    -------------------------
    --  Local Subprograms  --
