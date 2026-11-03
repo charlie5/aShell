@@ -8,7 +8,7 @@ for i in {1..20}; do
    echo ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    echo
    sleep 0.5
-   ./test_tasks
+   ./test_concurrent_pipelines
 done
 
 echo Done !.

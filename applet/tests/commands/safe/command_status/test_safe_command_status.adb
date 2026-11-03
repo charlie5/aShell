@@ -30,7 +30,7 @@ begin
          raise Command_Error with "Command status should be 'Running'.";
       end if;
 
-delay 0.5;
+      delay 0.5;
       Put_Line ("Pausing command.");
       The_Command.Pause;
 

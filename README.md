@@ -21,8 +21,8 @@ Alire is supported.
 
 ```ada
     declare
-       use Shell.Commands;
-       Output : constant String := +Output_Of ("ps -A | grep bash | wc");
+       use Shell, Shell.Commands, Shell.Commands.Unsafe;
+       Output : constant String := +Output_Of (Run ("ps -A | grep bash | wc"));
     begin
        Put_Line (Output);
     end;
@@ -46,13 +46,19 @@ Might be written like this in Ada:
 ```ada
     with Shell;
     procedure SDS_to_DS is
-       DS_Pipe         : Shell.Pipe;
-       Zero_To_Newline : Shell.Process := Start (Program   => "tr",
-                                                 Arguments => (+"\000", +"\n"),
-                                                 Output    => DS_Pipe);
-       DS_Harmonize    : Shell.Process := Start (Program   => "ds_harmonize",
-                                                 Input     => DS_Pipe);
+       use Shell;
+       DS_Pipe         : constant Pipe := To_Pipe;
+       Zero_To_Newline : Process := Start (Program   => "tr",
+                                           Arguments => [+"\000", +"\n"],
+                                           Output    => DS_Pipe,
+                                           Pipeline  => True);
+       DS_Harmonize    : Process := Start (Program   => "ds_harmonize",
+                                           Arguments => Nil_Strings,
+                                           Input     => DS_Pipe);
     begin
-       null;
+       Close_Write_End (DS_Pipe);
+
+       Wait_On (Zero_To_Newline);
+       Wait_On (DS_Harmonize);
     end SDS_to_DS;
 ```

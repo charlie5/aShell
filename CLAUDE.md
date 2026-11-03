@@ -41,14 +41,13 @@ cd applet/tests/core/piped_processes && gprbuild -P test_piped_processes.gpr && 
 - `test_spawn_server` loops 100,000 times, as does `test_all_safe_commands` while it calls that test. Run them with a timeout.
 - `stress/max_processes` needs `ulimit -s unlimited`, so use its `run_test.sh`.
 - `show.sh` and `show_server.sh` run `lsof` on a running test, which is useful for finding leaked file descriptors.
-- The `runner.sh` scripts in `commands/safe/concurrent_*` call `./test_tasks`, which no longer exists.
 - Each test binary is listed by name in `.gitignore`, so add new ones there.
 
 ## Architecture
 
 Three layers, each a child of the one before (see the diagrams in `library/document/`):
 
-- **`Shell`** wraps Florist with `Pipe` and `Process`. Pipe open and close go through the protected object `Safe_Pipes`. Most of the rest is not task safe.
+- **`Shell`** wraps Florist with `Pipe` and `Process`. Pipe open and close go through the protected object `Safe_Pipes`. Most of the rest is not task safe. A process that feeds a pipe must be started with `Pipeline => True`, and the caller closes the write end once the reader has started (see `test_piped_processes.adb`). With the default `False`, the write end closes straight away and starting the reader fails, which shows up as the writer dying from SIGPIPE.
 - **`Shell.Commands`** defines the abstract `Command` type (controlled, with a shared `Copy_Count` so copies can share one underlying command), `Command_Results`, command line and pipeline parsing, and the spawn server protocol types in its private part.
 - **`Shell.Commands.Unsafe` and `Shell.Commands.Safe`** are the two implementations, with almost the same API:
   - `Unsafe` runs commands directly in the calling process, from a single task. It owns its pipes and closes them on finalization.
