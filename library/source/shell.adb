@@ -753,12 +753,10 @@ is
          return False;     -- TODO: Should this raise an exception ?
       end if;
 
-      if Exit_Status_Of (Process.Status) = POSIX.Process_Primitives.Normal_Exit
-      then
-         return True;
-      end if;
-
-      return False;
+      -- An exit status is only available for a process which has exited, rather than one ended by a signal.
+      --
+      return     Termination_Cause_Of (Process.Status) = Exited
+        and then Exit_Status_Of       (Process.Status) = POSIX.Process_Primitives.Normal_Exit;
    end Normal_Exit;
 
 

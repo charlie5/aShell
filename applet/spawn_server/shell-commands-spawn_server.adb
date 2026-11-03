@@ -64,7 +64,7 @@ is
             Action : constant Server_Action := Server_Action'Input (Input_Stream'Access);
          begin
             New_Actions.Add (Action);
-            exit when Action.Kind = Stop;
+            exit when Action.Kind = Shutdown;
          end;
       end loop;
 
@@ -102,6 +102,15 @@ begin
                Action : Server_Action;
             begin
                New_Actions.Get (Action);
+
+               -- A command may terminate before the client's action for it arrives.
+               --
+               if         Action.Kind in New_Input | Kill | Interrupt | Pause | Resume | Stop
+                 and then not Command_Map.Contains (Action.Id)
+               then
+                  Log ("Ignoring " & Action.Kind'Image & " action for terminated command:" & Action.Id'Image);
+                  Action := (Nil, Null_Id);
+               end if;
 
                case Action.Kind
                is

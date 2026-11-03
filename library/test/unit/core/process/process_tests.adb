@@ -51,6 +51,8 @@ is
       Kill (Process);
       Assert (Status (Process) = Killed,
               "Process status should be 'Killed' not '" & Status (Process)'Image & "'");
+      Assert (not Normal_Exit (Process),
+              "A killed process should not have a normal exit.");
    end Test_Status;
 
 

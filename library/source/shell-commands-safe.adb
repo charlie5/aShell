@@ -48,12 +48,32 @@ is
 
 
 
-      procedure Set_Done (Normal_Exit : in Boolean)
+      procedure Hold
+      is
+      begin
+         Is_Held := True;
+      end Hold;
+
+
+
+      procedure Set_Done (Normal_Exit : in     Boolean;
+                          Abandoned   :    out Boolean)
       is
       begin
          Exit_Is_Normal := Normal_Exit;
          Done           := True;
+         Is_Held        := False;
+         Abandoned      := Is_Abandoned;
       end Set_Done;
+
+
+
+      procedure Abandon (Unused : out Boolean)
+      is
+      begin
+         Is_Abandoned := True;
+         Unused       := not Is_Held;
+      end Abandon;
 
 
 
@@ -87,6 +107,9 @@ is
 
    end Client_Outputs;
 
+
+   procedure Deallocate is new Ada.Unchecked_Deallocation (Client_Outputs,
+                                                           Client_Outputs_Access);
 
 
    ----------------
@@ -190,6 +213,7 @@ is
                                      & Arguments (The_Command));
 
                Command_Input.Replace_Element (Input);
+               Outputs.Hold;
                Command_Outputs_Map.Insert (The_Command.Id,
                                            Outputs);
             end Add;
@@ -226,6 +250,7 @@ is
                                 & Arguments (The_Command));
                      end if;
 
+                     The_Command.Safe_Outputs.Hold;
                      Command_Outputs_Map.Insert (The_Command.Id,
                                                  The_Command.Safe_Outputs);
                   end;
@@ -404,8 +429,19 @@ is
                      Log ("Command Done:" & Action.Id'Image);
 
                      Command_Outputs := Command_Outputs_Map.Element (Action.Id);
-                     Command_Outputs.Set_Done   (Normal_Exit => Action.Normal_Exit);
-                     Command_Outputs_Map.Delete (Action.Id);
+
+                     declare
+                        Abandoned : Boolean;
+                     begin
+                        Command_Outputs.Set_Done   (Normal_Exit => Action.Normal_Exit,
+                                                    Abandoned   => Abandoned);
+                        Command_Outputs_Map.Delete (Action.Id);
+
+                        if Abandoned
+                        then
+                           Deallocate (Command_Outputs);
+                        end if;
+                     end;
 
                   when Server_Done =>
                      Log ("Server is done.");
@@ -789,12 +825,19 @@ is
    overriding
    procedure Finalize (The_Command : in out Command)
    is
-      procedure Deallocate is new Ada.Unchecked_Deallocation (Client_Outputs,
-                                                              Client_Outputs_Access);
    begin
       if The_Command.Copy_Count.all = 1
       then
-         Deallocate (The_Command.Safe_Outputs);
+         declare
+            Unused : Boolean;
+         begin
+            The_Command.Safe_Outputs.Abandon (Unused);
+
+            if Unused
+            then
+               Deallocate (The_Command.Safe_Outputs);
+            end if;
+         end;
       end if;
 
       Finalize (Commands.Command (The_Command));

@@ -120,7 +120,15 @@ private
                              Errors      :    out Data_Vector;
                              Normal_Exit :    out Boolean);
 
-      procedure Set_Done    (Normal_Exit : in     Boolean);
+      -- Both the command and the spawn client use these outputs, and the command may be finalized
+      -- before the server reports that it is done. The last of the two to finish deallocates them.
+      --
+      procedure Hold;                                            -- The spawn client now has access.
+
+      procedure Set_Done    (Normal_Exit : in     Boolean;
+                             Abandoned   :    out Boolean);      -- True when the spawn client should deallocate.
+
+      procedure Abandon     (Unused      :    out Boolean);      -- True when the command should deallocate.
 
       entry     Wait_Til_Done;
       function  Is_Done     return Boolean;
@@ -132,6 +140,9 @@ private
 
       Exit_Is_Normal : Boolean := False;     -- 'Get_Outputs' reads this while the command is still running.
       Done           : Boolean := False;
+
+      Is_Held        : Boolean := False;
+      Is_Abandoned   : Boolean := False;
    end Client_Outputs;
 
 
