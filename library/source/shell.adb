@@ -496,12 +496,52 @@ is
       Args     :          POSIX_String_List;
       Name     : constant POSIX_String     := To_POSIX_String (Program);
       Pathname :          String_Access    := Locate_Exec_On_Path (Program);
+
+
+      -- The child process closes or duplicates each end of its pipes before it runs the program. If either end is
+      -- not open, the child exits without running the program and the parent is not told, so detect that here.
+      --
+      procedure Check_Ends_Are_Open (The_Pipe : in Shell.Pipe;
+                                     Name     : in String;
+                                     Hint     : in String := "")
+      is
+         function Failure (Pipe_End : in String) return String
+         is ("Cannot start '" & Program & "': the " & Pipe_End & " end of its '" & Name & "' pipe is not open." & Hint);
+      begin
+         if not POSIX.IO.Is_Open (The_Pipe.Read_End)
+         then
+            raise Process_Error with Failure ("read");
+         end if;
+
+         if not POSIX.IO.Is_Open (The_Pipe.Write_End)
+         then
+            raise Process_Error with Failure ("write");
+         end if;
+      end Check_Ends_Are_Open;
+
    begin
       if Pathname = null
       then
          raise Process_Error with "Program '" & Program & "' not found on PATH";
       else
          Free (Pathname);
+      end if;
+
+      if Errors /= Standard_Error
+      then
+         Check_Ends_Are_Open (Errors, "Errors");
+      end if;
+
+      if Output /= Standard_Output
+      then
+         Check_Ends_Are_Open (Output, "Output");
+      end if;
+
+      if Input /= Standard_Input
+      then
+         Check_Ends_Are_Open (Input, "Input",
+                              Hint => " A process which feeds this pipe must be started with 'Pipeline => True',"
+                                    & " and the write end closed after this process has started.");
       end if;
 
       Open_Template (The_Template);

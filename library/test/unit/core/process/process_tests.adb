@@ -55,6 +55,34 @@ is
 
 
 
+   procedure Test_Start_With_Closed_Pipe
+   is
+      use Shell;
+      The_Pipe : constant Pipe := To_Pipe;
+      Writer   : Process       := Start (Program   => "true",     -- Not a 'Pipeline', so this closes the write end.
+                                         Arguments => Nil_Strings,
+                                         Output    => The_Pipe);
+      Reader   : Process;
+   begin
+      begin
+         Start (Reader,
+                Program   => "cat",
+                Arguments => Nil_Strings,
+                Input     => The_Pipe);
+
+         Fail ("Starting a process on a pipe with a closed write end should raise 'Process_Error'.");
+      exception
+         when Process_Error =>
+            null;
+      end;
+
+      Assert (Status (Reader) = Not_Started,
+              "Process status should be 'Not_Started' not '" & Status (Reader)'Image & "'");
+
+      Close (The_Pipe);
+      Wait_On (Writer);
+   end Test_Start_With_Closed_Pipe;
+
 
 
    overriding
@@ -64,6 +92,7 @@ is
       T.Set_Name ("Process Tests");
 
       T.Add_Test_Routine (Test_Status'Access, "Process Status");
+      T.Add_Test_Routine (Test_Start_With_Closed_Pipe'Access, "Start With Closed Pipe");
 
    end Initialize;
 
