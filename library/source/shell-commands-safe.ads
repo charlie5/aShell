@@ -130,7 +130,7 @@ private
       All_Output : Data_Vector;
       All_Errors : Data_Vector;
 
-      Exit_Is_Normal : Boolean;
+      Exit_Is_Normal : Boolean := False;     -- 'Get_Outputs' reads this while the command is still running.
       Done           : Boolean := False;
    end Client_Outputs;
 
