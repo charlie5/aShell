@@ -133,7 +133,7 @@ begin
 
                -- A command may terminate before the client's action for it arrives.
                --
-               if         Action.Kind in New_Input | Kill | Interrupt | Pause | Resume | Stop
+               if         Action.Kind in New_Input | Close_Input | Kill | Interrupt | Pause | Resume | Stop
                  and then not Command_Map.Contains (Action.Id)
                then
                   Log ("Ignoring " & Action.Kind'Image & " action for terminated command:" & Action.Id'Image);
@@ -232,6 +232,11 @@ begin
                         The_Command.Send (Action.Data.Element);
                         Log ("New Input sent to Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
                      end;
+
+                  when Close_Input =>
+                     Log ("Close_Input action.");
+
+                     Command_Map.Element (Action.Id).Close_Input;
 
                   when Kill =>
                      Log ("Kill action.");

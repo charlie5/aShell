@@ -46,6 +46,11 @@ is
    procedure Send  (To    : in Command;
                     Input : in Data) is abstract;
 
+   procedure Close_Input (The_Command : in Command) is abstract;
+   --
+   -- Lets a command started with 'Accepts_Input' see the end of its input, once all sent input has been read.
+   -- Does nothing if there is no input to close.
+
 
    -------
    --- Run - Commands block until process completes.
@@ -165,7 +170,8 @@ private
    type Server_Action_Kind is (Nil,
                                New_Command, New_Pipeline, New_Input,
                                Kill, Interrupt, Pause, Resume, Stop,
-                               Shutdown);
+                               Shutdown,
+                               Close_Input);
 
    type Server_Action (Kind : Server_Action_Kind := Nil) is
       record
@@ -185,7 +191,7 @@ private
          when New_Input =>
             Data : Data_Holder;
 
-         when Nil | Kill | Interrupt | Pause | Resume | Stop | Shutdown =>
+         when Nil | Kill | Interrupt | Pause | Resume | Stop | Shutdown | Close_Input =>
             null;
          end case;
       end record;

@@ -38,6 +38,9 @@ is
    procedure Send  (To    : in Command;
                     Input : in Data);
 
+   overriding
+   procedure Close_Input (The_Command : in Command);
+
    -------
    --- Run - Commands block until process completes.
    --

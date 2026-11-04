@@ -268,6 +268,15 @@ is
    end Send;
 
 
+
+   overriding
+   procedure Close_Input (The_Command : in Command)
+   is
+   begin
+      Close_Write_End (The_Command.Input_Pipe);
+   end Close_Input;
+
+
    -------
    --- Run
    --

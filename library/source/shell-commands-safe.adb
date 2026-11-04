@@ -154,6 +154,8 @@ is
       entry Send (The_Command : in      Command;
                   Input       : in      Data);
 
+      entry Close_Input (The_Command : in Command);
+
       entry Kill      (The_Command : in Command);
       entry Interrupt (The_Command : in Command);
       entry Pause     (The_Command : in Command);
@@ -190,6 +192,7 @@ is
       Pipeline_First_Id : Command_Id;
 
       Sending_Input_To_Command : Command_Id := Null_Id;
+      Closing_Input_Of_Command : Command_Id := Null_Id;
       Killing_Command          : Command_Id := Null_Id;
       Interrupting_Command     : Command_Id := Null_Id;
       Pausing_Command          : Command_Id := Null_Id;
@@ -297,6 +300,14 @@ is
                New_Input_Data.Replace_Element (Input);
             end Send;
          or
+            accept Close_Input (The_Command : in Command)
+            do
+               Log ("");
+               Log ("Client: Closing input of command.");
+
+               Closing_Input_Of_Command := The_Command.Id;
+            end Close_Input;
+         or
             accept Kill (The_Command : in Command)
             do
                Log ("");
@@ -390,6 +401,15 @@ is
                                                   Sending_Input_To_Command,
                                                   New_Input_Data));
             Sending_Input_To_Command := Null_Id;
+
+         elsif Closing_Input_Of_Command /= Null_Id
+         then
+            Log ("Sending 'Close_Input' action for command" & Closing_Input_Of_Command'Image & " to server.");
+
+            Server_Action'Output (Server_Input_Stream'Access,
+                                  Server_Action' (Close_Input,
+                                                  Closing_Input_Of_Command));
+            Closing_Input_Of_Command := Null_Id;
 
          elsif Killing_Command /= Null_Id
          then
@@ -627,6 +647,18 @@ is
       when Tasking_Error =>
          raise Command_Error with Client_Gone_Message;
    end Send;
+
+
+
+   overriding
+   procedure Close_Input (The_Command : in Command)
+   is
+   begin
+      Spawn_Client.Close_Input (The_Command);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
+   end Close_Input;
 
 
 
