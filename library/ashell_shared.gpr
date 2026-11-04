@@ -6,7 +6,7 @@ is
 
    type build_Mode_type   is ("debug", "fast", "profile", "small");
 
-   build_Mode   : build_Mode_type   := external ("Lace_Build_Mode", "debug");
+   build_Mode   : build_Mode_type   := external ("aShell_Build_Mode", "debug");
 
 
    -- Each build mode keeps its own objects, so switching modes forces no recompiles.

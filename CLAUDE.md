@@ -10,11 +10,11 @@ There is no top-level project or Makefile. Each `.gpr` is built from its own dir
 
 ```shell
 cd library && gprbuild -P ashell.gpr                       # Library, debug mode (objects in build/debug).
-cd library && gprbuild -P ashell.gpr -XLace_Build_Mode=fast
+cd library && gprbuild -P ashell.gpr -XaShell_Build_Mode=fast
 cd applet/spawn_server && ./install_spawn_server.sh        # Builds and copies ashell_spawn_server to /usr/bin (uses sudo).
 ```
 
-- The build mode variable really is `Lace_Build_Mode` (`debug`, `fast`, `profile`, `small`). `library/ashell_shared.gpr` deliberately mirrors lace's `lace_shared.gpr`.
+- The build mode variable is `aShell_Build_Mode` (`debug`, `fast`, `profile`, `small`). Apart from that name, `library/ashell_shared.gpr` deliberately mirrors lace's `lace_shared.gpr`. Projects importing aShell must set it separately from `Lace_Build_Mode`.
 - All switches live in `ashell_shared.gpr`, and other projects rename its packages. There is no separate lint step: `-gnatwa` and the `-gnaty` style checks run on every compile. They only warn, so read the compiler output.
 - `config/` and `alire/` are Alire-generated and gitignored. `ashell.gpr` does not use `config/ashell_config.gpr`, so edit switches in `ashell_shared.gpr`.
 
