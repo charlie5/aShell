@@ -169,7 +169,7 @@ is
                     Pipeline          : in     Boolean := False);
 
 
-   procedure Wait_On        (Process : in out Shell.Process);                    -- Raises Process_Not_Started if it has not been started.
+   procedure Wait_On        (Process : in out Shell.Process);                    -- Until it has ended, as a stopped process hasn't. Raises Process_Not_Started if it has not been started.
    function  Has_Terminated (Process : in out Shell.Process) return Boolean;     -- False for a process which has not been started.
    function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
 

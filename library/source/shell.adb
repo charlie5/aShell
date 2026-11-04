@@ -16,6 +16,8 @@ with
 with Ada.Text_IO;
 --  use  Ada.Text_IO;
 
+with Interfaces.C;
+
 
 package body Shell
 is
@@ -988,6 +990,41 @@ is
 
 
 
+   -- A process which has been stopped may have been continued from outside. Florist's waits don't report
+   -- this, so ask directly. Only a continue is asked about, so the process's exit will not be taken.
+   --
+   procedure Note_Any_Continue (Process : in out Shell.Process)
+   is
+      use Interfaces.C;
+
+      type Signal_Information is array (1 .. 32) of int     -- A 'siginfo_t', which is 128 bytes on Linux.
+        with Convention => C;
+
+      function waitid (Id_Type : in     int;
+                       Id      : in     int;
+                       Info    : access Signal_Information;
+                       Options : in     int) return int
+        with Import, Convention => C, External_Name => "waitid";
+
+      P_PID      : constant int := 1;
+      WNOHANG    : constant int := 1;
+      WCONTINUED : constant int := 8;
+
+      Info : aliased Signal_Information := [others => 0];
+   begin
+      if Process.State = Paused
+        and then waitid (P_PID,
+                         int'Value (POSIX.Process_Identification.Image (Process.Id)),
+                         Info'Access,
+                         WNOHANG + WCONTINUED) = 0
+        and then Info (1) /= 0     -- The signal number is left at zero, when there is nothing to report.
+      then
+         Process.State := Running;
+      end if;
+   end Note_Any_Continue;
+
+
+
    function Status (Process : in out Shell.Process) return Process_State
    is
       use POSIX.Process_Primitives;
@@ -996,6 +1033,8 @@ is
    begin
       if Process.State not in Not_Started | Terminated
       then
+         Note_Any_Continue (Process);
+
          Wait_For_Child_Process (Status => POSIX_Status,
                                  Child  => Process.Id,
                                  Block  => False);
@@ -1253,9 +1292,12 @@ is
          return;     -- The process has already been waited on.
       end if;
 
-      Wait_For_Child_Process (Status => POSIX_Status,
-                              Child  => Process.Id,
-                              Block  => True);
+      -- A program which has merely been stopped hasn't ended, so isn't reported.
+      --
+      Wait_For_Child_Process (Status        => POSIX_Status,
+                              Child         => Process.Id,
+                              Block         => True,
+                              Trace_Stopped => False);
 
       Update_Status (Process, POSIX_Status);
 
@@ -1280,6 +1322,8 @@ is
       then
          return True;
       end if;
+
+      Note_Any_Continue (Process);
 
       Wait_For_Child_Process (Status => POSIX_Status,
                               Child  => Process.Id,

@@ -446,6 +446,42 @@ is
 
 
 
+   -- A program which is stopped hasn't ended, so 'Wait_On' must carry on waiting.
+   --
+   procedure Test_Waiting_On_A_Stopped_Process
+   is
+      use Shell;
+      Process : Shell.Process := Start (Program   => "bash",
+                                        Arguments => [+"-c", +"(sleep 0.5; kill -CONT $$) & kill -STOP $$; exit 7"]);
+   begin
+      Wait_On (Process);
+
+      Assert (Status (Process) = Failed_Exit,
+              "'Wait_On' should return only once the process has ended, not when '" & Status (Process)'Image & "'.");
+   end Test_Waiting_On_A_Stopped_Process;
+
+
+
+   -- A process stopped then continued from outside is running again.
+   --
+   procedure Test_Continued_From_Outside
+   is
+      use Shell;
+      Process : Shell.Process := Start (Program   => "bash",
+                                        Arguments => [+"-c", +"(sleep 0.4; kill -CONT $$) & kill -STOP $$; sleep 0.5"]);
+   begin
+      delay 0.2;
+      Assert (Status (Process) = Paused, "Should be paused, not '" & Status (Process)'Image & "'.");
+
+      delay 0.4;     -- It has now been continued, and has yet to end.
+      Assert (Status (Process) = Running, "Should be running again, not '" & Status (Process)'Image & "'.");
+
+      Wait_On (Process);
+      Assert (Status (Process) = Normal_Exit, "Should end normally, not '" & Status (Process)'Image & "'.");
+   end Test_Continued_From_Outside;
+
+
+
    overriding
    procedure Initialize (T : in out Test)
    is
@@ -454,6 +490,8 @@ is
 
       T.Add_Test_Routine (Test_Status'Access, "Process Status");
       T.Add_Test_Routine (Test_Start_Forms'Access, "Start Forms");
+      T.Add_Test_Routine (Test_Waiting_On_A_Stopped_Process'Access, "Waiting On A Stopped Process");
+      T.Add_Test_Routine (Test_Continued_From_Outside'Access, "Continued From Outside");
       T.Add_Test_Routine (Test_Process_Pipes'Access, "Process Pipes");
       T.Add_Test_Routine (Test_Process_Errors'Access, "Process Errors");
       T.Add_Test_Routine (Test_Unstarted_Process'Access, "Unstarted Process");

@@ -319,44 +319,40 @@ begin
                Log ("Kill action.");
 
                declare
-                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+                  The_Command : Unsafe.Command renames Command_Map (Action.Id);     -- Not a copy, as it may see the program end, just once.
                begin
                   The_Command.Kill;
                   Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                  Command_Map.Replace (Action.Id, The_Command);
                end;
 
             when Interrupt =>
                Log ("Interrupt action.");
 
                declare
-                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+                  The_Command : Unsafe.Command renames Command_Map (Action.Id);     -- Not a copy, as it may see the program end, just once.
                begin
                   Privy.Interrupt_Without_Waiting (The_Command);
                   Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                  Command_Map.Replace (Action.Id, The_Command);
                end;
 
             when Pause =>
                Log ("Pause action.");
 
                declare
-                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+                  The_Command : Unsafe.Command renames Command_Map (Action.Id);     -- Not a copy, as it may see the program end, just once.
                begin
                   The_Command.Pause;
                   Log ("Paused Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                  Command_Map.Replace (Action.Id, The_Command);
                end;
 
             when Resume =>
                Log ("Resume action.");
 
                declare
-                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+                  The_Command : Unsafe.Command renames Command_Map (Action.Id);     -- Not a copy, as it may see the program end, just once.
                begin
                   The_Command.Resume;
                   Log ("Resumes Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                  Command_Map.Replace (Action.Id, The_Command);
                end;
 
             when Stop =>
@@ -365,7 +361,7 @@ begin
                declare
                   use Shell.Commands.Unsafe.Privy;
 
-                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+                  The_Command : Unsafe.Command renames Command_Map (Action.Id);     -- Not a copy, as it may see the program end, just once.
                begin
                   Stop (The_Command);
                   Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
@@ -386,7 +382,6 @@ begin
                      end if;
                   end;
 
-                  Command_Map.Replace (Action.Id, The_Command);
                end;
 
             when Shutdown =>

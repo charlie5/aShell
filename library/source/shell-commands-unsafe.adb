@@ -857,9 +857,15 @@ is
             declare
                Is_Terminated : constant Boolean := Has_Terminated (The_Command.Process);
             begin
-               if The_Command.Process.State = Shell.Paused     -- It may have been stopped from outside, such as by Ctrl-Z.
+               -- It may have been stopped, or continued, from outside, such as by Ctrl-Z.
+               --
+               if The_Command.Process.State = Shell.Paused
                then
                   The_Command.Status := Paused;
+
+               elsif The_Command.Process.State = Shell.Running
+               then
+                  The_Command.Status := Running;
                end if;
 
                if Is_Terminated
@@ -912,15 +918,19 @@ is
 
 
 
-   -- A program may have been stopped from outside, such as by Ctrl-Z.
+   -- A program may have been stopped, or continued, from outside, such as by Ctrl-Z.
    --
    procedure Note_Any_Outside_Stop (The_Command : in out Command)
    is
    begin
-      if         The_Command.Status = Running
-        and then Shell.Status (The_Command.Process) = Shell.Paused
+      if The_Command.Status in Running | Paused
       then
-         The_Command.Status := Paused;
+         case Shell.Status (The_Command.Process)
+         is
+            when Shell.Paused  => The_Command.Status := Paused;
+            when Shell.Running => The_Command.Status := Running;
+            when others        => null;
+         end case;
       end if;
    end Note_Any_Outside_Stop;
 

@@ -1,5 +1,7 @@
 with
      Shell.Commands.Safe,
+     Ada.Command_Line,
+     Ada.Directories,
      Ada.Real_Time,
      Ada.Strings.Fixed,
      Ada.Text_IO;
@@ -27,6 +29,12 @@ is
 
       Ada.Text_IO.Put_Line (Test & " passed.");
    end Check;
+
+
+   -- This is also run from another folder.
+   --
+   function Beside_This_Program (Name : in String) return String
+   is (Ada.Directories.Containing_Directory (Ada.Command_Line.Command_Name) & "/" & Name);
 
 
    function Trimmed (Item : in String) return String
@@ -79,12 +87,16 @@ begin
       The_Command : Safe.Command := Forge.To_Command ("sleep 1");
       Long_Runner : Safe.Command := Forge.To_Command ("sleep 25");
       Late_Paused : Safe.Command := Forge.To_Command ("sleep 1");
+      Continued   : Safe.Command := Forge.To_Command ("bash " & Beside_This_Program ("continues_itself.sh"));     -- Stopped, then continued from outside.
       Raised      : Boolean      := False;
       Before      : constant Time := Clock;
    begin
       The_Command.Start (Accepts_Input => True);
       Long_Runner.Start;
       Late_Paused.Start;
+      Continued  .Start;
+
+      delay 0.5;     -- It has been seen to stop by now, and has been continued.
 
       Stop_Spawn_Client;
       delay 0.1;
@@ -103,6 +115,10 @@ begin
       end;
 
       Check ("Sending after shutdown raises", Raised);
+
+      Continued.Wait_On;
+      Check ("A program continued from outside finishes during a shutdown", Continued.Normal_Exit);
+
       Check ("Killing after shutdown stops the program", To_Duration (Clock - Before) < 15.0);
 
       -- The client has now ended. Failing to start must not leave a command to wait on for ever.

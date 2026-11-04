@@ -448,7 +448,20 @@ is
          for Each of Pending_Actions
          loop
             Log ("Sending " & Each.Kind'Image & " action for command" & Each.Id'Image & " to server.");
-            Server_Action'Output (Server_Input_Stream'Access, Each);
+
+            begin
+               Server_Action'Output (Server_Input_Stream'Access, Each);
+            exception
+               when others =>
+                  -- The server may have finished, and exited, with its last results still on their way.
+                  --
+                  if not Shutdown_Sent
+                  then
+                     raise;
+                  end if;
+
+                  Log ("Dropped a late action, as the server has ended.");
+            end;
          end loop;
 
          Pending_Actions.Clear;
@@ -474,6 +487,16 @@ is
             Shutting_Down := True;
          end if;
 
+
+         -- The server ended without finishing these commands, so no more results will come. It may be
+         -- an older version, which couldn't understand the actions, and so ended as if asked to.
+         --
+         if     Server_Is_Done
+            and not Command_Outputs_Map.Is_Empty
+         then
+            Log ("The server ended, with commands outstanding.");
+            raise Lost_The_Server;
+         end if;
 
          exit when Server_Is_Done
                and Command_Outputs_Map.Is_Empty;

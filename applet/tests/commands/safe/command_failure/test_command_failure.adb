@@ -204,6 +204,38 @@ begin
    end;
 
 
+   -- An action which arrives as a program ends must not lose its exit status.
+   --
+   declare
+      Failed_Count : Natural := 0;
+   begin
+      for Each in 1 .. 300
+      loop
+         declare
+            The_Command : Safe.Command := Forge.To_Command ("true");
+         begin
+            The_Command.Start;
+
+            if Each mod 2 = 0
+            then
+               The_Command.Pause;     -- This might really pause it, so it needs resuming.
+            end if;
+
+            The_Command.Resume;
+            The_Command.Wait_On;
+
+            if not The_Command.Normal_Exit
+            then
+               Failed_Count := Failed_Count + 1;
+            end if;
+         end;
+      end loop;
+
+      Ada.Text_IO.Put_Line ("Lost the status of" & Failed_Count'Image & " of 300 commands.");
+      Check ("An action as a program ends doesn't lose its status", Failed_Count = 0);
+   end;
+
+
    -- Sending to a command which doesn't accept input.
    --
    declare
