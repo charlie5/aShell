@@ -32,8 +32,8 @@ begin
       use Shell;
       The_Process : Process;
    begin
-      Start ("pwd", Process => The_Process);
-      Start ("pwd", Process => The_Process);
+      Start (The_Process, Command => "pwd");
+      Start (The_Process, Command => "pwd");
       raise Error with "Process started twice and no exception raised.";
    exception
       when Shell.Process_Already_Started => null;
