@@ -5,6 +5,7 @@ with
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
      Ada.Strings.Fixed,
+     Ada.Task_Identification,
      Ada.Text_IO,
      Ada.Exceptions;
 
@@ -175,7 +176,8 @@ is
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
 
       Next_Id        : Command_Id := 1;
-      Shutting_Down  : Boolean    := False;
+      Shutting_Down  : Boolean    := False;     -- A shutdown is due to be sent to the server.
+      Shutdown_Sent  : Boolean    := False;
       Server_Is_Done : Boolean    := False;
 
       Spawn_Server : Shell.Process with Unreferenced;
@@ -195,6 +197,7 @@ is
 
       loop
          select
+            when not (Shutting_Down or Shutdown_Sent) =>
             accept Add (The_Command   : in out Command;
                         Input         : in     Data    := No_Data;
                         Accepts_Input : in     Boolean := False;
@@ -218,6 +221,7 @@ is
                                            Outputs);
             end Add;
          or
+            when not (Shutting_Down or Shutdown_Sent) =>
             accept Add (The_Pipeline : in out Command_Array;
                         Input        : in     Data := No_Data)
             do
@@ -312,7 +316,7 @@ is
             accept Shutdown
             do
                Log ("Client: Shutting down.");
-               Shutting_Down := True;
+               Shutting_Down := not Shutdown_Sent;
             end Shutdown;
          or
             delay 0.01;
@@ -327,6 +331,7 @@ is
                                                   Null_Id));
             Log ("Client asks server to stop.");
             Shutting_Down := False;
+            Shutdown_Sent := True;
 
          elsif Have_New_Command
          then
@@ -406,6 +411,15 @@ is
                                   Server_Action' (Stop,
                                                   Stopping_Command));
             Stopping_Command := Null_Id;
+
+         -- The runtime makes the environment task uncallable when the main subprogram has completed (normally or
+         -- due to an unhandled exception), and then waits for this task. So, shutdown if that has happened.
+         --
+         elsif     not Shutdown_Sent
+           and then not Ada.Task_Identification.Is_Callable (Ada.Task_Identification.Environment_Task)
+         then
+            Log ("Client: The main program has completed.");
+            Shutting_Down := True;
          end if;
 
 
@@ -849,6 +863,9 @@ is
    is
    begin
       Spawn_Client.Shutdown;
+   exception
+      when Tasking_Error =>
+         null;     -- The spawn client has already shut down.
    end Stop_Spawn_Client;
 
 

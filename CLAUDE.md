@@ -65,7 +65,7 @@ Three layers, each a child of the one before (see the diagrams in `library/docum
 What this means when changing code:
 
 - **The server is a separate binary.** After changing `Unsafe`, `Shell`, or the action types in `shell-commands.ads`, rebuild the server. Otherwise tests keep running the old installed one, and the client and server may disagree on the stream format. To avoid installing it, put `applet/spawn_server` first on `PATH`.
-- **Safe programs must call `Safe.Stop_Spawn_Client`** before they finish, to shut down the client task and the server.
+- **Shutdown is automatic.** `Spawn_Client` polls `Is_Callable (Environment_Task)`, which the runtime clears when the main subprogram completes. It then asks the server to shut down, which kills paused commands and waits for running ones. Library-level finalization can't do this, as it runs only after the tasks have ended. Call `Safe.Stop_Spawn_Client` only to shut down earlier. Library-level tasks can't run commands after the main subprogram completes; they get `Command_Error` or `Tasking_Error`.
 - **`Safe` and `Unsafe` cannot be in the same program.** Whichever elaborates second raises `Program_Error`, so this fails at startup rather than at compile time. It is also why the safe and unsafe tests have separate aggregates. The server itself uses only `Unsafe`.
 - **Missing server:** elaborating `Safe` raises `Process_Error` if `ashell_spawn_server` is not on `PATH`, even if no command is ever run.
 

@@ -100,7 +100,13 @@ is
 
    procedure Stop_Spawn_Client;
    --
-   -- Called at program completion to shutdown the spawn client task and spawn server process.
+   -- Shuts down the spawn client task and spawn server process. This occurs automatically when the main subprogram
+   -- has completed, so only call this to shut down earlier.
+   --
+   -- Library level tasks cannot run commands after the main subprogram has completed. They would receive a
+   -- Tasking_Error or Command_Error, whether or not this is called.
+   --
+   -- Paused commands are killed. Running commands are left to complete, and the program waits on them.
 
 
 

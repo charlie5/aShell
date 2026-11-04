@@ -226,6 +226,29 @@ begin
                   when Shutdown =>
                      Log ("Shutdown action.");
                      Shutting_Down := True;
+
+                     -- The client cannot resume a paused command, which would then prevent the server from ending.
+                     --
+                     declare
+                        use Id_Maps_of_Command;
+                        Cursor : Id_Maps_of_Command.Cursor := Command_Map.First;
+                     begin
+                        while Has_Element (Cursor)
+                        loop
+                           declare
+                              The_Command : Unsafe.Command := Element (Cursor);
+                           begin
+                              if The_Command.Status = Paused
+                              then
+                                 The_Command.Kill;
+                                 Log ("Killed paused Command:" & Key (Cursor)'Image);
+                                 Command_Map.Replace_Element (Cursor, The_Command);
+                              end if;
+                           end;
+
+                           Next (Cursor);
+                        end loop;
+                     end;
                end case;
             end;
 
