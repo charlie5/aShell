@@ -1,0 +1,95 @@
+with
+     Shell.Commands.Safe,
+     Ada.Strings.Fixed,
+     Ada.Text_IO;
+
+
+procedure Test_No_Input
+--
+-- A program started without any input must see the end of its input, rather than read the client's actions from the
+-- spawn server's standard input. Any failure of this test raises an exception, or hangs.
+--
+is
+   use Shell,
+       Shell.Commands,
+       Shell.Commands.Safe;
+
+
+   procedure Check (Test : in String;
+                    Ok   : in Boolean)
+   is
+   begin
+      if not Ok
+      then
+         raise Program_Error with Test & " failed.";
+      end if;
+
+      Ada.Text_IO.Put_Line (Test & " passed.");
+   end Check;
+
+
+   function Trimmed (Item : in String) return String
+   is (Ada.Strings.Fixed.Trim (Item (Item'First .. Item'Last - 1), Ada.Strings.Both));     -- Without the line feed.
+
+begin
+   -- A command, with others started while it runs.
+   --
+   declare
+      Reader : Safe.Command := Forge.To_Command ("cat");
+   begin
+      Reader.Start;
+
+      for Each in 1 .. 5
+      loop
+         Check ("Command started alongside a reader runs", +Output_Of (Run ("echo Hello")) = "Hello" & ASCII.LF);
+      end loop;
+
+      Reader.Wait_On;
+
+      Check ("Program without input ends normally",   Reader.Normal_Exit);
+      Check ("Program without input reads nothing", Output_Of (Results_Of (Reader))'Length = 0);
+   end;
+
+
+   -- The first command in a pipeline.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("cat | wc -c");
+   begin
+      Check ("Pipeline without input reads nothing", Trimmed (+Output_Of (Run (The_Pipeline))) = "0");
+   end;
+
+
+   -- Input given as usual must still arrive.
+   --
+   declare
+      The_Command : Safe.Command := Forge.To_Command ("cat");
+   begin
+      Check ("Program with input reads it", +Output_Of (Run (The_Command, Input => +"Given")) = "Given");
+   end;
+
+
+   -- After the server is asked to shut down, it no longer reads actions and has closed the input of all commands.
+   --
+   declare
+      The_Command : Safe.Command := Forge.To_Command ("sleep 1");
+      Raised      : Boolean      := False;
+   begin
+      The_Command.Start (Accepts_Input => True);
+
+      Stop_Spawn_Client;
+      delay 0.1;
+
+      The_Command.Close_Input;
+      Ada.Text_IO.Put_Line ("Closing input after shutdown does nothing passed.");
+
+      begin
+         The_Command.Send (+"Too late.");
+      exception
+         when Command_Error =>
+            Raised := True;
+      end;
+
+      Check ("Sending after shutdown raises", Raised);
+   end;
+end Test_No_Input;

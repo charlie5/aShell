@@ -70,6 +70,7 @@ test_unsafe_close_input
 test_unsafe_wait_on
 test_unsafe_pipeline_failure
 test_exit_with_input
+test_no_input
 test_safe_close_input
 test_command_failure
 test_server_lost

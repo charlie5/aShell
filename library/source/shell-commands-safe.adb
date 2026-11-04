@@ -190,6 +190,7 @@ is
       Have_New_Pipeline : Boolean := False;
       Pipeline_Input    : Data_Holder;
       Pipeline_First_Id : Command_Id;
+      Pipeline_Count    : Positive;
 
       Sending_Input_To_Command : Command_Id := Null_Id;
       Closing_Input_Of_Command : Command_Id := Null_Id;
@@ -256,6 +257,7 @@ is
                Log ("Client: Accepting new pipeline.");
 
                Have_New_Pipeline := True;
+               Pipeline_Count    := The_Pipeline'Length;
 
                for i in The_Pipeline'Range
                loop
@@ -290,6 +292,7 @@ is
                Pipeline_Input.Replace_Element (Input);
             end Add;
          or
+            when not (Shutting_Down or Shutdown_Sent) =>     -- The server has closed all input, and no longer reads actions.
             accept Send (The_Command : in Command;
                          Input       : in Data)
             do
@@ -305,7 +308,10 @@ is
                Log ("");
                Log ("Client: Closing input of command.");
 
-               Closing_Input_Of_Command := The_Command.Id;
+               if not (Shutting_Down or Shutdown_Sent)     -- Otherwise, the server has already closed it.
+               then
+                  Closing_Input_Of_Command := The_Command.Id;
+               end if;
             end Close_Input;
          or
             accept Kill (The_Command : in Command)
@@ -389,7 +395,8 @@ is
                                   Server_Action' (New_Pipeline,
                                                   Pipeline_First_Id,
                                                   Pipeline,
-                                                  Pipeline_Input));
+                                                  Pipeline_Input,
+                                                  Pipeline_Count));
             Have_New_Pipeline := False;
 
          elsif Sending_Input_To_Command /= Null_Id
@@ -905,6 +912,11 @@ is
    procedure Wait_On (The_Command : in out Command)
    is
    begin
+      if The_Command.Status = Not_Started
+      then
+         raise Command_Error with "Cannot wait on '" & (+The_Command.Name) & "' as it has not been started.";
+      end if;
+
       The_Command.Safe_Outputs.Wait_Til_Done;
    end Wait_On;
 

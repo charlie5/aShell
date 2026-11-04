@@ -190,6 +190,7 @@ private
          when New_Pipeline =>
             Pipeline       : Unbounded_String;
             Pipeline_Input : Data_Holder;
+            Pipeline_Count : Positive;     -- The commands the client has given ids, from 'Id' onwards.
 
          when New_Input =>
             Data : Data_Holder;

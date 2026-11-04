@@ -10,6 +10,10 @@ with
 
 procedure Shell.Commands.Spawn_Server
 is
+   -- The client's actions arrive on the standard input. A program started without any input would otherwise inherit it,
+   -- and read those actions.
+   --
+   Client_Input : constant Pipe := Move_Standard_Input;
 
    package Server_Action_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Server_Action);
 
@@ -57,7 +61,7 @@ is
 
    task body New_Action_Fetcher
    is
-      Input_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Input);
+      Input_Stream : aliased Pipe_Stream := Stream (Client_Input);
    begin
       accept Start;
 
@@ -170,63 +174,93 @@ begin
                      Log ("New_Pipeline action.");
 
                      declare
-                        use Shell.Commands.Unsafe.Privy;
-
-                        The_Commands  : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
-                        Error_Is_Sent : Boolean              := False;
+                        First_Id : constant Command_Id := Action.Id;
                      begin
+                        declare
+                           use Shell.Commands.Unsafe.Privy;
+
+                           The_Commands  : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
+                           Error_Is_Sent : Boolean              := False;
                         begin
-                           Start (The_Commands,
-                                  Input    => Action.Pipeline_Input.Element,
-                                  Pipeline => True);
-
-                        exception
-                           when E : others =>     -- Such as a program not being found.
-                              Log (Ada.Exceptions.Exception_Information (E));
-
-                              -- Stop the commands which did start. They aren't at fault, so that
-                              -- 'Which_Failed' finds the one which is, and report the error against it.
-                              --
-                              for i in The_Commands'Range
-                              loop
-                                 declare
-                                    Started : constant Boolean :=      Shell.Status (Unsafe.Process (The_Commands (i)).all)
-                                                                  /= Shell.Not_Started;
-                                 begin
-                                    if Started
-                                    then
-                                       Privy.Stop (The_Commands (i));
-                                    end if;
-
-                                    if         not (Started and i /= The_Commands'Last)
-                                      and then not Error_Is_Sent
-                                    then
-                                       Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
-                                       Error_Is_Sent := True;
-                                    end if;
-
-                                    Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);
-                                    Action.Id := Action.Id + 1;
-                                 end;
-                              end loop;
-
-                              goto Pipeline_Done;
-                        end;
-
-                        Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
-
-                        for i in The_Commands'Range
-                        loop
-                           if i /= The_Commands'Last
+                           -- The client joins its commands into one line, so an argument containing a '|' splits a command.
+                           --
+                           if The_Commands'Length /= Action.Pipeline_Count
                            then
-                              Is_Within_A_Pipeline (The_Commands (i));
+                              raise Command_Error with "Cannot start pipeline of"       & Action.Pipeline_Count'Image
+                                                     & " commands, as its line has"     & The_Commands'Length'Image
+                                                     & ". An argument may contain a '|'.";
                            end if;
 
-                           Command_Map.Insert (Action.Id, The_Commands (i));
-                           Action.Id := Action.Id + 1;
-                        end loop;
+                           begin
+                              Start (The_Commands,
+                                     Input    => Action.Pipeline_Input.Element,
+                                     Pipeline => True);
 
-                        <<Pipeline_Done>>
+                           exception
+                              when E : others =>     -- Such as a program not being found.
+                                 Log (Ada.Exceptions.Exception_Information (E));
+
+                                 -- Stop the commands which did start. They aren't at fault, so that
+                                 -- 'Which_Failed' finds the one which is, and report the error against it.
+                                 --
+                                 for i in The_Commands'Range
+                                 loop
+                                    declare
+                                       Started : Boolean := True;
+                                    begin
+                                       begin
+                                          Started :=     Shell.Status (Unsafe.Process (The_Commands (i)).all)
+                                                      /= Shell.Not_Started;
+                                          if Started
+                                          then
+                                             Privy.Stop (The_Commands (i));
+                                          end if;
+                                       exception
+                                          when Stop_Failure : others =>     -- The client must still be told of every command.
+                                             Log (Ada.Exceptions.Exception_Information (Stop_Failure));
+                                       end;
+
+                                       if         not (Started and i /= The_Commands'Last)
+                                         and then not Error_Is_Sent
+                                       then
+                                          Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
+                                          Error_Is_Sent := True;
+                                       end if;
+
+                                       Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);
+                                       Action.Id := Action.Id + 1;
+                                    end;
+                                 end loop;
+
+                                 goto Pipeline_Done;
+                           end;
+
+                           Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
+
+                           for i in The_Commands'Range
+                           loop
+                              if i /= The_Commands'Last
+                              then
+                                 Is_Within_A_Pipeline (The_Commands (i));
+                              end if;
+
+                              Command_Map.Insert (Action.Id, The_Commands (i));
+                              Action.Id := Action.Id + 1;
+                           end loop;
+
+                           <<Pipeline_Done>>
+                        end;
+
+                     exception
+                        when E : others =>     -- The line could not be parsed, so no command exists. Release the client's callers.
+                           Log (Ada.Exceptions.Exception_Information (E));
+
+                           Send_Error (First_Id, Ada.Exceptions.Exception_Message (E));
+
+                           for Each in 0 .. Command_Id (Action.Pipeline_Count) - 1
+                           loop
+                              Send_Done (First_Id + Each, Normal_Exit => False);
+                           end loop;
                      end;
 
                   when New_Input =>

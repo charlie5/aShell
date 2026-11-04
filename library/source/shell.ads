@@ -272,6 +272,11 @@ private
    --
    procedure Set_Write_End_Close_On_Exec (Pipe : in Shell.Pipe);
 
+   -- Moves this program's standard input to a new descriptor, which programs it starts don't inherit, and returns a pipe
+   -- to read it. The standard input becomes empty, so a program started without any input sees the end of its input.
+   --
+   function Move_Standard_Input return Pipe;
+
 
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with
       record

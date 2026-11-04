@@ -643,6 +643,26 @@ is
 
 
 
+   function Move_Standard_Input return Pipe
+   is
+      Moved : constant File_Descriptor := POSIX.IO.Duplicate (POSIX.IO.Standard_Input);
+      Empty : constant File_Descriptor := POSIX.IO.Open      ("/dev/null", POSIX.IO.Read_Only);
+   begin
+      POSIX.IO.Set_Close_On_Exec (Moved);
+
+      declare
+         Unused : constant File_Descriptor := POSIX.IO.Duplicate_And_Close (Empty, Target => POSIX.IO.Standard_Input);
+      begin
+         POSIX.IO.Close (Empty);
+      end;
+
+      return (Write_End => Null_File_Descriptor,
+              Read_End  => Moved,
+              Id        => No_Pipe_Id);
+   end Move_Standard_Input;
+
+
+
    procedure Close_Write_End (Pipe : in Shell.Pipe)
    is
    begin

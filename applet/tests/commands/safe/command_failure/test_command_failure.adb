@@ -152,6 +152,39 @@ begin
    end;
 
 
+   -- A pipeline which the server cannot parse must not leave the caller waiting.
+   --
+   declare
+      Ends_In_Bar   : Command_Array := [Forge.To_Command ("cat"), Forge.To_Command ("echo end|")];
+      Contains_Bar  : Command_Array := [Forge.To_Command ("cat"), Forge.To_Command ("echo a|b")];
+      Too_Many      : Command_Array := [for Each in 1 .. 51 => Forge.To_Command ("true")];
+   begin
+      Run (Ends_In_Bar);
+      Check ("Pipeline ending in a bar fails", Which_Failed (Ends_In_Bar) = 1);
+      Check ("Pipeline ending in a bar gives an error", Errors_Of (Results_Of (Ends_In_Bar (1)))'Length /= 0);
+
+      Run (Contains_Bar);
+      Check ("Argument containing a bar fails", Which_Failed (Contains_Bar) = 1);
+      Check ("Argument containing a bar gives its reason", Contains (+Errors_Of (Results_Of (Contains_Bar (1))), "may contain a '|'"));
+
+      Run (Too_Many);
+      Check ("Pipeline with too many commands fails", Which_Failed (Too_Many) = 1);
+   end;
+
+
+   -- Waiting on a command which was never started cannot end.
+   --
+   declare
+      The_Command : Safe.Command := Forge.To_Command ("echo Unstarted");
+   begin
+      The_Command.Wait_On;
+      Check ("Waiting on an unstarted command raises", False);
+   exception
+      when Command_Error =>
+         Check ("Waiting on an unstarted command raises", True);
+   end;
+
+
    -- A pipeline must not use a whole core while it waits.
    --
    declare
