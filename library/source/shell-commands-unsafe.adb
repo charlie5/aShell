@@ -337,12 +337,11 @@ is
                   Error : constant String :=   "Pipeline command" & Integer'Image (i)
                                              & " '" & (+The_Pipeline (i).Name) & "' failed.";
                begin
-                  -- Stop the pipeline.
+                  -- Stop the rest of the pipeline.
                   --
-                  while i <= The_Pipeline'Last
+                  for Each in i + 1 .. The_Pipeline'Last
                   loop
-                     --  Stop (The_Pipeline (i));     -- TODO: Fix this (see 'test_pipeline_error').
-                     i := i + 1;
+                     Stop (The_Pipeline (Each));
                   end loop;
 
                   if Raise_Error
@@ -435,7 +434,10 @@ is
       Close (The_Command. Error_Pipe);
 
       begin
-         Kill (The_Command);
+         if not The_Command.Has_Terminated     -- It may have just seen the end of its input.
+         then
+            Kill (The_Command);
+         end if;
       exception
          when E : POSIX.POSIX_Error =>
             if To_Upper (Exception_Message (E)) /= "NO_SUCH_PROCESS"

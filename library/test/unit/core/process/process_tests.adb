@@ -57,6 +57,41 @@ is
 
 
 
+   procedure Test_Ended_Process
+   is
+      use Shell;
+      Process : Shell.Process;
+   begin
+      -- A process which is reaped by 'Has_Terminated' retains its final status.
+      --
+      Process := Start ("true");
+      Wait_On (Process);
+      Assert (Has_Terminated (Process),      "Process should have terminated.");
+      Assert (Status (Process) = Normal_Exit, "Process status should be 'Normal_Exit' not '" & Status (Process)'Image & "'");
+
+      Process := Start ("false");
+      while not Has_Terminated (Process)
+      loop
+         delay 0.01;
+      end loop;
+      Assert (Status (Process) = Failed_Exit, "Process status should be 'Failed_Exit' not '" & Status (Process)'Image & "'");
+
+      -- Killing and waiting on an ended process are harmless, and it retains its status.
+      --
+      Kill    (Process);
+      Wait_On (Process);
+      Assert (Status (Process) = Failed_Exit, "Process status should be 'Failed_Exit' not '" & Status (Process)'Image & "'");
+
+      -- A process ended by a signal other than interrupt is 'Killed'.
+      --
+      Process := Start ("kill -TERM $$");
+      Wait_On (Process);
+      Assert (Status (Process) = Killed, "Process status should be 'Killed' not '" & Status (Process)'Image & "'");
+      Assert (not Normal_Exit (Process), "A process ended by a signal should not have a normal exit.");
+   end Test_Ended_Process;
+
+
+
    procedure Test_Start_With_Closed_Pipe
    is
       use Shell;
@@ -94,6 +129,7 @@ is
       T.Set_Name ("Process Tests");
 
       T.Add_Test_Routine (Test_Status'Access, "Process Status");
+      T.Add_Test_Routine (Test_Ended_Process'Access, "Ended Process");
       T.Add_Test_Routine (Test_Start_With_Closed_Pipe'Access, "Start With Closed Pipe");
 
    end Initialize;

@@ -383,11 +383,7 @@ is
                         use POSIX.Signals;
                         Signal : constant POSIX.Signals.Signal := Termination_Signal_Of (POSIX_Status);
                      begin
-                        if    Signal = Signal_Interrupt then Process.State := Interrupted;
-                        elsif Signal = Signal_Kill      then Process.State := Killed;
-                        else
-                           raise Program_Error with "Shell.Update_Status: Unhandled termination signal (" & Signal'Image & ") while running.";
-                        end if;
+                        Process.State := (if Signal = Signal_Interrupt then Interrupted else Killed);     -- Any other signal, such as SIGPIPE.
                      end;
 
                   when Stopped_By_Signal =>
@@ -417,11 +413,7 @@ is
                         use POSIX.Signals;
                         Signal : constant POSIX.Signals.Signal := Termination_Signal_Of (POSIX_Status);
                      begin
-                        if    Signal = Signal_Interrupt then Process.State := Interrupted;
-                        elsif Signal = Signal_Kill      then Process.State := Killed;
-                        else
-                           raise Program_Error with "Shell.Update_Status: Unhandled termination signal (" & Signal'Image &") while paused.";
-                        end if;
+                        Process.State := (if Signal = Signal_Interrupt then Interrupted else Killed);     -- Any other signal, such as SIGPIPE.
                      end;
 
                   when Stopped_By_Signal =>
@@ -711,6 +703,11 @@ is
       use POSIX.Process_Primitives;
       POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
+      if Process.State in Terminated
+      then
+         return;     -- The process has already been waited on.
+      end if;
+
       Wait_For_Child_Process (Status => POSIX_Status,
                               Child  => Process.Id,
                               Block  => True);
@@ -726,11 +723,21 @@ is
       use POSIX.Process_Primitives,
           Ada.Characters.Handling,
           Ada.Exceptions;
+
+      POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
-      Wait_For_Child_Process (Status => Process.Status,
+      if Process.State in Terminated
+      then
+         return True;
+      end if;
+
+      Wait_For_Child_Process (Status => POSIX_Status,
                               Child  => Process.Id,
                               Block  => False);
-      return Status_Available (Process.Status);
+
+      Update_Status (Process, POSIX_Status);     -- This wait reaps the process, so a later wait would fail.
+
+      return Process.State in Terminated;
    exception
       when E : POSIX.POSIX_Error =>
          if To_Upper (Exception_Message (E)) = "NO_CHILD_PROCESS"
@@ -776,15 +783,22 @@ is
    procedure Kill (Process : in out Shell.Process)
    is
       use POSIX.Signals;
-
-      the_Status : Process_State := Status (Process);
    begin
+      if Process.State = Not_Started
+      then
+         raise Process_Not_Started;
+      end if;
+
+      if Has_Terminated (Process)
+      then
+         return;
+      end if;
+
       Send_Signal (Process.Id, Signal_Kill);
 
-      while the_Status /= Killed
+      while Status (Process) not in Terminated     -- The process may end some other way before the signal arrives.
       loop
          delay Duration'Small;
-         the_Status := Status (Process);
       end loop;
    end Kill;
 

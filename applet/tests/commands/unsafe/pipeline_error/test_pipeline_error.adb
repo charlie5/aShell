@@ -70,5 +70,23 @@ begin
    end;
 
    New_Line (2);
+   Put_Line ("Test 3 =>");
+
+   declare
+      use Shell.Commands.Unsafe,
+          Shell.Commands.Unsafe.Forge;
+      Commands : Command_Array := To_Commands ("false | sleep 30");
+   begin
+      Run (Commands);
+
+      if Commands (2).Has_Terminated
+      then
+         Put_Line ("Failure of the first command stopped the rest of the pipeline, as expected.");
+      else
+         raise Program_Error with "The rest of the pipeline should have been stopped.";
+      end if;
+   end;
+
+   New_Line (2);
    Put_Line ("End 'Pipeline_Error' test.");
 end Test_Pipeline_Error;
