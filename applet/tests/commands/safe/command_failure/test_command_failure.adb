@@ -199,6 +199,51 @@ begin
 
       Run (Too_Many);
       Check ("Pipeline with too many commands fails", Which_Failed (Too_Many) = 1);
+
+      -- Failing a long pipeline must leave no backlog of actions, which would hold up the next command.
+      --
+      declare
+         use Ada.Real_Time;
+
+         Before : constant Time   := Clock;
+         Output : constant String := +Output_Of (Run ("echo Next"));
+         Taken  : constant Duration := To_Duration (Clock - Before);
+      begin
+         Ada.Text_IO.Put_Line ("Next command took" & Taken'Image);
+         Check ("A failed long pipeline doesn't hold up the next command",     Output = "Next" & ASCII.LF
+                                                                           and Taken < 1.5);
+      end;
+   end;
+
+
+   -- A burst of actions must be handled together, rather than one for each pass over the running commands.
+   --
+   declare
+      use Ada.Real_Time;
+
+      Sleepers : Command_Array := [for Each in 1 .. 12 => Forge.To_Command ("sleep 20")];
+      Before   : Time;
+   begin
+      for Each of Sleepers
+      loop
+         Each.Start;
+      end loop;
+
+      delay 2.0;     -- Let them all be started.
+      Before := Clock;
+
+      for Each of Sleepers
+      loop
+         Each.Kill;
+      end loop;
+
+      for Each of Sleepers
+      loop
+         Each.Wait_On;
+      end loop;
+
+      Ada.Text_IO.Put_Line ("Killing all took" & Duration'Image (To_Duration (Clock - Before)));
+      Check ("A burst of actions is handled together", To_Duration (Clock - Before) < 8.0);
    end;
 
 

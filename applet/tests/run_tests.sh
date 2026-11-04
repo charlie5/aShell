@@ -237,7 +237,7 @@ check commands/safe/command_status              60 ''      "End +'Test_Safe_Comm
 check commands/safe/concurrent_commands        120 '100'   'Main Task has terminated'
 check commands/safe/concurrent_pipelines       120 '50'    "End 'Concurrent_Pipelines'"
 check commands/safe/exit_with_input             30 ''      'Main ending'
-check commands/safe/no_input                    30 ''      'Sending after shutdown raises passed'
+check commands/safe/no_input                    30 ''      'Killing after shutdown stops the program passed'
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'
 check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output'"
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"

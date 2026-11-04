@@ -69,14 +69,13 @@ is
          declare
             Action : constant Server_Action := Server_Action'Input (Input_Stream'Access);
          begin
-            New_Actions.Add (Action);
-            exit when Action.Kind = Shutdown;
+            New_Actions.Add (Action);     -- Keep reading after a shutdown, as the client may yet kill a command.
          end;
       end loop;
 
    exception
       when E : others =>
-         Log ("Unhandled error in New_Action_Fetcher.");
+         Log ("New_Action_Fetcher stopped reading.");
          Log (Ada.Exceptions.Exception_Information (E));
 
          New_Actions.Add ((Shutdown, Null_Id));     -- The client has gone, so no more actions will arrive.
@@ -119,6 +118,287 @@ begin
                                 Normal_Exit => Normal_Exit));
       end Send_Done;
 
+      procedure Perform (Action : in out Server_Action)
+      is
+         use Shell.Commands.Unsafe;
+      begin
+         -- A command may terminate before the client's action for it arrives.
+         --
+         if         Action.Kind in New_Input | Close_Input | Kill | Interrupt | Pause | Resume | Stop
+           and then not Command_Map.Contains (Action.Id)
+         then
+            Log ("Ignoring " & Action.Kind'Image & " action for terminated command:" & Action.Id'Image);
+            return;
+         end if;
+
+         -- Once shutting down, nothing would resume the command, which would then stop the server from ending.
+         --
+         if     Action.Kind = Pause
+            and Shutting_Down
+         then
+            Log ("Ignoring Pause action during shutdown, for command:" & Action.Id'Image);
+            return;
+         end if;
+
+         case Action.Kind
+         is
+            when Nil =>
+               null;
+
+            when New_Command =>
+               Log ("New_Command action.");
+
+               begin
+                  declare
+                     The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
+                  begin
+                     The_Command.Start (Input => Action.Command_Input.Element,
+                                        Accepts_Input => Action.Accepts_Input);
+                     Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+
+                     Command_Map.Insert (Action.Id, The_Command);
+                  end;
+               exception
+                  when E : others =>     -- Such as the program not being found.
+                     Log (Ada.Exceptions.Exception_Information (E));
+
+                     Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
+                     Send_Done  (Action.Id, Normal_Exit => False);
+               end;
+
+            when New_Pipeline =>
+               Log ("New_Pipeline action.");
+
+               declare
+                  First_Id : constant Command_Id := Action.Id;
+               begin
+                  declare
+                     use Shell.Commands.Unsafe.Privy;
+
+                     The_Commands  : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
+                     Error_Is_Sent : Boolean              := False;
+                  begin
+                     -- The client joins its commands into one line, so an argument containing a '|' splits a command.
+                     --
+                     if The_Commands'Length /= Action.Pipeline_Count
+                     then
+                        raise Command_Error with "Cannot start pipeline of"       & Action.Pipeline_Count'Image
+                                               & " commands, as its line has"     & The_Commands'Length'Image
+                                               & ". An argument may contain a '|'.";
+                     end if;
+
+                     begin
+                        Start (The_Commands,
+                               Input    => Action.Pipeline_Input.Element,
+                               Pipeline => True);
+
+                     exception
+                        when E : others =>     -- Such as a program not being found.
+                           Log (Ada.Exceptions.Exception_Information (E));
+
+                           -- Stop the commands which did start. They aren't at fault, so that
+                           -- 'Which_Failed' finds the one which is, and report the error against it.
+                           --
+                           for i in The_Commands'Range
+                           loop
+                              declare
+                                 Started : Boolean := True;
+                              begin
+                                 begin
+                                    Started :=     Shell.Status (Unsafe.Process (The_Commands (i)).all)
+                                                /= Shell.Not_Started;
+                                    if Started
+                                    then
+                                       Privy.Stop (The_Commands (i));
+                                    end if;
+                                 exception
+                                    when Stop_Failure : others =>     -- The client must still be told of every command.
+                                       Log (Ada.Exceptions.Exception_Information (Stop_Failure));
+                                 end;
+
+                                 if         not (Started and i /= The_Commands'Last)
+                                   and then not Error_Is_Sent
+                                 then
+                                    Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
+                                    Error_Is_Sent := True;
+                                 end if;
+
+                                 Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);
+                                 Action.Id := Action.Id + 1;
+                              end;
+                           end loop;
+
+                           goto Pipeline_Done;
+                     end;
+
+                     Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
+
+                     for i in The_Commands'Range
+                     loop
+                        if i /= The_Commands'Last
+                        then
+                           Is_Within_A_Pipeline (The_Commands (i));
+                        end if;
+
+                        Command_Map.Insert (Action.Id, The_Commands (i));
+                        Action.Id := Action.Id + 1;
+                     end loop;
+
+                     <<Pipeline_Done>>
+                  end;
+
+               exception
+                  when E : others =>     -- The line could not be parsed, so no command exists. Release the client's callers.
+                     Log (Ada.Exceptions.Exception_Information (E));
+
+                     Send_Error (First_Id, Ada.Exceptions.Exception_Message (E));
+
+                     for Each in 0 .. Command_Id (Action.Pipeline_Count) - 1
+                     loop
+                        Send_Done (First_Id + Each, Normal_Exit => False);
+                     end loop;
+               end;
+
+            when New_Input =>
+               Log ("New_Input action.");
+
+               declare
+                  The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
+               begin
+                  The_Command.Send (Action.Data.Element);
+                  Log ("New Input sent to Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+               end;
+
+            when Close_Input =>
+               Log ("Close_Input action.");
+
+               Command_Map.Element (Action.Id).Close_Input;
+
+            when Kill =>
+               Log ("Kill action.");
+
+               declare
+                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+               begin
+                  The_Command.Kill;
+                  Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                  Command_Map.Replace (Action.Id, The_Command);
+               end;
+
+            when Interrupt =>
+               Log ("Interrupt action.");
+
+               declare
+                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+               begin
+                  Privy.Interrupt_Without_Waiting (The_Command);
+                  Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                  Command_Map.Replace (Action.Id, The_Command);
+               end;
+
+            when Pause =>
+               Log ("Pause action.");
+
+               declare
+                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+               begin
+                  The_Command.Pause;
+                  Log ("Paused Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                  Command_Map.Replace (Action.Id, The_Command);
+               end;
+
+            when Resume =>
+               Log ("Resume action.");
+
+               declare
+                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+               begin
+                  The_Command.Resume;
+                  Log ("Resumes Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                  Command_Map.Replace (Action.Id, The_Command);
+               end;
+
+            when Stop =>
+               Log ("Stop action.");
+
+               declare
+                  use Shell.Commands.Unsafe.Privy;
+
+                  The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
+               begin
+                  Stop (The_Command);
+                  Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                  Command_Map.Replace (Action.Id, The_Command);
+               end;
+
+            when Shutdown =>
+               Log ("Shutdown action.");
+               Shutting_Down := True;
+
+               -- The client cannot resume a paused command, or send more input to a command
+               -- waiting on it. Either would then prevent the server, and the client, from ending.
+               --
+               declare
+                  use Id_Maps_of_Command;
+                  Cursor : Id_Maps_of_Command.Cursor := Command_Map.First;
+               begin
+                  while Has_Element (Cursor)
+                  loop
+                     declare
+                        The_Command : Unsafe.Command := Element (Cursor);
+                     begin
+                        The_Command.Close_Input;
+
+                        if The_Command.Status = Paused
+                        then
+                           The_Command.Kill;
+                           Log ("Killed paused Command:" & Key (Cursor)'Image);
+                           Command_Map.Replace_Element (Cursor, The_Command);
+                        end if;
+                     end;
+
+                     Next (Cursor);
+                  end loop;
+               end;
+         end case;
+
+      exception
+         when E : others =>     -- Keep serving the other commands. For example, sending to a command which has no input.
+            Log ("Failed to perform " & Action.Kind'Image & " action for command:" & Action.Id'Image);
+            Log (Ada.Exceptions.Exception_Information (E));
+      end Perform;
+
+
+      -- A pass of the main loop can take a while, as it reads every command's pipes.
+      -- So take all of the waiting actions, up to a limit which leaves those pipes still being read.
+      --
+      procedure Perform_Waiting_Actions
+      is
+         Most_Actions_Per_Pass : constant := 256;
+      begin
+         for Each in 1 .. Most_Actions_Per_Pass
+         loop
+            declare
+               Action : Server_Action;
+            begin
+               New_Actions.Get (Action);
+
+               if Action.Kind = Nil
+               then
+                  if Each = 1
+                  then
+                     delay 0.02;
+                  end if;
+
+                  exit;
+               end if;
+
+               Perform (Action);
+            end;
+         end loop;
+      end Perform_Waiting_Actions;
+
+
    begin
       Log ("Starting Spawn Server");
 
@@ -129,248 +409,7 @@ begin
          Log ("looping");
 
          begin
-            declare
-               use Shell.Commands.Unsafe;
-               Action : Server_Action;
-            begin
-               New_Actions.Get (Action);
-
-               -- A command may terminate before the client's action for it arrives.
-               --
-               if         Action.Kind in New_Input | Close_Input | Kill | Interrupt | Pause | Resume | Stop
-                 and then not Command_Map.Contains (Action.Id)
-               then
-                  Log ("Ignoring " & Action.Kind'Image & " action for terminated command:" & Action.Id'Image);
-                  Action := (Nil, Null_Id);
-               end if;
-
-               case Action.Kind
-               is
-                  when Nil =>
-                     delay 0.02;
-
-                  when New_Command =>
-                     Log ("New_Command action.");
-
-                     begin
-                        declare
-                           The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
-                        begin
-                           The_Command.Start (Input => Action.Command_Input.Element,
-                                              Accepts_Input => Action.Accepts_Input);
-                           Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-
-                           Command_Map.Insert (Action.Id, The_Command);
-                        end;
-                     exception
-                        when E : others =>     -- Such as the program not being found.
-                           Log (Ada.Exceptions.Exception_Information (E));
-
-                           Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
-                           Send_Done  (Action.Id, Normal_Exit => False);
-                     end;
-
-                  when New_Pipeline =>
-                     Log ("New_Pipeline action.");
-
-                     declare
-                        First_Id : constant Command_Id := Action.Id;
-                     begin
-                        declare
-                           use Shell.Commands.Unsafe.Privy;
-
-                           The_Commands  : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
-                           Error_Is_Sent : Boolean              := False;
-                        begin
-                           -- The client joins its commands into one line, so an argument containing a '|' splits a command.
-                           --
-                           if The_Commands'Length /= Action.Pipeline_Count
-                           then
-                              raise Command_Error with "Cannot start pipeline of"       & Action.Pipeline_Count'Image
-                                                     & " commands, as its line has"     & The_Commands'Length'Image
-                                                     & ". An argument may contain a '|'.";
-                           end if;
-
-                           begin
-                              Start (The_Commands,
-                                     Input    => Action.Pipeline_Input.Element,
-                                     Pipeline => True);
-
-                           exception
-                              when E : others =>     -- Such as a program not being found.
-                                 Log (Ada.Exceptions.Exception_Information (E));
-
-                                 -- Stop the commands which did start. They aren't at fault, so that
-                                 -- 'Which_Failed' finds the one which is, and report the error against it.
-                                 --
-                                 for i in The_Commands'Range
-                                 loop
-                                    declare
-                                       Started : Boolean := True;
-                                    begin
-                                       begin
-                                          Started :=     Shell.Status (Unsafe.Process (The_Commands (i)).all)
-                                                      /= Shell.Not_Started;
-                                          if Started
-                                          then
-                                             Privy.Stop (The_Commands (i));
-                                          end if;
-                                       exception
-                                          when Stop_Failure : others =>     -- The client must still be told of every command.
-                                             Log (Ada.Exceptions.Exception_Information (Stop_Failure));
-                                       end;
-
-                                       if         not (Started and i /= The_Commands'Last)
-                                         and then not Error_Is_Sent
-                                       then
-                                          Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
-                                          Error_Is_Sent := True;
-                                       end if;
-
-                                       Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);
-                                       Action.Id := Action.Id + 1;
-                                    end;
-                                 end loop;
-
-                                 goto Pipeline_Done;
-                           end;
-
-                           Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
-
-                           for i in The_Commands'Range
-                           loop
-                              if i /= The_Commands'Last
-                              then
-                                 Is_Within_A_Pipeline (The_Commands (i));
-                              end if;
-
-                              Command_Map.Insert (Action.Id, The_Commands (i));
-                              Action.Id := Action.Id + 1;
-                           end loop;
-
-                           <<Pipeline_Done>>
-                        end;
-
-                     exception
-                        when E : others =>     -- The line could not be parsed, so no command exists. Release the client's callers.
-                           Log (Ada.Exceptions.Exception_Information (E));
-
-                           Send_Error (First_Id, Ada.Exceptions.Exception_Message (E));
-
-                           for Each in 0 .. Command_Id (Action.Pipeline_Count) - 1
-                           loop
-                              Send_Done (First_Id + Each, Normal_Exit => False);
-                           end loop;
-                     end;
-
-                  when New_Input =>
-                     Log ("New_Input action.");
-
-                     declare
-                        The_Command : constant Unsafe.Command := Command_Map.Element (Action.Id);
-                     begin
-                        The_Command.Send (Action.Data.Element);
-                        Log ("New Input sent to Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                     end;
-
-                  when Close_Input =>
-                     Log ("Close_Input action.");
-
-                     Command_Map.Element (Action.Id).Close_Input;
-
-                  when Kill =>
-                     Log ("Kill action.");
-
-                     declare
-                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
-                     begin
-                        The_Command.Kill;
-                        Log ("Killed Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                        Command_Map.Replace (Action.Id, The_Command);
-                     end;
-
-                  when Interrupt =>
-                     Log ("Interrupt action.");
-
-                     declare
-                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
-                     begin
-                        Privy.Interrupt_Without_Waiting (The_Command);
-                        Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                        Command_Map.Replace (Action.Id, The_Command);
-                     end;
-
-                  when Pause =>
-                     Log ("Pause action.");
-
-                     declare
-                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
-                     begin
-                        The_Command.Pause;
-                        Log ("Paused Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                        Command_Map.Replace (Action.Id, The_Command);
-                     end;
-
-                  when Resume =>
-                     Log ("Resume action.");
-
-                     declare
-                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
-                     begin
-                        The_Command.Resume;
-                        Log ("Resumes Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                        Command_Map.Replace (Action.Id, The_Command);
-                     end;
-
-                  when Stop =>
-                     Log ("Stop action.");
-
-                     declare
-                        use Shell.Commands.Unsafe.Privy;
-
-                        The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
-                     begin
-                        Stop (The_Command);
-                        Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
-                        Command_Map.Replace (Action.Id, The_Command);
-                     end;
-
-                  when Shutdown =>
-                     Log ("Shutdown action.");
-                     Shutting_Down := True;
-
-                     -- The client cannot resume a paused command, or send more input to a command
-                     -- waiting on it. Either would then prevent the server, and the client, from ending.
-                     --
-                     declare
-                        use Id_Maps_of_Command;
-                        Cursor : Id_Maps_of_Command.Cursor := Command_Map.First;
-                     begin
-                        while Has_Element (Cursor)
-                        loop
-                           declare
-                              The_Command : Unsafe.Command := Element (Cursor);
-                           begin
-                              The_Command.Close_Input;
-
-                              if The_Command.Status = Paused
-                              then
-                                 The_Command.Kill;
-                                 Log ("Killed paused Command:" & Key (Cursor)'Image);
-                                 Command_Map.Replace_Element (Cursor, The_Command);
-                              end if;
-                           end;
-
-                           Next (Cursor);
-                        end loop;
-                     end;
-               end case;
-
-            exception
-               when E : others =>     -- Keep serving the other commands. For example, sending to a command which has no input.
-                  Log ("Failed to perform " & Action.Kind'Image & " action for command:" & Action.Id'Image);
-                  Log (Ada.Exceptions.Exception_Information (E));
-            end;
+            Perform_Waiting_Actions;
 
 
             declare
@@ -517,6 +556,10 @@ begin
    end;
 
    Close_Log;
+
+   -- The new action fetcher may still be blocked reading from the client. So end now, rather than waiting on it.
+   --
+   Gnat.OS_Lib.OS_Exit (0);
 
 exception
    when E : others =>

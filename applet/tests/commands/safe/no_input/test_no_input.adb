@@ -1,5 +1,6 @@
 with
      Shell.Commands.Safe,
+     Ada.Real_Time,
      Ada.Strings.Fixed,
      Ada.Text_IO;
 
@@ -69,19 +70,30 @@ begin
    end;
 
 
-   -- After the server is asked to shut down, it no longer reads actions and has closed the input of all commands.
+   -- After the server is asked to shut down, it has closed the input of all commands. It must still act on
+   -- other actions, or a program which never ends could not be stopped.
    --
    declare
+      use Ada.Real_Time;
+
       The_Command : Safe.Command := Forge.To_Command ("sleep 1");
+      Long_Runner : Safe.Command := Forge.To_Command ("sleep 25");
+      Late_Paused : Safe.Command := Forge.To_Command ("sleep 1");
       Raised      : Boolean      := False;
+      Before      : constant Time := Clock;
    begin
       The_Command.Start (Accepts_Input => True);
+      Long_Runner.Start;
+      Late_Paused.Start;
 
       Stop_Spawn_Client;
       delay 0.1;
 
       The_Command.Close_Input;
       Ada.Text_IO.Put_Line ("Closing input after shutdown does nothing passed.");
+
+      Long_Runner.Kill;
+      Late_Paused.Pause;     -- Nothing would resume it, so the server must not leave it paused.
 
       begin
          The_Command.Send (+"Too late.");
@@ -91,5 +103,6 @@ begin
       end;
 
       Check ("Sending after shutdown raises", Raised);
+      Check ("Killing after shutdown stops the program", To_Duration (Clock - Before) < 15.0);
    end;
 end Test_No_Input;

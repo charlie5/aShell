@@ -772,7 +772,11 @@ is
                   --
                   while i <= The_Pipeline'Last
                   loop
-                     Spawn_Client.Stop (The_Pipeline (i));
+                     if not Has_Terminated (The_Pipeline (i))
+                     then
+                        Spawn_Client.Stop (The_Pipeline (i));
+                     end if;
+
                      i := i + 1;
                   end loop;
 
