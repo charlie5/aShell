@@ -415,7 +415,10 @@ is
           POSIX.Event_Management,
           POSIX.IO;
 
-      Most_Per_Write : constant := 64 * 1024;
+      -- A descriptor made by duplicating shares its options with the original, so the pipe's write end can't be made
+      -- non-blocking without affecting other writers. Instead, a pipe which is ready always has room for this much.
+      --
+      Most_Per_Write : constant := 4096;
 
       The_Pipe       : Shell.Pipe;
       The_Descriptor : File_Descriptor;
@@ -466,8 +469,7 @@ is
 
       exception
          when POSIX_Error =>
-            if         Get_Error_Code /= Resource_Temporarily_Unavailable
-              and then Get_Error_Code /= Interrupted_Operation
+            if Get_Error_Code /= Interrupted_Operation
             then
                raise;
             end if;
@@ -502,8 +504,6 @@ is
          The_Descriptor := Descriptor;
          The_Queue      := Queue;
       end Start;
-
-      Set_File_Control (The_Descriptor, Non_Blocking);
 
       Writing:
       loop

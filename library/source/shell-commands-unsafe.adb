@@ -482,9 +482,10 @@ is
                end if;
 
             else
+               Gather_Results (The_Pipeline (i));
+
                declare
-                  Error : constant String :=   "Pipeline command" & Integer'Image (i)
-                                             & " '" & (+The_Pipeline (i).Name) & "' failed.";
+                  Error : constant String := "Pipeline command" & Integer'Image (i) & ": " & Failure_Message (The_Pipeline (i));
                begin
                   -- Stop the rest of the pipeline.
                   --

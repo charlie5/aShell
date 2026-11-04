@@ -756,12 +756,10 @@ is
                end if;
 
             else
+               Gather_Results (The_Pipeline (i));
+
                declare
-                  Error : constant String := "Pipeline command"
-                                             & Integer'Image (i)
-                                             & " '"
-                                             & (+The_Pipeline (i).Name)
-                                             & "' failed.";
+                  Error : constant String := "Pipeline command" & Integer'Image (i) & ": " & Failure_Message (The_Pipeline (i));
                begin
                   -- Stop the pipeline.
                   --
@@ -780,6 +778,8 @@ is
                end;
             end if;
 
+         else
+            delay 0.001;     -- These calls don't block, and the command may run for a long time.
          end if;
       end loop;
    exception

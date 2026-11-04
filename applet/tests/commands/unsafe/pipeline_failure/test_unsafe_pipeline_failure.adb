@@ -1,6 +1,8 @@
 with
      Shell.Commands.Unsafe,
      Ada.Directories,
+     Ada.Exceptions,
+     Ada.Strings.Fixed,
      Ada.Text_IO;
 
 
@@ -140,16 +142,54 @@ begin
    end;
 
 
+   -- A failed pipeline's exception must include the error text of the command which failed.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("ls /non_existent_file | cat");
+   begin
+      Run (The_Pipeline, Raise_Error => True);
+      Check ("Failed pipeline raises", False);
+   exception
+      when E : Command_Error =>
+         Check ("Failed pipeline's exception has the error text",
+                Ada.Strings.Fixed.Index (Ada.Exceptions.Exception_Message (E), "non_existent_file': ") /= 0);
+   end;
+
+
+   -- Writing directly to a pipe which also has a background writer must still block, rather than fail.
+   --
+   declare
+      The_Input   : constant Data  := [1 .. 300_000 => 65];
+      The_Command : Unsafe.Command := Forge.To_Command ("bash slow_reader.sh");
+   begin
+      The_Command.Start (Accepts_Input => True);
+      The_Command.Send  (The_Input);
+
+      Shell.Write_To (The_Command.Input_Pipe, The_Input);
+
+      Check ("Direct write to a full pipe blocks", True);
+
+      The_Command.Close_Input;
+      The_Command.Wait_On;
+
+      Check ("Both writes arrive", +Output_Of (Results_Of (The_Command)) = "600000" & ASCII.LF);
+   end;
+
+
    -- A program which catches the interrupt, then exits.
    --
    declare
-      The_Command : Unsafe.Command := Forge.To_Command ("bash -c 'trap ""exit 3"" INT; sleep 20 & wait'");
+      The_Command : Unsafe.Command := Forge.To_Command ("bash catches_interrupt.sh");
    begin
       The_Command.Start;
-      delay 0.3;
+      delay 0.5;
+
+      Check ("Program is running when interrupted", not The_Command.Has_Terminated);
+
       The_Command.Interrupt;
 
-      Check ("'Interrupt' returns when the program catches it", True);
+      Check ("'Interrupt' sees the program end", The_Command.Has_Terminated);
+      Check ("Program which catches an interrupt fails", State'(The_Command.Status) = Failed_Exit);
    end;
 
    Ada.Text_IO.Put_Line ("End test.");

@@ -172,7 +172,8 @@ begin
                      declare
                         use Shell.Commands.Unsafe.Privy;
 
-                        The_Commands : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
+                        The_Commands  : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
+                        Error_Is_Sent : Boolean              := False;
                      begin
                         begin
                            Start (The_Commands,
@@ -183,10 +184,8 @@ begin
                            when E : others =>     -- Such as a program not being found.
                               Log (Ada.Exceptions.Exception_Information (E));
 
-                              Send_Error (Action.Id + Command_Id (The_Commands'Length) - 1,     -- The client gathers the results of the last command.
-                                          Ada.Exceptions.Exception_Message (E));
-
-                              -- Stop the commands which did start. They aren't at fault, so that 'Which_Failed' finds the one which is.
+                              -- Stop the commands which did start. They aren't at fault, so that
+                              -- 'Which_Failed' finds the one which is, and report the error against it.
                               --
                               for i in The_Commands'Range
                               loop
@@ -197,6 +196,13 @@ begin
                                     if Started
                                     then
                                        Privy.Stop (The_Commands (i));
+                                    end if;
+
+                                    if         not (Started and i /= The_Commands'Last)
+                                      and then not Error_Is_Sent
+                                    then
+                                       Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
+                                       Error_Is_Sent := True;
                                     end if;
 
                                     Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);

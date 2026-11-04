@@ -1,5 +1,8 @@
 with
      Shell.Commands.Safe,
+     Ada.Exceptions,
+     Ada.Execution_Time,
+     Ada.Real_Time,
      Ada.Strings.Fixed,
      Ada.Text_IO;
 
@@ -96,10 +99,13 @@ begin
    -- A program which catches the interrupt, then exits. The server must not wait for it to be 'Interrupted'.
    --
    declare
-      The_Command : Safe.Command := Forge.To_Command ("bash -c 'trap ""exit 3"" INT; sleep 20 & wait'");
+      The_Command : Safe.Command := Forge.To_Command ("bash catches_interrupt.sh");
    begin
       The_Command.Start;
       delay 0.5;
+
+      Check ("Program is running when interrupted", not The_Command.Has_Terminated);
+
       The_Command.Interrupt;
       The_Command.Wait_On;
 
@@ -115,6 +121,51 @@ begin
       Run (The_Pipeline);
 
       Check ("Early command's errors don't block 'Run'", Errors_Of (Results_Of (The_Pipeline (1)))'Length = 300_000);
+   end;
+
+
+   -- A failed pipeline's exception must include the error text of the command which failed.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("ls /non_existent_file | cat");
+   begin
+      Run (The_Pipeline, Raise_Error => True);
+      Check ("Failed pipeline raises", False);
+   exception
+      when E : Command_Error =>
+         Check ("Failed pipeline's exception has the error text",
+                Ada.Strings.Fixed.Index (Ada.Exceptions.Exception_Message (E), "non_existent_file': ") /= 0);
+   end;
+
+
+   -- A missing program in a pipeline.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands (Missing & " | cat");
+   begin
+      Run (The_Pipeline, Raise_Error => True);
+      Check ("Missing program in a pipeline raises", False);
+   exception
+      when E : Command_Error =>
+         Check ("Missing program's exception has the error text",
+                Contains (Ada.Exceptions.Exception_Message (E), "not found on PATH"));
+   end;
+
+
+   -- A pipeline must not use a whole core while it waits.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 2 | cat");
+      Before       : constant Ada.Execution_Time.CPU_Time := Ada.Execution_Time.Clock;
+   begin
+      Run (The_Pipeline);
+
+      declare
+         use Ada.Execution_Time,
+             Ada.Real_Time;
+      begin
+         Check ("Waiting on a pipeline doesn't spin", To_Duration (Clock - Before) < 1.0);
+      end;
    end;
 
 
