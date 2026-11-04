@@ -140,7 +140,9 @@ private
 
       procedure Abandon     (Unused      :    out Boolean);      -- True when the command should deallocate.
 
-      entry     Wait_Til_Done;
+      procedure Set_Lost    (Abandoned   :    out Boolean);      -- The server has gone, so 'Set_Done' will never be called.
+
+      entry     Wait_Til_Done;                                   -- Raises Command_Error, if lost.
       function  Is_Done     return Boolean;
       function  Normal_Exit return Boolean;
 
@@ -150,6 +152,7 @@ private
 
       Exit_Is_Normal : Boolean := False;     -- 'Get_Outputs' reads this while the command is still running.
       Done           : Boolean := False;
+      Is_Lost        : Boolean := False;
 
       Is_Held        : Boolean := False;
       Is_Abandoned   : Boolean := False;

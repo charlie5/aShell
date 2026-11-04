@@ -1,6 +1,8 @@
 with
      Shell.Commands.Unsafe.Privy,
 
+     Gnat.OS_Lib,
+
      Ada.Containers.Indefinite_Vectors,
      Ada.Containers.Hashed_Maps,
      Ada.Exceptions;
@@ -72,6 +74,8 @@ is
       when E : others =>
          Log ("Unhandled error in New_Action_Fetcher.");
          Log (Ada.Exceptions.Exception_Information (E));
+
+         New_Actions.Add ((Shutdown, Null_Id));     -- The client has gone, so no more actions will arrive.
    end New_Action_Fetcher;
 
 
@@ -87,6 +91,30 @@ begin
       Command_Map   :         Id_Maps_of_Command.Map;
       Output_Stream : aliased Pipe_Stream := Stream (Shell.Standard_Output);
       Shutting_Down :         Boolean     := False;
+
+
+      procedure Send_Error (Id      : in Command_Id;
+                            Message : in String)
+      is
+      begin
+         Client_Action'Output (Output_Stream'Access,
+                               (New_Outputs,
+                                Id,
+                                Data_Holders.To_Holder (No_Data),
+                                Data_Holders.To_Holder (+(Message & ASCII.LF))));
+      end Send_Error;
+
+
+      procedure Send_Done (Id          : in Command_Id;
+                           Normal_Exit : in Boolean)
+      is
+      begin
+         Client_Action'Output (Output_Stream'Access,
+                               (Command_Done,
+                                Id,
+                                Normal_Exit => Normal_Exit));
+      end Send_Done;
+
    begin
       Log ("Starting Spawn Server");
 
@@ -120,14 +148,22 @@ begin
                   when New_Command =>
                      Log ("New_Command action.");
 
-                     declare
-                        The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
                      begin
-                        The_Command.Start (Input => Action.Command_Input.Element,
-                                           Accepts_Input => Action.Accepts_Input);
-                        Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+                        declare
+                           The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
+                        begin
+                           The_Command.Start (Input => Action.Command_Input.Element,
+                                              Accepts_Input => Action.Accepts_Input);
+                           Log ("New Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
 
-                        Command_Map.Insert (Action.Id, The_Command);
+                           Command_Map.Insert (Action.Id, The_Command);
+                        end;
+                     exception
+                        when E : others =>     -- Such as the program not being found.
+                           Log (Ada.Exceptions.Exception_Information (E));
+
+                           Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
+                           Send_Done  (Action.Id, Normal_Exit => False);
                      end;
 
                   when New_Pipeline =>
@@ -138,9 +174,38 @@ begin
 
                         The_Commands : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
                      begin
-                        Start (The_Commands,
-                               Input    => Action.Pipeline_Input.Element,
-                               Pipeline => True);
+                        begin
+                           Start (The_Commands,
+                                  Input    => Action.Pipeline_Input.Element,
+                                  Pipeline => True);
+
+                        exception
+                           when E : others =>     -- Such as a program not being found.
+                              Log (Ada.Exceptions.Exception_Information (E));
+
+                              Send_Error (Action.Id + Command_Id (The_Commands'Length) - 1,     -- The client gathers the results of the last command.
+                                          Ada.Exceptions.Exception_Message (E));
+
+                              -- Stop the commands which did start. They aren't at fault, so that 'Which_Failed' finds the one which is.
+                              --
+                              for i in The_Commands'Range
+                              loop
+                                 declare
+                                    Started : constant Boolean :=      Shell.Status (Unsafe.Process (The_Commands (i)).all)
+                                                                  /= Shell.Not_Started;
+                                 begin
+                                    if Started
+                                    then
+                                       Privy.Stop (The_Commands (i));
+                                    end if;
+
+                                    Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);
+                                    Action.Id := Action.Id + 1;
+                                 end;
+                              end loop;
+
+                              goto Pipeline_Done;
+                        end;
 
                         Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
 
@@ -154,6 +219,8 @@ begin
                            Command_Map.Insert (Action.Id, The_Commands (i));
                            Action.Id := Action.Id + 1;
                         end loop;
+
+                        <<Pipeline_Done>>
                      end;
 
                   when New_Input =>
@@ -250,6 +317,11 @@ begin
                         end loop;
                      end;
                end case;
+
+            exception
+               when E : others =>     -- Keep serving the other commands. For example, sending to a command which has no input.
+                  Log ("Failed to perform " & Action.Kind'Image & " action for command:" & Action.Id'Image);
+                  Log (Ada.Exceptions.Exception_Information (E));
             end;
 
 
@@ -374,6 +446,23 @@ begin
       end;
 
       Log ("Ending Spawn Server");
+
+   exception
+      when others =>
+         for Each of Command_Map     -- Leave no commands running, without a server to manage them.
+         loop
+            begin
+               if Each.Status not in Normal_Exit | Failed_Exit | Killed
+               then
+                  Each.Kill;
+               end if;
+            exception
+               when E : others =>
+                  Log (Ada.Exceptions.Exception_Information (E));
+            end;
+         end loop;
+
+         raise;
    end;
 
    Close_Log;
@@ -383,4 +472,9 @@ exception
       Log ("Unhandled error in aShell_Spawn_Server.");
       Log (Ada.Exceptions.Exception_Information (E));
       Close_Log;
+
+      -- The new action fetcher is blocked reading from the client, which would otherwise keep this process alive and
+      -- leave the client waiting for ever. Ending lets the client see that the server has gone.
+      --
+      Gnat.OS_Lib.OS_Exit (1);
 end Shell.Commands.Spawn_Server;

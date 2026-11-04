@@ -1,0 +1,13 @@
+with
+     "../../../../../library/ashell",
+     "../../../../../library/ashell_shared";
+
+project Test_Command_Failure
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("test_command_failure.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end Test_Command_Failure;

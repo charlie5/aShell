@@ -12,6 +12,17 @@ with
 
 package body Shell.Commands.Safe
 is
+   Server_Lost_Message : constant String := "The spawn server has stopped unexpectedly. See 'aShell_spawn_Server.log'.";
+
+   Server_Is_Lost : Boolean := False
+     with Atomic;
+
+
+   function Client_Gone_Message return String
+   is (if Server_Is_Lost then Server_Lost_Message
+                         else "The Spawn client has shut down.");
+
+
    -----------------------
    --- Safe Client Outputs
    --
@@ -78,11 +89,24 @@ is
 
 
 
+      procedure Set_Lost (Abandoned : out Boolean)
+      is
+      begin
+         Is_Lost := True;
+         Set_Done (Normal_Exit => False,
+                   Abandoned   => Abandoned);
+      end Set_Lost;
+
+
+
       entry Wait_Til_Done
         when Done
       is
       begin
-         null;
+         if Is_Lost
+         then
+            raise Command_Error with Server_Lost_Message;
+         end if;
       end Wait_Til_Done;
 
 
@@ -478,6 +502,30 @@ is
       when E : others =>
          Log ("Unhandled error in Spawn_Client.");
          Log (Ada.Exceptions.Exception_Information (E));
+
+         -- The server has gone, or can't be understood. No more results will arrive, so release all waiting callers.
+         --
+         Server_Is_Lost := True;
+
+         for Each of Command_Outputs_Map
+         loop
+            declare
+               Command_Outputs : Client_Outputs_Access := Each;
+               Abandoned       : Boolean;
+            begin
+               Command_Outputs.Set_Lost (Abandoned);
+
+               if Abandoned
+               then
+                  Deallocate (Command_Outputs);
+               end if;
+            end;
+         end loop;
+
+         Command_Outputs_Map.Clear;
+
+         Close (Server_In_Pipe,  Only_Write_End => True);
+         Close (Server_Out_Pipe, Only_Read_End  => True);
    end Spawn_Client;
 
 
@@ -536,7 +584,7 @@ is
                         The_Command.Safe_Outputs);
    exception
       when Tasking_Error =>
-         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. The Spawn client has shut down.";
+         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
    end Start;
 
 
@@ -562,6 +610,9 @@ is
       end loop;
 
       Spawn_Client.Add (Commands, Input);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Start;
 
 
@@ -572,6 +623,9 @@ is
    is
    begin
       Spawn_Client.Send (To, Input);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Send;
 
 
@@ -635,7 +689,7 @@ is
 
    exception
       when Tasking_Error =>
-         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. The Spawn client has shut down.";
+         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
    end Run;
 
 
@@ -696,6 +750,9 @@ is
 
          end if;
       end loop;
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Run;
 
 
@@ -845,6 +902,9 @@ is
    begin
       Commands.Command (The_Command).Kill;
       Spawn_Client.Kill (The_Command);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Kill;
 
 
@@ -854,6 +914,9 @@ is
    is
    begin
       Spawn_Client.Interrupt (The_Command);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Interrupt;
 
 
@@ -864,6 +927,9 @@ is
    begin
       Commands.Command   (The_Command).Pause;
       Spawn_Client.Pause (The_Command);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Pause;
 
 
@@ -874,6 +940,9 @@ is
    begin
       Commands.Command    (The_Command).Resume;
       Spawn_Client.Resume (The_Command);
+   exception
+      when Tasking_Error =>
+         raise Command_Error with Client_Gone_Message;
    end Resume;
 
 

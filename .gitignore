@@ -66,6 +66,8 @@ test_max_pipes
 test_unsafe_command_input
 test_unsafe_large_input
 test_safe_large_input
+test_command_failure
+test_server_lost
 test_unsafe_command_status
 test_pipes
 test_core

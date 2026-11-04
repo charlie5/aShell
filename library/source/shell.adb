@@ -527,12 +527,43 @@ is
                    Item   :    out Stream_Element_Array;
                    Last   :    out Stream_Element_Offset)
    is
+      use type POSIX.Error_Code;
    begin
       Check_Is_Readable (Stream.Pipe);
 
-      POSIX.IO.Read (File   => Stream.Pipe.Read_End,
-                     Buffer => Item,
-                     Last   => Last);
+      Last := Item'First - 1;
+
+      -- A single read may return only part of the item, or nothing at all from a non-blocking pipe,
+      -- when the writer is yet to catch up. Stream attributes treat a short read as the end of the stream.
+      --
+      while Last < Item'Last
+      loop
+         begin
+            POSIX.IO.Read (File   => Stream.Pipe.Read_End,
+                           Buffer => Item (Last + 1 .. Item'Last),
+                           Last   => Last);
+         exception
+            when Ada.IO_Exceptions.End_Error =>
+               if Last < Item'First
+               then
+                  raise;
+               end if;
+
+               return;     -- The next read will raise End_Error.
+
+            when POSIX.POSIX_Error =>
+               if POSIX.Get_Error_Code /= POSIX.Resource_Temporarily_Unavailable
+               then
+                  raise;
+               end if;
+
+               declare
+                  Unused : constant Boolean := Is_Empty (Stream.Pipe, Timeout => 0.01);
+               begin
+                  null;
+               end;
+         end;
+      end loop;
    end Read;
 
 
@@ -541,13 +572,16 @@ is
    procedure Write (Stream : in out Pipe_Stream;
                     Item   : in     Stream_Element_Array)
    is
-      Last : Ada.Streams.Stream_Element_Offset;
+      Last : Ada.Streams.Stream_Element_Offset := Item'First - 1;
    begin
       Check_Is_Writeable (Stream.Pipe);
 
-      POSIX.IO.Write (File   => Stream.Pipe.Write_End,
-                      Buffer => Item,
-                      Last   => Last);
+      while Last < Item'Last
+      loop
+         POSIX.IO.Write (File   => Stream.Pipe.Write_End,
+                         Buffer => Item (Last + 1 .. Item'Last),
+                         Last   => Last);
+      end loop;
    end Write;
 
 
