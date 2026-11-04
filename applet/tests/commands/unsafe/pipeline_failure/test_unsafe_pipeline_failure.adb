@@ -185,6 +185,65 @@ begin
    end;
 
 
+   -- Starting a command twice must not disturb the one which is running.
+   --
+   declare
+      The_Command : Unsafe.Command := Forge.To_Command ("sleep 0.5");
+      Raised      : Boolean        := False;
+   begin
+      The_Command.Start;
+
+      begin
+         The_Command.Start;
+      exception
+         when Command_Error =>
+            Raised := True;
+      end;
+
+      Check ("Starting a command twice raises",            Raised);
+      Check ("Starting a command twice leaves it running", State'(The_Command.Status) = Running);
+
+      The_Command.Wait_On;
+      Check ("A command started twice still ends normally", The_Command.Normal_Exit);
+
+      begin
+         Run (The_Command);
+         Check ("Running a command which has ended raises", False);
+      exception
+         when Command_Error =>
+            Check ("Running a command which has ended leaves its status",     The_Command.Normal_Exit
+                                                                          and State'(The_Command.Status) = Normal_Exit);
+      end;
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash two_errors.sh | sleep 0.5");
+   begin
+      Start (The_Pipeline);
+
+      for Attempt in 1 .. 2
+      loop
+         begin
+            if Attempt = 1
+            then
+               Start (The_Pipeline);
+            else
+               Run (The_Pipeline);
+            end if;
+
+            Check ("Starting a pipeline twice raises", False);
+         exception
+            when Command_Error =>
+               Check ("Starting a pipeline twice leaves it running", not The_Pipeline (2).Has_Terminated);
+         end;
+      end loop;
+
+      The_Pipeline (2).Wait_On;
+      Check ("A pipeline started twice still ends normally", The_Pipeline (2).Normal_Exit);
+      Check ("A pipeline started twice keeps its pipes", +Errors_Of (Results_Of (The_Pipeline (1))) = "First" & ASCII.LF);
+   end;
+
+
    -- A failed single command returns to not having been started.
    --
    declare

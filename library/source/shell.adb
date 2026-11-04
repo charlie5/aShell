@@ -1379,8 +1379,8 @@ is
             raise Program_Error with "Log is already open.";
          end if;
 
-         Log_Enabled := True;
          Create (Log_File, Out_File, Name);
+         Log_Enabled := True;     -- Only now, as the file may not be creatable.
       end Open;
 
 

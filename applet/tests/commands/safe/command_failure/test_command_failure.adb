@@ -102,6 +102,37 @@ begin
    end;
 
 
+   -- A failed pipeline's results must include what its later commands had yet to send.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("false | bash errors_then_sleeps.sh");
+      The_Results  : constant Command_Results := Run (The_Pipeline);
+   begin
+      Check ("Failed pipeline has the errors of its later commands", Errors_Of (The_Results)'Length = 1_000_000);
+      Check ("Failed pipeline's later command has ended",            The_Pipeline (2).Has_Terminated);
+   end;
+
+
+   -- A pipeline holding a command which has already run must not be left half started.
+   --
+   declare
+      The_First : Safe.Command := Forge.To_Command ("echo First");
+      Started   : Safe.Command := Forge.To_Command ("true");
+   begin
+      Run (Started);
+
+      declare
+         The_Pipeline : Command_Array := [The_First, Started];
+      begin
+         Run (The_Pipeline);
+         Check ("Pipeline with a started command raises", False);
+      exception
+         when Command_Error =>
+            Check ("Pipeline with a started command leaves the rest not started", State'(Status (The_Pipeline (1))) = Not_Started);
+      end;
+   end;
+
+
    -- Sending to a command which doesn't accept input.
    --
    declare

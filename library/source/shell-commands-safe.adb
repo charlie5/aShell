@@ -4,6 +4,7 @@ with
 
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
+     Ada.Containers.Indefinite_Vectors,
      Ada.Strings.Fixed,
      Ada.Task_Identification,
      Ada.Text_IO,
@@ -180,25 +181,11 @@ is
       Server_Out_Pipe : constant Shell.Pipe := To_Pipe (Blocking => False);
       Server_Err_Pipe : constant Shell.Pipe := To_Pipe;
 
-      Command_Line              : Unbounded_String;
-      Have_New_Command          : Boolean := False;
-      Command_Input             : Data_Holder;
-      New_Input_Data            : Data_Holder;
-      New_Command_Accepts_Input : Boolean;
-
-      Pipeline          : Unbounded_String;
-      Have_New_Pipeline : Boolean := False;
-      Pipeline_Input    : Data_Holder;
-      Pipeline_First_Id : Command_Id;
-      Pipeline_Count    : Positive;
-
-      Sending_Input_To_Command : Command_Id := Null_Id;
-      Closing_Input_Of_Command : Command_Id := Null_Id;
-      Killing_Command          : Command_Id := Null_Id;
-      Interrupting_Command     : Command_Id := Null_Id;
-      Pausing_Command          : Command_Id := Null_Id;
-      Resuming_Command         : Command_Id := Null_Id;
-      Stopping_Command         : Command_Id := Null_Id;
+      -- Actions accepted from callers, in order, waiting to be sent to the server. Holding them
+      -- here means that a caller is never held up by the server, and that no action can be lost.
+      --
+      package Server_Action_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Server_Action);
+      Pending_Actions : Server_Action_Vectors.Vector;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
       Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
@@ -234,19 +221,18 @@ is
                Log ("");
                Log ("Client: Accepting new command.");
 
-               Have_New_Command          := True;
-               New_Command_Accepts_Input := Accepts_Input;
-               The_Command.Id            := Next_Id;
+               The_Command.Id := Next_Id;
+               Next_Id        := Next_Id + 1;
 
-               Set_Unbounded_String (Command_Line,
-                                     Name (The_Command)
-                                     & " "
-                                     & Arguments (The_Command));
-
-               Command_Input.Replace_Element (Input);
                Outputs.Hold;
                Command_Outputs_Map.Insert (The_Command.Id,
                                            Outputs);
+
+               Pending_Actions.Append (Server_Action' (New_Command,
+                                                       The_Command.Id,
+                                                       To_Unbounded_String (Name (The_Command) & " " & Arguments (The_Command)),
+                                                       Data_Holders.To_Holder (Input),
+                                                       Accepts_Input));
             end Add;
          or
             when not (Shutting_Down or Shutdown_Sent) =>
@@ -256,51 +242,56 @@ is
                Log ("");
                Log ("Client: Accepting new pipeline.");
 
-               Have_New_Pipeline := True;
-               Pipeline_Count    := The_Pipeline'Length;
+               declare
+                  First_Id : constant Command_Id := Next_Id;
+                  Line     : Unbounded_String;
+               begin
+                  for i in The_Pipeline'Range
+                  loop
+                     declare
+                        The_Command : Command renames The_Pipeline (i);
+                     begin
+                        The_Command.Id := Next_Id;
+                        Next_Id        := Next_Id + 1;
 
-               for i in The_Pipeline'Range
-               loop
-                  declare
-                     The_Command : Command renames The_Pipeline (i);
-                  begin
-                     The_Command.Id := Next_Id;
-                     Next_Id        := Next_Id + 1;
+                        if i = 1
+                        then
+                           Set_Unbounded_String (Line,
+                                                 Name (The_Command)
+                                                 & " "
+                                                 & Arguments (The_Command));
+                        else
+                           Append (Line,
+                                   " | "
+                                   & Name (The_Command)
+                                   & " "
+                                   & Arguments (The_Command));
+                        end if;
 
-                     if i = 1
-                     then
-                        Pipeline_First_Id := The_Command.Id;
+                        The_Command.Safe_Outputs.Hold;
+                        Command_Outputs_Map.Insert (The_Command.Id,
+                                                    The_Command.Safe_Outputs);
+                     end;
+                  end loop;
 
-                        Set_Unbounded_String (Pipeline,
-                                              Name (The_Command)
-                                              & " "
-                                              & Arguments (The_Command));
-                     else
-                        Append (Pipeline,
-                                " | "
-                                & Name (The_Command)
-                                & " "
-                                & Arguments (The_Command));
-                     end if;
-
-                     The_Command.Safe_Outputs.Hold;
-                     Command_Outputs_Map.Insert (The_Command.Id,
-                                                 The_Command.Safe_Outputs);
-                  end;
-               end loop;
-
-               Pipeline_Input.Replace_Element (Input);
+                  Pending_Actions.Append (Server_Action' (New_Pipeline,
+                                                          First_Id,
+                                                          Line,
+                                                          Data_Holders.To_Holder (Input),
+                                                          The_Pipeline'Length));
+               end;
             end Add;
          or
-            when not (Shutting_Down or Shutdown_Sent) =>     -- The server has closed all input, and no longer reads actions.
+            when not (Shutting_Down or Shutdown_Sent) =>     -- The server has closed all input.
             accept Send (The_Command : in Command;
                          Input       : in Data)
             do
                Log ("");
                Log ("Client: Sending data to command.");
 
-               Sending_Input_To_Command := The_Command.Id;
-               New_Input_Data.Replace_Element (Input);
+               Pending_Actions.Append (Server_Action' (New_Input,
+                                                       The_Command.Id,
+                                                       Data_Holders.To_Holder (Input)));
             end Send;
          or
             accept Close_Input (The_Command : in Command)
@@ -310,7 +301,7 @@ is
 
                if not (Shutting_Down or Shutdown_Sent)     -- Otherwise, the server has already closed it.
                then
-                  Closing_Input_Of_Command := The_Command.Id;
+                  Pending_Actions.Append (Server_Action' (Close_Input, The_Command.Id));
                end if;
             end Close_Input;
          or
@@ -319,7 +310,7 @@ is
                Log ("");
                Log ("Client: Killing command.");
 
-               Killing_Command := The_Command.Id;
+               Pending_Actions.Append (Server_Action' (Kill, The_Command.Id));
             end Kill;
          or
             accept Interrupt (The_Command : in Command)
@@ -327,7 +318,7 @@ is
                Log ("");
                Log ("Client: Interrupt command.");
 
-               Interrupting_Command := The_Command.Id;
+               Pending_Actions.Append (Server_Action' (Interrupt, The_Command.Id));
             end Interrupt;
          or
             accept Pause (The_Command : in Command)
@@ -335,7 +326,7 @@ is
                Log ("");
                Log ("Client: Pause command.");
 
-               Pausing_Command := The_Command.Id;
+               Pending_Actions.Append (Server_Action' (Pause, The_Command.Id));
             end Pause;
          or
             accept Resume (The_Command : in Command)
@@ -343,7 +334,7 @@ is
                Log ("");
                Log ("Client: Resume command.");
 
-               Resuming_Command := The_Command.Id;
+               Pending_Actions.Append (Server_Action' (Resume, The_Command.Id));
             end Resume;
          or
             accept Stop (The_Command : in Command)
@@ -351,7 +342,7 @@ is
                Log ("");
                Log ("Client: Stop command.");
 
-               Stopping_Command := The_Command.Id;
+               Pending_Actions.Append (Server_Action' (Stop, The_Command.Id));
             end Stop;
          or
             accept Shutdown
@@ -364,6 +355,15 @@ is
          end select;
 
 
+         for Each of Pending_Actions
+         loop
+            Log ("Sending " & Each.Kind'Image & " action for command" & Each.Id'Image & " to server.");
+            Server_Action'Output (Server_Input_Stream'Access, Each);
+         end loop;
+
+         Pending_Actions.Clear;
+
+
          if Shutting_Down
          then
             Log ("Client is shutting down.");
@@ -373,95 +373,6 @@ is
             Log ("Client asks server to stop.");
             Shutting_Down := False;
             Shutdown_Sent := True;
-
-         elsif Have_New_Command
-         then
-            Log ("New Command:" & Next_Id'Image & "   '" & (+Command_Line) & "'");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (New_Command,
-                                                  Next_Id,
-                                                  Command_Line,
-                                                  Command_Input,
-                                                  New_Command_Accepts_Input));
-            Have_New_Command := False;
-            Next_Id          := Next_Id + 1;
-
-         elsif Have_New_Pipeline
-         then
-            Log ("New Pipeline: '" & (+Pipeline) & "'");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (New_Pipeline,
-                                                  Pipeline_First_Id,
-                                                  Pipeline,
-                                                  Pipeline_Input,
-                                                  Pipeline_Count));
-            Have_New_Pipeline := False;
-
-         elsif Sending_Input_To_Command /= Null_Id
-         then
-            Log ("Sending 'New_Input' action for command" & Sending_Input_To_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (New_Input,
-                                                  Sending_Input_To_Command,
-                                                  New_Input_Data));
-            Sending_Input_To_Command := Null_Id;
-
-         elsif Closing_Input_Of_Command /= Null_Id
-         then
-            Log ("Sending 'Close_Input' action for command" & Closing_Input_Of_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Close_Input,
-                                                  Closing_Input_Of_Command));
-            Closing_Input_Of_Command := Null_Id;
-
-         elsif Killing_Command /= Null_Id
-         then
-            Log ("Sending 'Kill' action for command" & Killing_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Kill,
-                                                  Killing_Command));
-            Killing_Command := Null_Id;
-
-         elsif Interrupting_Command /= Null_Id
-         then
-            Log ("Sending 'Interrupt' action for command" & Interrupting_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Interrupt,
-                                                  Interrupting_Command));
-            Interrupting_Command := Null_Id;
-
-         elsif Pausing_Command /= Null_Id
-         then
-            Log ("Sending 'Pause' action for command" & Pausing_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Pause,
-                                                  Pausing_Command));
-            Pausing_Command := Null_Id;
-
-         elsif Resuming_Command /= Null_Id
-         then
-            Log ("Sending 'Resume' action for command" & Resuming_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Resume,
-                                                  Resuming_Command));
-            Resuming_Command := Null_Id;
-
-         elsif Stopping_Command /= Null_Id
-         then
-            Log ("Sending 'Stop' action for command" & Stopping_Command'Image & " to server.");
-
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Stop,
-                                                  Stopping_Command));
-            Stopping_Command := Null_Id;
 
          -- The runtime makes the environment task uncallable when the main subprogram has completed (normally or
          -- due to an unhandled exception), and then waits for this task. So, shutdown if that has happened.
@@ -596,6 +507,39 @@ is
    --- Start
    --
 
+   -- Marks the commands as started, ahead of handing them to the spawn client. If it has gone, they must return to not
+   -- being started, as a later 'Wait_On' would otherwise wait for ever on commands which the client doesn't know of.
+   --
+   procedure Mark_As_Started (The_Pipeline : in out Command_Array)
+   is
+   begin
+      for Each of The_Pipeline
+      loop
+         if Each.Status /= Not_Started
+         then
+            raise Command_Error with "Cannot start '" & (+Each.Name) & "' as it is already started.";
+         end if;
+      end loop;
+
+      for Each of The_Pipeline
+      loop
+         Shell.Commands.Command (Each).Start;
+      end loop;
+   end Mark_As_Started;
+
+
+
+   procedure Mark_As_Not_Started (The_Pipeline : in out Command_Array)
+   is
+   begin
+      for Each of The_Pipeline
+      loop
+         Each.Status := Not_Started;
+      end loop;
+   end Mark_As_Not_Started;
+
+
+
    overriding
    procedure Start (The_Command   : in out Command;
                     Input         : in     Data    := No_Data;
@@ -605,13 +549,16 @@ is
    begin
       Commands.Command (The_Command).Start (Input, Accepts_Input, Pipeline);
 
-      Spawn_Client.Add (The_Command,
-                        Input,
-                        Accepts_Input,
-                        The_Command.Safe_Outputs);
-   exception
-      when Tasking_Error =>
-         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
+      begin
+         Spawn_Client.Add (The_Command,
+                           Input,
+                           Accepts_Input,
+                           The_Command.Safe_Outputs);
+      exception
+         when Tasking_Error =>
+            The_Command.Status := Not_Started;
+            raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
+      end;
    end Start;
 
 
@@ -631,14 +578,12 @@ is
          return;
       end if;
 
-      for Each of Commands
-      loop
-         Shell.Commands.Command (Each).Start;
-      end loop;
+      Mark_As_Started (Commands);
 
       Spawn_Client.Add (Commands, Input);
    exception
       when Tasking_Error =>
+         Mark_As_Not_Started (Commands);
          raise Command_Error with Client_Gone_Message;
    end Start;
 
@@ -708,10 +653,16 @@ is
    begin
       Commands.Command (The_Command).Start (Input);
 
-      Spawn_Client.Add (The_Command,
-                        Input,
-                        Accepts_Input => False,
-                        Outputs       => The_Command.Safe_Outputs);
+      begin
+         Spawn_Client.Add (The_Command,
+                           Input,
+                           Accepts_Input => False,
+                           Outputs       => The_Command.Safe_Outputs);
+      exception
+         when Tasking_Error =>
+            The_Command.Status := Not_Started;
+            raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
+      end;
 
       The_Command.Safe_Outputs.Wait_Til_Done;
       The_Command.Safe_Outputs.Get_Outputs (Output,
@@ -726,9 +677,6 @@ is
          raise Command_Error with Failure_Message (The_Command);
       end if;
 
-   exception
-      when Tasking_Error =>
-         raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
    end Run;
 
 
@@ -740,12 +688,15 @@ is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
       i            : Positive := 1;
    begin
-      for Each of The_Pipeline
-      loop
-         Commands.Command (Each).Start;
-      end loop;
+      Mark_As_Started (The_Pipeline);
 
-      Spawn_Client.Add (The_Pipeline, Input);
+      begin
+         Spawn_Client.Add (The_Pipeline, Input);
+      exception
+         when Tasking_Error =>
+            Mark_As_Not_Started (The_Pipeline);
+            raise Command_Error with Client_Gone_Message;
+      end;
 
       loop
          Gather_Results (Last_Command);            -- Gather on-going results.
@@ -778,6 +729,13 @@ is
                      end if;
 
                      i := i + 1;
+                  end loop;
+
+                  -- All that they have left to send is on its way. Without waiting, it would be missing from their results.
+                  --
+                  for Each of The_Pipeline
+                  loop
+                     Each.Safe_Outputs.Wait_Til_Done;
                   end loop;
 
                   if Raise_Error

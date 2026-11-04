@@ -200,6 +200,22 @@ is
 
 
 
+   -- A pipeline's pipes are replaced before its commands are started, which would disturb any which are running.
+   --
+   procedure Check_None_Are_Started (The_Pipeline : in Command_Array)
+   is
+   begin
+      for Each of The_Pipeline
+      loop
+         if Each.Status /= Not_Started
+         then
+            raise Command_Error with "Cannot start '" & (+Each.Name) & "' as it is already started.";
+         end if;
+      end loop;
+   end Check_None_Are_Started;
+
+
+
    overriding
    procedure Start (The_Command   : in out Command;
                     Input         : in     Data    := No_Data;
@@ -217,101 +233,105 @@ is
    begin
       Commands.Command (The_Command).Start (Input, Accepts_Input, Pipeline);
 
-      if Makes_Input
-      then
-         The_Command.Input_Pipe := To_Pipe;
-         Set_Write_End_Close_On_Exec (The_Command.Input_Pipe);
-
-         if Input_Fits
-         then
-            Write_To (The_Command.Input_Pipe, Input);
-         end if;
-      end if;
-
-      if Makes_Output
-      then
-         The_Command.Owns_Output_Pipe := True;
-         The_Command.Output_Pipe      := To_Pipe (Blocking => False);
-      end if;
-
-      if Makes_Errors
-      then
-         The_Command.Error_Pipe := To_Pipe (Blocking => False);
-      end if;
-
-      The_Command.Process := Start (Program   => +The_Command.Name,
-                                    Arguments =>  To_String_Array (The_Command.Arguments),
-                                    Input     =>  The_Command.Input_Pipe,
-                                    Output    =>  The_Command.Output_Pipe,
-                                    Errors    =>  The_Command.Error_Pipe,
-                                    Pipeline  =>  Pipeline);
-      if not Input_Fits
-      then
-         Write_In_Background (The_Command.Input_Pipe, Input);
-      end if;
-
-      -- Let the program see the end of its input, once it has all been written.
+      -- Starting a command twice raises above, which must not disturb the command which is running.
       --
-      if     Input /= No_Data
-        and not Accepts_Input
-      then
-         Close_Write_End (The_Command.Input_Pipe);
-      end if;
-
-   exception
-      when others =>     -- Stop any program, rid the pipes this made, and go back to not being started.
-         begin
-            if Shell.Status (The_Command.Process) /= Shell.Not_Started
-            then
-               Kill (The_Command.Process);
-            end if;
-
-            if Makes_Input
-            then
-               Close (The_Command.Input_Pipe);     -- Still the standard input, if making the pipe failed. This then does nothing.
-            end if;
-
-            if         Makes_Output
-              and then The_Command.Output_Pipe /= Null_Pipe
-            then
-               Close (The_Command.Output_Pipe);
-            end if;
-
-            if         Makes_Errors
-              and then The_Command.Error_Pipe /= Null_Pipe
-            then
-               Close (The_Command.Error_Pipe);
-            end if;
-
-         exception
-            when E : others =>
-               Log (Ada.Exceptions.Exception_Information (E));     -- The original failure is the one to report.
-         end;
-
-         declare
-            Unstarted : Shell.Process;
-         begin
-            The_Command.Process := Unstarted;
-         end;
-
+      begin
          if Makes_Input
          then
-            The_Command.Input_Pipe := Standard_Input;
+            The_Command.Input_Pipe := To_Pipe;
+            Set_Write_End_Close_On_Exec (The_Command.Input_Pipe);
+
+            if Input_Fits
+            then
+               Write_To (The_Command.Input_Pipe, Input);
+            end if;
          end if;
 
          if Makes_Output
          then
-            The_Command.Output_Pipe      := Null_Pipe;
-            The_Command.Owns_Output_Pipe := False;
+            The_Command.Owns_Output_Pipe := True;
+            The_Command.Output_Pipe      := To_Pipe (Blocking => False);
          end if;
 
          if Makes_Errors
          then
-            The_Command.Error_Pipe := Null_Pipe;
+            The_Command.Error_Pipe := To_Pipe (Blocking => False);
          end if;
 
-         The_Command.Status := Not_Started;
-         raise;
+         The_Command.Process := Start (Program   => +The_Command.Name,
+                                       Arguments =>  To_String_Array (The_Command.Arguments),
+                                       Input     =>  The_Command.Input_Pipe,
+                                       Output    =>  The_Command.Output_Pipe,
+                                       Errors    =>  The_Command.Error_Pipe,
+                                       Pipeline  =>  Pipeline);
+         if not Input_Fits
+         then
+            Write_In_Background (The_Command.Input_Pipe, Input);
+         end if;
+
+         -- Let the program see the end of its input, once it has all been written.
+         --
+         if     Input /= No_Data
+           and not Accepts_Input
+         then
+            Close_Write_End (The_Command.Input_Pipe);
+         end if;
+
+      exception
+         when others =>     -- Stop any program, rid the pipes this made, and go back to not being started.
+            begin
+               if Shell.Status (The_Command.Process) /= Shell.Not_Started
+               then
+                  Kill (The_Command.Process);
+               end if;
+
+               if Makes_Input
+               then
+                  Close (The_Command.Input_Pipe);     -- Still the standard input, if making the pipe failed. This then does nothing.
+               end if;
+
+               if         Makes_Output
+                 and then The_Command.Output_Pipe /= Null_Pipe
+               then
+                  Close (The_Command.Output_Pipe);
+               end if;
+
+               if         Makes_Errors
+                 and then The_Command.Error_Pipe /= Null_Pipe
+               then
+                  Close (The_Command.Error_Pipe);
+               end if;
+
+            exception
+               when E : others =>
+                  Log (Ada.Exceptions.Exception_Information (E));     -- The original failure is the one to report.
+            end;
+
+            declare
+               Unstarted : Shell.Process;
+            begin
+               The_Command.Process := Unstarted;
+            end;
+
+            if Makes_Input
+            then
+               The_Command.Input_Pipe := Standard_Input;
+            end if;
+
+            if Makes_Output
+            then
+               The_Command.Output_Pipe      := Null_Pipe;
+               The_Command.Owns_Output_Pipe := False;
+            end if;
+
+            if Makes_Errors
+            then
+               The_Command.Error_Pipe := Null_Pipe;
+            end if;
+
+            The_Command.Status := Not_Started;
+            raise;
+      end;
    end Start;
 
 
@@ -331,6 +351,7 @@ is
          return;
       end if;
 
+      Check_None_Are_Started (Commands);
       Connect (Commands);
 
       begin
@@ -520,6 +541,8 @@ is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
       i            : Positive     := 1;
    begin
+      Check_None_Are_Started (The_Pipeline);
+
       Last_Command.Output_Pipe := To_Pipe;
 
       begin

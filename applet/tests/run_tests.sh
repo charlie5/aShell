@@ -138,6 +138,41 @@ function check
 }
 
 
+# Commands must still run when the spawn server can't create its log.
+#
+function check_without_writeable_folder
+{
+   local Name=commands/safe/no_input/read_only
+
+   selected "$Name" || return
+
+   local Folder
+   local Log=$Output/${Name//\//_}.log
+   local Start=$SECONDS
+   local Status
+
+   Folder=$(mktemp -d)
+   chmod a-w "$Folder"
+
+   (cd "$Folder" && env --default-signal=PIPE timeout -s KILL 30 "$Tests/commands/safe/no_input/test_no_input") < /dev/null > "$Log" 2>&1
+   Status=$?
+
+   chmod u+w "$Folder"
+   rmdir "$Folder"
+
+   if [ $Status = 137 ]
+   then
+      fail "$Name" "still running after the 30s limit" "$Log"
+   elif [ $Status != 0 ]
+   then
+      fail "$Name" "exit status $Status" "$Log"
+   else
+      pass "$Name" $((SECONDS - Start))
+      rm -f "$Log"
+   fi
+}
+
+
 function check_builds     # folder ...
 {
    local Each
@@ -237,7 +272,9 @@ check commands/safe/command_status              60 ''      "End +'Test_Safe_Comm
 check commands/safe/concurrent_commands        120 '100'   'Main Task has terminated'
 check commands/safe/concurrent_pipelines       120 '50'    "End 'Concurrent_Pipelines'"
 check commands/safe/exit_with_input             30 ''      'Main ending'
-check commands/safe/no_input                    30 ''      'Killing after shutdown stops the program passed'
+check commands/safe/late_kill                   15 ''      'Main ending'
+check commands/safe/no_input                    30 ''      'Waiting on a command which failed to start raises passed'
+check_without_writeable_folder
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'
 check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output'"
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"

@@ -15,6 +15,8 @@ is
    --
    Client_Input : constant Pipe := Move_Standard_Input;
 
+   Log_Is_Open  : Boolean := False;
+
    package Server_Action_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Server_Action);
 
 
@@ -83,7 +85,13 @@ is
 
 
 begin
-   Open_Log ("aShell_spawn_Server.log");
+   begin
+      Open_Log ("aShell_spawn_Server.log");
+      Log_Is_Open := True;
+   exception
+      when others =>     -- The working directory may not be writeable. Commands can still be run, without a log.
+         null;
+   end;
 
    declare
       use type Unsafe.Command;
@@ -328,6 +336,23 @@ begin
                begin
                   Stop (The_Command);
                   Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
+
+                  -- 'Stop' gathered what was left in the pipes it closed, and this is the only chance to send it.
+                  --
+                  declare
+                     The_Results : constant Command_Results := Results_Of (The_Command);
+                  begin
+                     if    Output_Of (The_Results)'Length /= 0
+                        or Errors_Of (The_Results)'Length /= 0
+                     then
+                        Client_Action'Output (Output_Stream'Access,
+                                              (New_Outputs,
+                                               Action.Id,
+                                               Data_Holders.To_Holder (Output_Of (The_Results)),
+                                               Data_Holders.To_Holder (Errors_Of (The_Results))));
+                     end if;
+                  end;
+
                   Command_Map.Replace (Action.Id, The_Command);
                end;
 
@@ -555,7 +580,10 @@ begin
          raise;
    end;
 
-   Close_Log;
+   if Log_Is_Open
+   then
+      Close_Log;
+   end if;
 
    -- The new action fetcher may still be blocked reading from the client. So end now, rather than waiting on it.
    --
@@ -563,9 +591,18 @@ begin
 
 exception
    when E : others =>
-      Log ("Unhandled error in aShell_Spawn_Server.");
-      Log (Ada.Exceptions.Exception_Information (E));
-      Close_Log;
+      begin
+         Log ("Unhandled error in aShell_Spawn_Server.");
+         Log (Ada.Exceptions.Exception_Information (E));
+
+         if Log_Is_Open
+         then
+            Close_Log;
+         end if;
+      exception
+         when others =>     -- Nothing must prevent the exit below.
+            null;
+      end;
 
       -- The new action fetcher is blocked reading from the client, which would otherwise keep this process alive and
       -- leave the client waiting for ever. Ending lets the client see that the server has gone.

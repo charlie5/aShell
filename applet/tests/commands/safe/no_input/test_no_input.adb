@@ -104,5 +104,27 @@ begin
 
       Check ("Sending after shutdown raises", Raised);
       Check ("Killing after shutdown stops the program", To_Duration (Clock - Before) < 15.0);
+
+      -- The client has now ended. Failing to start must not leave a command to wait on for ever.
+      --
+      declare
+         Too_Late : Safe.Command := Forge.To_Command ("true");
+      begin
+         begin
+            Too_Late.Start;
+            Check ("Starting after the client has ended raises", False);
+         exception
+            when Command_Error =>
+               Check ("Starting after the client has ended leaves it not started", State'(Too_Late.Status) = Not_Started);
+         end;
+
+         begin
+            Too_Late.Wait_On;
+            Check ("Waiting on a command which failed to start raises", False);
+         exception
+            when Command_Error =>
+               Check ("Waiting on a command which failed to start raises", True);
+         end;
+      end;
    end;
 end Test_No_Input;
