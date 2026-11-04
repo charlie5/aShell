@@ -353,11 +353,59 @@ is
    type Data_Access is access Data;
    procedure Free is new Ada.Unchecked_Deallocation (Data, Data_Access);
 
+   package Data_Access_Vectors is new Ada.Containers.Vectors (Positive, Data_Access);
+
+
+   protected type Input_Queue
+   is
+      procedure Add  (Input : in     Data_Access);
+      procedure Take (Input :    out Data_Access);     -- Gives null when the queue is empty.
+      entry     Wait_For_Input;
+   private
+      Items : Data_Access_Vectors.Vector;
+   end Input_Queue;
+
+   type Input_Queue_Access is access Input_Queue;
+   procedure Free is new Ada.Unchecked_Deallocation (Input_Queue, Input_Queue_Access);
+
+
+   protected body Input_Queue
+   is
+      procedure Add (Input : in Data_Access)
+      is
+      begin
+         Items.Append (Input);
+      end Add;
+
+
+      procedure Take (Input : out Data_Access)
+      is
+      begin
+         if Items.Is_Empty
+         then
+            Input := null;
+         else
+            Input := Items.First_Element;
+            Items.Delete_First;
+         end if;
+      end Take;
+
+
+      entry Wait_For_Input
+        when not Items.Is_Empty
+      is
+      begin
+         null;
+      end Wait_For_Input;
+   end Input_Queue;
+
+
 
    task type Input_Writer
    is
-      entry Start (Descriptor : in File_Descriptor;
-                   Input      : in Data_Access);
+      entry Start (Pipe       : in Shell.Pipe;
+                   Descriptor : in File_Descriptor;
+                   Queue      : in Input_Queue_Access);
    end Input_Writer;
 
 
@@ -369,91 +417,160 @@ is
 
       Most_Per_Write : constant := 64 * 1024;
 
+      The_Pipe       : Shell.Pipe;
       The_Descriptor : File_Descriptor;
+      The_Queue      : Input_Queue_Access;
+
       The_Input      : Data_Access;
-      Next           : Data_Offset;
+      Next           : Data_Offset := 1;
 
-   begin
-      accept Start (Descriptor : in File_Descriptor;
-                    Input      : in Data_Access)
-      do
-         The_Descriptor := Descriptor;
-         The_Input      := Input;
-      end Start;
+      Nothing_Will_Read : exception;
 
-      Next := The_Input'First;
 
-      Set_File_Control (The_Descriptor, Non_Blocking);
+      function Main_Has_Completed return Boolean
+      is (not Ada.Task_Identification.Is_Callable (Ada.Task_Identification.Environment_Task));
 
-      Writing:
-      while Next <= The_Input'Last
-      loop
-         declare
-            FDS_R : File_Descriptor_Set;
-            FDS_W : File_Descriptor_Set;
-            FDS_E : File_Descriptor_Set;
-            Count : Natural;
-            Last  : Data_Offset;
-         begin
-            Make_Empty (FDS_R);
-            Make_Empty (FDS_W);
-            Make_Empty (FDS_E);
 
-            Add (FDS_W, The_Descriptor);
+      procedure Write_Next_Part
+      is
+         FDS_R : File_Descriptor_Set;
+         FDS_W : File_Descriptor_Set;
+         FDS_E : File_Descriptor_Set;
+         Count : Natural;
+         Last  : Data_Offset;
+      begin
+         Make_Empty (FDS_R);
+         Make_Empty (FDS_W);
+         Make_Empty (FDS_E);
 
-            Select_File (Read_Files     => FDS_R,
-                         Write_Files    => FDS_W,
-                         Except_Files   => FDS_E,
-                         Files_Selected => Count,
-                         Timeout        => 1.0);
+         Add (FDS_W, The_Descriptor);
 
-            if Count = 0
+         Select_File (Read_Files     => FDS_R,
+                      Write_Files    => FDS_W,
+                      Except_Files   => FDS_E,
+                      Files_Selected => Count,
+                      Timeout        => 1.0);
+
+         if Count /= 0
+         then
+            Write (File   => The_Descriptor,
+                   Buffer => The_Input (Next .. Data_Offset'Min (Next + Most_Per_Write - 1,
+                                                                 The_Input'Last)),
+                   Last   => Last);
+            Next := Last + 1;
+
+         elsif Main_Has_Completed
+         then
+            raise Nothing_Will_Read;
+         end if;
+
+      exception
+         when POSIX_Error =>
+            if         Get_Error_Code /= Resource_Temporarily_Unavailable
+              and then Get_Error_Code /= Interrupted_Operation
             then
-               exit Writing when not Ada.Task_Identification.Is_Callable (Ada.Task_Identification.Environment_Task);
-            else
-               Write (File   => The_Descriptor,
-                      Buffer => The_Input (Next .. Data_Offset'Min (Next + Most_Per_Write - 1,
-                                                                    The_Input'Last)),
-                      Last   => Last);
-               Next := Last + 1;
+               raise;
             end if;
+      end Write_Next_Part;
 
-         exception
-            when POSIX_Error =>
-               if Get_Error_Code = Broken_Pipe
-               then
-                  exit Writing;     -- The reader has gone, so the rest of the input isn't wanted.
 
-               elsif    Get_Error_Code /= Resource_Temporarily_Unavailable
-                 and then Get_Error_Code /= Interrupted_Operation
-               then
-                  raise;
-               end if;
-         end;
-      end loop Writing;
-
-      Close (The_Descriptor);
-      Free  (The_Input);
-
-   exception
-      when E : others =>
-         Log ("Input writer failed: " & Ada.Exceptions.Exception_Information (E));
-
+      procedure Finish
+      is
+      begin
          Free (The_Input);
+
+         loop
+            The_Queue.Take (The_Input);
+            exit when The_Input = null;
+            Free (The_Input);
+         end loop;
 
          if Is_Open (The_Descriptor)
          then
             Close (The_Descriptor);
          end if;
+
+         Safe_Pipes.Close (The_Pipe, Only_Write_End => True);     -- Lets a later 'Write_In_Background' know the reader has gone.
+      end Finish;
+
+   begin
+      accept Start (Pipe       : in Shell.Pipe;
+                    Descriptor : in File_Descriptor;
+                    Queue      : in Input_Queue_Access)
+      do
+         The_Pipe       := Pipe;
+         The_Descriptor := Descriptor;
+         The_Queue      := Queue;
+      end Start;
+
+      Set_File_Control (The_Descriptor, Non_Blocking);
+
+      Writing:
+      loop
+         if The_Input = null
+         then
+            declare
+               Closed : constant Boolean := not Is_Writeable (The_Pipe);     -- Check before taking, as input is queued before the close.
+            begin
+               The_Queue.Take (The_Input);
+
+               if The_Input = null
+               then
+                  exit Writing when Closed or Main_Has_Completed;
+
+                  select
+                     The_Queue.Wait_For_Input;
+                  or
+                     delay 0.02;     -- To notice the write end being closed.
+                  end select;
+               else
+                  Next := The_Input'First;
+               end if;
+            end;
+
+         else
+            Write_Next_Part;
+
+            if Next > The_Input'Last
+            then
+               Free (The_Input);
+            end if;
+         end if;
+      end loop Writing;
+
+      Finish;
+
+   exception
+      when Nothing_Will_Read =>
+         Finish;
+
+      when POSIX_Error =>
+         if Get_Error_Code /= Broken_Pipe     -- The reader has gone, so the rest of the input isn't wanted.
+         then
+            Log ("Input writer failed: " & Image (Get_Error_Code));
+         end if;
+
+         Finish;
+
+      when E : others =>
+         Log ("Input writer failed: " & Ada.Exceptions.Exception_Information (E));
+         Finish;
    end Input_Writer;
 
 
    type Input_Writer_Access is access Input_Writer;
    procedure Free is new Ada.Unchecked_Deallocation (Input_Writer, Input_Writer_Access);
 
-   package Input_Writer_Vectors is new Ada.Containers.Vectors (Positive, Input_Writer_Access);
+   type Background_Writer is
+      record
+         Pipe_Of : Pipe_Id;
+         Writer  : Input_Writer_Access;
+         Queue   : Input_Queue_Access;
+      end record;
 
-   Input_Writers : Input_Writer_Vectors.Vector;
+   package Background_Writer_Vectors is new Ada.Containers.Vectors (Positive, Background_Writer);
+
+   Background_Writers : Background_Writer_Vectors.Vector;
 
 
 
@@ -462,32 +579,67 @@ is
    is
       use POSIX.IO;
 
-      -- The writer has its own descriptor, which nothing else can close. Marked 'close on exec', as a
-      -- process started later which inherits it would prevent the reader from seeing the end of its input.
-      --
-      Descriptor : constant File_Descriptor := Duplicate (Pipe.Write_End);
-      The_Input  : constant Data_Access     := new Data'(Input);
-
+      The_Queue : Input_Queue_Access;
+      The_Input : Data_Access;
    begin
-      Set_Close_On_Exec (Descriptor);
-      Safe_Pipes.Close  (Pipe, Only_Write_End => True);
+      Check_Not_Null (Pipe);
 
-      for i in reverse 1 .. Input_Writers.Last_Index     -- Rid finished writers.
+      if Input'Length = 0
+      then
+         return;
+      end if;
+
+      Check_Is_Writeable (Pipe);
+
+      The_Input := new Data'(Input);
+
+      for i in reverse 1 .. Background_Writers.Last_Index
       loop
          declare
-            Writer : Input_Writer_Access := Input_Writers.Element (i);
+            Each : Background_Writer := Background_Writers.Element (i);
          begin
-            if Writer'Terminated
+            if Each.Writer'Terminated     -- Rid finished writers.
             then
-               Free (Writer);
-               Input_Writers.Delete (i);
+               Free (Each.Writer);
+               Free (Each.Queue);
+               Background_Writers.Delete (i);
+
+            elsif Each.Pipe_Of = Pipe.Id
+            then
+               The_Queue := Each.Queue;
             end if;
          end;
       end loop;
 
-      Input_Writers.Append (new Input_Writer);
-      Input_Writers.Last_Element.Start (Descriptor, The_Input);
+      if The_Queue = null
+      then
+         -- The writer has its own descriptor, which nothing else can close. So the reader
+         -- will see the end of its input only once the writer has finished with it.
+         --
+         declare
+            Descriptor : constant File_Descriptor := Duplicate (Pipe.Write_End);
+            New_Writer : constant Background_Writer := (Pipe_Of => Pipe.Id,
+                                                        Writer  => new Input_Writer,
+                                                        Queue   => new Input_Queue);
+         begin
+            Set_Close_On_Exec (Descriptor);
+
+            New_Writer.Queue.Add (The_Input);
+            New_Writer.Writer.Start (Pipe, Descriptor, New_Writer.Queue);
+            Background_Writers.Append (New_Writer);
+         end;
+      else
+         The_Queue.Add (The_Input);
+      end if;
    end Write_In_Background;
+
+
+
+   procedure Set_Write_End_Close_On_Exec (Pipe : in Shell.Pipe)
+   is
+   begin
+      POSIX.IO.Set_Close_On_Exec (Pipe.Write_End);
+   end Set_Write_End_Close_On_Exec;
 
 
 

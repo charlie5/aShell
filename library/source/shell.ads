@@ -257,12 +257,20 @@ private
    end Safe_Pipes;
 
 
-   -- Writes the input to the pipe from a background task, and closes the write end when done or when the reader has gone.
-   -- The input may be larger than the pipe's capacity, since the caller is not blocked. The writer gives up if the main
-   -- subprogram has completed and the pipe has stopped accepting input.
+   -- Queues the input to be written to the pipe by a background task, in the order given, so the caller is never blocked
+   -- by a full pipe. Closing the write end takes effect once all queued input has been written.
+   --
+   -- If the reader goes, the rest of the input is discarded and the write end is closed, so a later call raises Pipe_Error.
+   -- The writer gives up if the main subprogram has completed and the pipe has stopped accepting input.
+   --
+   -- As is most of this package, this is not task safe.
    --
    procedure Write_In_Background (Pipe  : in Shell.Pipe;
                                   Input : in Data);
+
+   -- A process started later would otherwise inherit the write end, and prevent the reader from seeing the end of its input.
+   --
+   procedure Set_Write_End_Close_On_Exec (Pipe : in Shell.Pipe);
 
 
    type Pipe_Stream is new Ada.Streams.Root_Stream_Type with

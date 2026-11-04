@@ -171,6 +171,7 @@ is
         or Accepts_Input
       then
          The_Command.Input_Pipe := To_Pipe;
+         Set_Write_End_Close_On_Exec (The_Command.Input_Pipe);
 
          if Input_Fits
          then
@@ -196,20 +197,17 @@ is
                                     Errors    =>  The_Command.Error_Pipe,
                                     Pipeline  =>  Pipeline);
 
-      if Accepts_Input
-      then
-         if not Input_Fits
-         then
-            Write_To (The_Command.Input_Pipe, Input);     -- As for 'Send', this blocks until the program has read enough.
-         end if;
-
-      elsif not Input_Fits
+      if not Input_Fits
       then
          Write_In_Background (The_Command.Input_Pipe, Input);
+      end if;
 
-      elsif Input /= No_Data
+      -- Let the program see the end of its input, once it has all been written.
+      --
+      if     Input /= No_Data
+        and not Accepts_Input
       then
-         Close_Write_End (The_Command.Input_Pipe);        -- All the input has been written, so let the program see the end of it.
+         Close_Write_End (The_Command.Input_Pipe);
       end if;
    end Start;
 
@@ -264,7 +262,7 @@ is
                    Input : in Data)
    is
    begin
-      Write_To (To.Input_Pipe, Input);
+      Write_In_Background (To.Input_Pipe, Input);
    end Send;
 
 
@@ -637,6 +635,8 @@ is
    begin
       if The_Command.Copy_Count.all = 1
       then
+         Close_Write_End (The_Command.Input_Pipe);     -- Nothing can send any more, and it would stop any input writer from finishing.
+
          if The_Command.Owns_Input_Pipe
          then
             Close (The_Command.Input_Pipe);

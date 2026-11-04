@@ -45,10 +45,13 @@ is
 
    procedure Send  (To    : in Command;
                     Input : in Data) is abstract;
+   --
+   -- Queues the input to be written in the background, so this doesn't wait for the program to read it. Input which
+   -- the program never reads stays in memory until the program ends, or its input is closed and the main program ends.
 
    procedure Close_Input (The_Command : in Command) is abstract;
    --
-   -- Lets a command started with 'Accepts_Input' see the end of its input, once all sent input has been read.
+   -- Lets a command started with 'Accepts_Input' see the end of its input, once all sent input has been written.
    -- Does nothing if there is no input to close.
 
 

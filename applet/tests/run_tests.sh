@@ -215,7 +215,7 @@ check core/pause_resume             120 ''   "End 'Test_Pause_Resume'"
 
 check directories                    30 ''   'test_iterate_directory\.adb'  "End 'Iterate_Directory'"
 
-check commands/unsafe/close_input               30 ''   'Finished command is unaffected passed'
+check commands/unsafe/close_input               60 ''   'Sending to a program which has gone raises passed'
 check commands/unsafe/command_error             30 ''   "Failed on command .* as expected"  'raised an exception, as expected'
 check commands/unsafe/command_input             30 ''   'Hello world'  "End Test_Command_Input"
 check commands/unsafe/command_output_to_string  30 ''   'test_command_output_to_string\.adb'
@@ -226,7 +226,7 @@ check commands/unsafe/pipeline_error            60 ''   'Pipeline failed as expe
 check commands/unsafe/pipeline_output           30 ''   "End 'Pipeline_Output'"
 check commands/unsafe/unused_command            30 ''   'Success'
 
-check commands/safe/close_input                 30 ''      'Finished command is unaffected passed'
+check commands/safe/close_input                 60 ''      "Other commands aren't held up passed"
 check commands/safe/command_failure             60 ''      'Server still runs commands passed'
 check commands/safe/command_input               30 ''      'Goodbye world'  'End Test_Command_Input'
 check commands/safe/command_status              60 ''      "End +'Test_Safe_Command_Status'"
