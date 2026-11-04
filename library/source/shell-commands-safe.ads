@@ -64,7 +64,8 @@ is
                   Input        : in     Data  := No_Data);
    --
    -- Takes a command line (single or multiple piped commands).
-   -- Wait for (final) process completion and raise a Command_Error on failure.
+   -- Wait for process completion and raise a Command_Error if any command fails.
+   -- This includes a command ended by SIGPIPE, as in 'yes | head -1'.
    -- Any process error message is attached to the exception.
 
 
