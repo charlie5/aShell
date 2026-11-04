@@ -752,56 +752,50 @@ is
       end;
 
       loop
-         Gather_Results (Last_Command);            -- Gather on-going results.
+         The_Pipeline (i).Safe_Outputs.Wait_Til_Done;     -- Output is held for each command as it arrives, so just wait.
 
-         if Has_Terminated (The_Pipeline (i))
+         if Normal_Exit (The_Pipeline (i))
          then
-            if Normal_Exit (The_Pipeline (i))
+            i := i + 1;
+
+            if i > The_Pipeline'Last
             then
-               i := i + 1;
-
-               if i > The_Pipeline'Last
-               then
-                  Gather_Results (Last_Command);   -- Gather any final results.
-                  exit;
-               end if;
-
-            else
-               Gather_Results (The_Pipeline (i));
-
-               declare
-                  Error : constant String := "Pipeline command" & Integer'Image (i) & ": " & Failure_Message (The_Pipeline (i));
-               begin
-                  -- Stop the pipeline.
-                  --
-                  while i <= The_Pipeline'Last
-                  loop
-                     if not Has_Terminated (The_Pipeline (i))
-                     then
-                        Spawn_Client.Stop (The_Pipeline (i));
-                     end if;
-
-                     i := i + 1;
-                  end loop;
-
-                  -- All that they have left to send is on its way. Without waiting, it would be missing from their results.
-                  --
-                  for Each of The_Pipeline
-                  loop
-                     Each.Safe_Outputs.Wait_Til_Done;
-                  end loop;
-
-                  if Raise_Error
-                  then
-                     raise Command_Error with Error;
-                  else
-                     exit;
-                  end if;
-               end;
+               Gather_Results (Last_Command);
+               exit;
             end if;
 
          else
-            delay 0.001;     -- These calls don't block, and the command may run for a long time.
+            Gather_Results (The_Pipeline (i));
+
+            declare
+               Error : constant String := "Pipeline command" & Integer'Image (i) & ": " & Failure_Message (The_Pipeline (i));
+            begin
+               -- Stop the pipeline.
+               --
+               while i <= The_Pipeline'Last
+               loop
+                  if not Has_Terminated (The_Pipeline (i))
+                  then
+                     Spawn_Client.Stop (The_Pipeline (i));
+                  end if;
+
+                  i := i + 1;
+               end loop;
+
+               -- All that they have left to send is on its way. Without waiting, it would be missing from their results.
+               --
+               for Each of The_Pipeline
+               loop
+                  Each.Safe_Outputs.Wait_Til_Done;
+               end loop;
+
+               if Raise_Error
+               then
+                  raise Command_Error with Error;
+               else
+                  exit;
+               end if;
+            end;
          end if;
       end loop;
    exception

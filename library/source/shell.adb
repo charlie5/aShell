@@ -111,6 +111,12 @@ is
                then
                   Close (File => Descriptor);
                end if;
+
+               if         Descriptor = Pipe.Write_End
+                 and then Writers.Contains (Pipe.Id)
+               then
+                  Writers.Element (Pipe.Id).all;     -- It has more to do, now that the write end has closed.
+               end if;
             end if;
          end Close_End;
 
@@ -142,6 +148,23 @@ is
             POSIX.IO.Set_Close_On_Exec (Descriptor);
          end if;
       end Duplicate_Write_End;
+
+
+
+      procedure Note_Writer (Pipe : in Shell.Pipe;
+                             Wake : in Wake_Action)
+      is
+      begin
+         Writers.Include (Pipe.Id, Wake);
+      end Note_Writer;
+
+
+
+      procedure Forget_Writer (Pipe : in Shell.Pipe)
+      is
+      begin
+         Writers.Exclude (Pipe.Id);
+      end Forget_Writer;
 
 
 
@@ -293,6 +316,9 @@ is
 
 
 
+   Max_Process_Output : constant := 200 * 1024;
+
+
    -- 'Poll' rather than 'select', which can't handle a descriptor numbered 1024 or more.
    --
    function Any_Are_Ready (Files   : in out POSIX.Event_Management.Poll_FD_Array;
@@ -336,8 +362,6 @@ is
    function Output_Of (Pipe : in Shell.Pipe) return Data
    is
       use POSIX.IO;
-
-      Max_Process_Output : constant := 200 * 1024;
 
       Buffer : Data (1 .. Max_Process_Output);
       Last   : Stream_Element_Offset := 0;
@@ -402,6 +426,8 @@ is
 
    function Available_Output_Of (Pipe : in Shell.Pipe) return Data
    is
+      use type POSIX.Error_Code;
+
       No_Wait : constant Duration := 0.000_001;     -- A timeout of '0.0' would block.
    begin
       if         Pipe = Null_Pipe
@@ -411,7 +437,29 @@ is
          return No_Data;
       end if;
 
-      return Output_Of (Pipe);
+      declare
+         Buffer : Data (1 .. Max_Process_Output);
+         Last   : Stream_Element_Offset;
+      begin
+         POSIX.IO.Read (File   => Pipe.Read_End,
+                        Buffer => Buffer,
+                        Last   => Last);
+
+         return Buffer (1 .. Last);
+      end;
+
+   exception
+      when Ada.IO_Exceptions.End_Error =>
+         Safe_Pipes.Close (Pipe, Only_Read_End => True);
+         return No_Data;
+
+      when POSIX.POSIX_Error =>
+         if POSIX.Get_Error_Code /= POSIX.Resource_Temporarily_Unavailable
+         then
+            raise;
+         end if;
+
+         return No_Data;
    end Available_Output_Of;
 
 
@@ -448,10 +496,12 @@ is
                       Accepted :    out Boolean);     -- False once shut, as the input would never be written.
       procedure Take (Input    :    out Data_Access);     -- Gives null when the queue is empty.
       procedure Shut;
-      entry     Wait_For_Input;
+      procedure Wake;
+      entry     Wait_For_Work;                            -- Until there is input, or a call of 'Wake'.
    private
       Items   : Data_Access_Vectors.Vector;
       Is_Shut : Boolean := False;
+      Is_Woken : Boolean := False;
    end Input_Queue;
 
    type Input_Queue_Access is access Input_Queue;
@@ -493,12 +543,20 @@ is
       end Take;
 
 
-      entry Wait_For_Input
-        when not Items.Is_Empty
+      procedure Wake
       is
       begin
-         null;
-      end Wait_For_Input;
+         Is_Woken := True;
+      end Wake;
+
+
+      entry Wait_For_Work
+        when not Items.Is_Empty
+          or Is_Woken
+      is
+      begin
+         Is_Woken := False;
+      end Wait_For_Work;
    end Input_Queue;
 
 
@@ -570,6 +628,7 @@ is
       is
       begin
          The_Queue.Shut;     -- Any input arriving from now on is refused, rather than lost.
+         Safe_Pipes.Forget_Writer (The_Pipe);
          Free (The_Input);
 
          loop
@@ -610,9 +669,9 @@ is
                   exit Writing when Closed or Main_Has_Completed;
 
                   select
-                     The_Queue.Wait_For_Input;
+                     The_Queue.Wait_For_Work;
                   or
-                     delay 0.02;     -- To notice the write end being closed.
+                     delay 0.1;     -- To notice the main program completing.
                   end select;
                else
                   Next := The_Input'First;
@@ -722,6 +781,8 @@ is
                                                            Writer  => new Input_Writer,
                                                            Queue   => new Input_Queue);
             begin
+               Safe_Pipes.Note_Writer (Pipe, New_Writer.Queue.Wake'Access);
+
                The_Input := new Data'(Input);
 
                New_Writer.Queue.Add (The_Input, Accepted);
@@ -880,7 +941,8 @@ is
                raise Program_Error with "Shell.Update_Status: Status is available for unstarted process.";
 
 
-            when Running =>
+            when Running
+               | Paused =>     -- Something else may have resumed a paused process.
                case Cause
                is
                   when Exited =>
@@ -901,30 +963,6 @@ is
 
                   when Stopped_By_Signal =>
                      Process.State := Paused;     -- Any stopping signal, such as from Ctrl-Z, rather than only from 'Pause'.
-               end case;
-
-
-            when Paused =>
-               case Cause
-               is
-                  when Exited =>     -- Something else may have resumed the process.
-                     if Exit_Status_Of (POSIX_Status) = POSIX.Process_Primitives.Normal_Exit
-                     then
-                        Process.State := Normal_Exit;
-                     else
-                        Process.State := Failed_Exit;
-                     end if;
-
-                  when Terminated_By_Signal =>
-                     declare
-                        use POSIX.Signals;
-                        Signal : constant POSIX.Signals.Signal := Termination_Signal_Of (POSIX_Status);
-                     begin
-                        Process.State := (if Signal = Signal_Interrupt then Interrupted else Killed);     -- Any other signal, such as SIGPIPE.
-                     end;
-
-                  when Stopped_By_Signal =>
-                     null;     -- It is still paused.
                end case;
 
             -- The following cases should never occur.

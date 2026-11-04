@@ -1,6 +1,8 @@
 with
      Shell.Commands.Unsafe,
      Ada.Directories,
+     Ada.Execution_Time,
+     Ada.Real_Time,
      Ada.Exceptions,
      Ada.Strings.Fixed,
      Ada.Text_IO;
@@ -265,6 +267,55 @@ begin
       The_Command.Wait_On;
 
       Check ("A stopped program can be resumed", +Output_Of (Results_Of (The_Command)) = "Resumed" & ASCII.LF);
+   end;
+
+
+   -- Closing the input must reach the program straight away, rather than when its idle writer next checks.
+   --
+   declare
+      use Ada.Real_Time;
+
+      Taken : Duration := 0.0;
+   begin
+      for Each in 1 .. 10
+      loop
+         declare
+            The_Command : Unsafe.Command := Forge.To_Command ("cat");
+         begin
+            The_Command.Start (Accepts_Input => True);
+            The_Command.Send  (+"Sent");
+
+            delay 0.02;     -- Let the writer finish writing, and become idle.
+
+            declare
+               Before : constant Time := Clock;
+            begin
+               The_Command.Close_Input;
+               The_Command.Wait_On;
+               Taken := Taken + To_Duration (Clock - Before);
+            end;
+
+            Check ("A command gets its input", +Output_Of (Results_Of (The_Command)) = "Sent");
+         end;
+      end loop;
+
+      Check ("Closing the input reaches the program straight away", Taken / 10 < 0.05);
+   end;
+
+
+   -- A program which closes its output and carries on must not use a whole core, nor end early.
+   --
+   declare
+      use Ada.Execution_Time,
+          Ada.Real_Time;
+
+      The_Command : Unsafe.Command := Forge.To_Command ("bash closes_output.sh");
+      Before      : constant CPU_Time := Ada.Execution_Time.Clock;
+   begin
+      The_Command.Run;
+
+      Check ("A program which closes its output ends normally", The_Command.Normal_Exit);
+      Check ("Waiting on it doesn't spin", To_Duration (Ada.Execution_Time.Clock - Before) < 0.1);
    end;
 
 

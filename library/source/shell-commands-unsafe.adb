@@ -177,6 +177,11 @@ is
    procedure Free is new Ada.Unchecked_Deallocation (Shared_Pipeline, Shared_Pipeline_Access);
 
 
+   -- A program usually closes its pipes just before it can be seen to have ended, and nothing then wakes the wait.
+   --
+   Most_Wait_On_Pipes : constant Duration := 0.002;
+
+
    procedure Read_All_Stages (The_Pipeline : in out Shared_Pipeline)
    is
       The_Pipes : Pipe_Array (1 .. 2 * The_Pipeline.Count);
@@ -189,7 +194,7 @@ is
          Next                 := Next + 2;
       end loop;
 
-      Wait_For_Output (The_Pipes, Timeout => 0.01);
+      Wait_For_Output (The_Pipes, Timeout => Most_Wait_On_Pipes);
 
       for Each of The_Pipeline.Stages
       loop
@@ -631,8 +636,6 @@ is
                end;
             end if;
 
-         else
-            delay 0.001;     -- The pipes may be at their end, while the program is still running.
          end if;
       end loop;
    end Run;
@@ -809,12 +812,30 @@ is
          then
             Read_All_Stages (The_Command.Pipeline.all);
          else
-            The_Command.Gather_Results;
+            declare
+               Output_Pipe : constant Pipe := (if The_Command.Output_Is_Connected then Null_Pipe
+                                                                                  else The_Command.Output_Pipe);
+            begin
+               Wait_For_Output ([Output_Pipe, The_Command.Error_Pipe], Timeout => Most_Wait_On_Pipes);
+
+               declare
+                  The_Output : constant Data := Available_Output_Of (Output_Pipe);
+                  The_Errors : constant Data := Available_Output_Of (The_Command.Error_Pipe);
+               begin
+                  if The_Output'Length /= 0
+                  then
+                     The_Command.Output.Append (The_Output);
+                  end if;
+
+                  if The_Errors'Length /= 0
+                  then
+                     The_Command.Errors.Append (The_Errors);
+                  end if;
+               end;
+            end;
          end if;
 
          exit when The_Command.Has_Terminated;
-
-         delay 0.001;     -- The pipes may be at their end, while the program is still running.
       end loop;
 
       The_Command.Gather_Results;     -- Gather any final results.

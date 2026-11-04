@@ -412,7 +412,7 @@ begin
       -- A pass of the main loop can take a while, as it reads every command's pipes.
       -- So take all of the waiting actions, up to a limit which leaves those pipes still being read.
       --
-      procedure Perform_Waiting_Actions (Did_Something : in out Boolean)
+      procedure Perform_Waiting_Actions
       is
          Most_Actions_Per_Pass : constant := 256;
       begin
@@ -426,10 +426,30 @@ begin
                exit when Action.Kind = Nil;
 
                Perform (Action);
-               Did_Something := True;
             end;
          end loop;
       end Perform_Waiting_Actions;
+
+
+      -- A program usually closes its pipes just before it can be seen to have ended, and nothing would then wake the
+      -- main loop. So check quickly for a while, which also covers a program which closes its output and carries on.
+      --
+      Quick_Checks : Natural := 0;
+
+
+      function Read_Noting_End (The_Pipe : in Pipe) return Data
+      is
+         Was_Open : constant Boolean := Is_Readable (The_Pipe);
+         Result   : constant Data    := Available_Output_Of (The_Pipe);
+      begin
+         if     Was_Open
+            and not Is_Readable (The_Pipe)
+         then
+            Quick_Checks := 25;
+         end if;
+
+         return Result;
+      end Read_Noting_End;
 
 
       -- Sleeps until there is output to send or an action to perform. A program
@@ -452,7 +472,12 @@ begin
             Next                 := Next + 2;
          end loop;
 
-         Wait_For_Output (The_Pipes, Timeout => 0.05);
+         Wait_For_Output (The_Pipes, Timeout => (if Quick_Checks > 0 then 0.001 else 0.05));
+
+         if Quick_Checks > 0
+         then
+            Quick_Checks := Quick_Checks - 1;
+         end if;
 
          declare
             Unused : constant Data := Available_Output_Of (Wake_Up);
@@ -469,15 +494,13 @@ begin
       New_Action_Fetcher.Start;
 
       loop
-         declare
-            Did_Something : Boolean := False;
          begin
             if not New_Actions.Has_Actions     -- A burst of actions may take more than one pass.
             then
                Wait_For_Something;
             end if;
 
-            Perform_Waiting_Actions (Did_Something);
+            Perform_Waiting_Actions;
 
 
             declare
@@ -506,8 +529,6 @@ begin
                         if not (    Output'Length = 0
                                 and Errors'Length = 0)
                         then
-                           Did_Something := True;
-
                            Client_Action'Output (Output_Stream'Access,
                                                  (New_Outputs,
                                                   Id,
@@ -526,12 +547,12 @@ begin
                         if Is_Within_A_Pipeline (The_Command)
                         then
                            Send (Output => No_Data,
-                                 Errors => Available_Output_Of (The_Command.Error_Pipe));
+                                 Errors => Read_Noting_End (The_Command.Error_Pipe));
                         else
                            --  log ("Send new results for command: " & Image (The_Command));
 
-                           Send (Output => Available_Output_Of (The_Command.Output_Pipe),
-                                 Errors => Available_Output_Of (The_Command. Error_Pipe));
+                           Send (Output => Read_Noting_End (The_Command.Output_Pipe),
+                                 Errors => Read_Noting_End (The_Command. Error_Pipe));
                         end if;
                      end Send_New_Results;
 
@@ -573,7 +594,6 @@ begin
                         end;
 
                         Done_Commands.Append (Id);
-                        Did_Something := True;
 
                      -- Nothing could resume it, and it would stop the server and the client from ending. It
                      -- may have stopped since the shutdown began, and may not have been stopped by the client.
@@ -601,12 +621,6 @@ begin
             exit when Shutting_Down
                   and Command_Map.Is_Empty;
 
-            -- A pipe at its end is always ready, as for a program which has closed its output and carries on.
-            --
-            if not Did_Something
-            then
-               delay 0.002;
-            end if;
          end;
       end loop;
 

@@ -1,7 +1,6 @@
 with
      Shell.Commands.Safe,
      Ada.Exceptions,
-     Ada.Execution_Time,
      Ada.Real_Time,
      Ada.Strings.Fixed,
      Ada.Text_IO;
@@ -34,6 +33,34 @@ is
    function Contains (Source  : in String;
                       Pattern : in String) return Boolean
    is (Ada.Strings.Fixed.Index (Source, Pattern) /= 0);
+
+
+   function Times_This_Task_Has_Slept return Natural
+   is
+      use Ada.Text_IO;
+
+      Label  : constant String := "voluntary_ctxt_switches:";
+      Status : File_Type;
+      Result : Natural := 0;
+   begin
+      Open (Status, In_File, "/proc/thread-self/status");
+
+      while not End_Of_File (Status)
+      loop
+         declare
+            Line : constant String := Get_Line (Status);
+         begin
+            if         Line'Length > Label'Length
+              and then Line (Line'First .. Line'First + Label'Length - 1) = Label
+            then
+               Result := Natural'Value (Line (Line'First + Label'Length + 1 .. Line'Last));     -- After the tab.
+            end if;
+         end;
+      end loop;
+
+      Close (Status);
+      return Result;
+   end Times_This_Task_Has_Slept;
 
 
    Missing : constant String := "no_such_program_for_ashell";
@@ -165,6 +192,16 @@ begin
    -- which ends early would not be seen by the commands feeding it.
    --
    Check ("A long pipeline ends when its last command does", +Output_Of (Run ("yes | cat | head -1")) = "y" & ASCII.LF);
+
+
+   -- A program which closes its output and carries on, must be seen to end.
+   --
+   declare
+      The_Command : Safe.Command := Forge.To_Command ("bash closes_output.sh");
+   begin
+      The_Command.Run;
+      Check ("A program which closes its output ends normally", The_Command.Normal_Exit);
+   end;
 
 
    -- Sending to a command which doesn't accept input.
@@ -316,6 +353,25 @@ begin
       Check ("Commands run without waiting", To_Duration (Clock - Before) / 20 < 0.03);
    end;
 
+   -- A program usually closes its pipes just before it can be seen to have ended, and nothing then wakes the server.
+   --
+   declare
+      use Ada.Real_Time;
+
+      Before : constant Time := Clock;
+   begin
+      for Each in 1 .. 10
+      loop
+         declare
+            The_Pipeline : Command_Array := Forge.To_Commands ("true | true | true | true | cat");
+         begin
+            Run (The_Pipeline);
+         end;
+      end loop;
+
+      Check ("Pipelines are seen to end without waiting", To_Duration (Clock - Before) / 10 < 0.03);
+   end;
+
 
    -- A burst of actions must be handled together, rather than one for each pass over the running commands.
    --
@@ -381,19 +437,19 @@ begin
    end;
 
 
-   -- A pipeline must not use a whole core while it waits.
+   -- A pipeline must sleep while it waits, rather than waking up to check.
    --
    declare
       The_Pipeline : Command_Array := Forge.To_Commands ("sleep 2 | cat");
-      Before       : constant Ada.Execution_Time.CPU_Time := Ada.Execution_Time.Clock;
+      Before       : constant Natural := Times_This_Task_Has_Slept;
    begin
       Run (The_Pipeline);
 
       declare
-         use Ada.Execution_Time,
-             Ada.Real_Time;
+         Woken : constant Natural := Times_This_Task_Has_Slept - Before;
       begin
-         Check ("Waiting on a pipeline doesn't spin", To_Duration (Clock - Before) < 1.0);
+         Ada.Text_IO.Put_Line ("Woke" & Woken'Image & " times while waiting on a pipeline.");
+         Check ("Waiting on a pipeline doesn't poll", Woken < 200);
       end;
    end;
 

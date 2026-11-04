@@ -239,6 +239,10 @@ private
 
    package Descriptor_Owner_Maps is new Ada.Containers.Ordered_Maps (File_Descriptor, Pipe_Id, POSIX.IO."<");
 
+   type Wake_Action is access protected procedure;
+
+   package Writer_Maps is new Ada.Containers.Ordered_Maps (Pipe_Id, Wake_Action);
+
    -- The OS reuses the number of a closed descriptor, and copies of a pipe outlive the closing of its ends. So each
    -- pipe has a unique id, and only the pipe which owns an open descriptor may use it.
    --
@@ -256,11 +260,18 @@ private
                                      Descriptor :    out File_Descriptor;
                                      Is_Open    :    out Boolean);
 
+      -- A pipe's input writer has no other way to learn that the write end has been closed, without polling.
+      --
+      procedure Note_Writer   (Pipe : in Shell.Pipe;
+                               Wake : in Wake_Action);
+      procedure Forget_Writer (Pipe : in Shell.Pipe);
+
       function  Owns  (Pipe           : in     Shell.Pipe;
                        Descriptor     : in     File_Descriptor) return Boolean;
    private
       Next_Id : Pipe_Id := No_Pipe_Id + 1;
       Owners  : Descriptor_Owner_Maps.Map;
+      Writers : Writer_Maps.Map;
    end Safe_Pipes;
 
 
@@ -277,14 +288,14 @@ private
 
    type Pipe_Array is array (Positive range <>) of Pipe;
 
-   -- Waits until any of the pipes has output, or is at its end, or until the timeout has passed. A null pipe, or one
-   -- whose read end is closed, is ignored. This finishes early for a pipe at its end, so a caller who loops should
-   -- also wait a little when it finds nothing to read.
+   -- Waits until any of the pipes has output, or is at its end, or until the
+   -- timeout has passed. A null pipe, or one whose read end is closed, is ignored.
    --
    procedure Wait_For_Output (Pipes   : in Pipe_Array;
                               Timeout : in Duration);
 
-   -- As for 'Output_Of', though without any wait, and giving no data for a pipe whose read end is closed.
+   -- As for 'Output_Of', though without any wait, and giving no data for a pipe whose read end is closed. It closes the read
+   -- end of a pipe at its end, as no more can arrive, and 'Wait_For_Output' would otherwise find that pipe always ready.
    --
    function Available_Output_Of (Pipe : in Shell.Pipe) return Data;
 
