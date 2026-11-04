@@ -695,6 +695,11 @@ is
                  Output      => The_Results.Output,
                  Errors      => Errors);
       end;
+
+   exception
+      when Storage_Error =>
+         raise Command_Error with "Command errors exceed stack capacity. "
+                                & "Increase the stack limit via 'ulimit -s'.";
    end With_Earlier_Errors;
 
 

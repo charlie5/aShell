@@ -254,7 +254,7 @@ is
                         The_Command.Id := Next_Id;
                         Next_Id        := Next_Id + 1;
 
-                        if i = 1
+                        if i = The_Pipeline'First
                         then
                            Set_Unbounded_String (Line,
                                                  Name (The_Command)
@@ -578,6 +578,11 @@ is
          return;
       end if;
 
+      if Commands'Length = 0
+      then
+         raise Command_Error with "Cannot start a pipeline with no commands.";
+      end if;
+
       Mark_As_Started (Commands);
 
       Spawn_Client.Add (Commands, Input);
@@ -686,7 +691,7 @@ is
                   Raise_Error  : in     Boolean := False)
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-      i            : Positive := 1;
+      i            : Positive := The_Pipeline'First;
    begin
       Mark_As_Started (The_Pipeline);
 

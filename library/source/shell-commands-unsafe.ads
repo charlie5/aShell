@@ -31,6 +31,11 @@ is
    function   Error_Pipe (The_Command : in     Command) return Pipe;
 
    function  Process     (The_Command : in out Command) return access Shell.Process;
+   --
+   -- 'Wait_On', 'Run' and 'Results_Of' read the command's output pipe, as a program can't end while it is blocked by a full
+   -- pipe. So read it from 'Output_Pipe' only before calling them. The exception is the output of a command which has been
+   -- connected to another, which they leave for that command. Waiting on such a command before the other has started
+   -- will wait for ever, if its output is more than the pipe can hold.
 
 
    ---------
@@ -138,6 +143,7 @@ private
 
          Is_Within_A_Pipeline : Boolean := False;
          Failed_To_Start      : Boolean := False;     -- Seen only by 'Run'. 'Start' raises instead.
+         Output_Is_Connected  : Boolean := False;
 
          Pipeline         : Shared_Pipeline_Access;
          Stage            : Positive := 1;

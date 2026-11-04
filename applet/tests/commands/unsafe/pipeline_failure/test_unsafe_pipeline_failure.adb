@@ -244,6 +244,91 @@ begin
    end;
 
 
+   -- Waiting on a connected command must leave its output for the command it is connected to.
+   --
+   declare
+      Writer : Unsafe.Command := Forge.To_Command ("echo Connected");
+      Reader : Unsafe.Command := Forge.To_Command ("cat");
+   begin
+      Connect (Writer, Reader);
+
+      Writer.Start (Pipeline => True);
+      Writer.Wait_On;
+      Check ("A connected command gives its output to no one else", Output_Of (Results_Of (Writer))'Length = 0);
+
+      Reader.Start;
+      Close_Write_End (Output_Pipe (Writer));
+      Reader.Wait_On;
+
+      Check ("Output of a connected command reaches its reader", +Output_Of (Results_Of (Reader)) = "Connected" & ASCII.LF);
+   end;
+
+
+   -- The status of a command in a pipeline must be current after 'Run'.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("echo Status | cat");
+   begin
+      Run (The_Pipeline);
+
+      Check ("Commands which ended normally have that status",     State'(The_Pipeline (1).Status) = Normal_Exit
+                                                               and State'(The_Pipeline (2).Status) = Normal_Exit);
+      begin
+         The_Pipeline (1).Kill;
+         Check ("Killing a command which has ended raises", False);
+      exception
+         when Command_Error =>
+            Check ("Killing a command which has ended leaves its status", State'(The_Pipeline (1).Status) = Normal_Exit);
+      end;
+   end;
+
+
+   -- A pipeline need not start from an index of 1.
+   --
+   declare
+      All_Of_Them : Command_Array := Forge.To_Commands ("echo Unused | echo Slice | cat");
+      The_Results : constant Command_Results := Run (All_Of_Them (2 .. 3));
+   begin
+      Check ("A slice of a pipeline runs", +Output_Of (The_Results) = "Slice" & ASCII.LF);
+      Check ("A slice of a pipeline didn't fail", Which_Failed (All_Of_Them (2 .. 3)) = 0);
+   end;
+
+   declare
+      All_Of_Them : Command_Array := Forge.To_Commands ("echo Unused | ls /non_existent_file | cat");
+   begin
+      Run (All_Of_Them (2 .. 3));
+      Check ("The command which failed in a slice is found", Which_Failed (All_Of_Them (2 .. 3)) = 2);
+   end;
+
+   declare
+      None : Command_Array (1 .. 0);
+   begin
+      Start (None);
+      Check ("A pipeline of no commands raises", False);
+   exception
+      when Command_Error =>
+         Check ("A pipeline of no commands raises", True);
+   end;
+
+
+   -- A pipeline of one command must leak nothing.
+   --
+   declare
+      Before : constant Natural := Open_Descriptors;
+   begin
+      for Each in 1 .. 50
+      loop
+         declare
+            The_Pipeline : Command_Array := Forge.To_Commands ("true");
+         begin
+            Run (The_Pipeline);
+         end;
+      end loop;
+
+      Check ("A pipeline of one command leaks no descriptors", Open_Descriptors = Before);
+   end;
+
+
    -- A failed single command returns to not having been started.
    --
    declare

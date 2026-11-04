@@ -84,8 +84,9 @@ is
    is
       Pipe : constant Shell.Pipe := To_Pipe;
    begin
-      From.Output_Pipe := Pipe;
-      To.   Input_Pipe := Pipe;
+      From.Output_Pipe         := Pipe;
+      From.Output_Is_Connected := True;
+      To.   Input_Pipe         := Pipe;
 
       From.Owns_Input_Pipe  := True;
       To.  Owns_Output_Pipe := True;
@@ -351,6 +352,11 @@ is
          return;
       end if;
 
+      if Commands'Length = 0
+      then
+         raise Command_Error with "Cannot start a pipeline with no commands.";
+      end if;
+
       Check_None_Are_Started (Commands);
       Connect (Commands);
 
@@ -469,7 +475,8 @@ is
             is (if The_Pipe = Null_Pipe then No_Data
                                         else Output_Of (The_Pipe));
 
-            The_Output : constant Data := Read (The_Command.Output_Pipe);
+            The_Output : constant Data := (if The_Command.Output_Is_Connected then No_Data     -- It is for the command it is connected to.
+                                                                              else Read (The_Command.Output_Pipe));
             The_Errors : constant Data := Read (The_Command.Error_Pipe);
          begin
             exit when The_Output'Length = 0
@@ -539,11 +546,12 @@ is
                   Raise_Error  : in     Boolean := False)
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-      i            : Positive     := 1;
+      i            : Positive     := The_Pipeline'First;
    begin
       Check_None_Are_Started (The_Pipeline);
 
-      Last_Command.Output_Pipe := To_Pipe;
+      Last_Command.Output_Pipe      := To_Pipe;
+      Last_Command.Owns_Output_Pipe := True;     -- 'Connect' only does this when there is a command before it.
 
       begin
          Start (The_Pipeline, Input);
@@ -580,7 +588,7 @@ is
          Read_All_Stages (Last_Command.Pipeline.all);     -- An earlier command may be blocked by a full pipe.
          Gather_Results  (Last_Command);                  -- Gather on-going results.
 
-         if Has_Terminated (The_Pipeline (i).Process)
+         if The_Pipeline (i).Has_Terminated     -- Of the command, rather than its process, so as to update its status.
          then
             if Normal_Exit (The_Pipeline (i).Process)
             then

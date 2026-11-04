@@ -133,6 +133,34 @@ begin
    end;
 
 
+   -- A pipeline need not start from an index of 1, and a mistake must not stop the spawn client.
+   --
+   declare
+      All_Of_Them : Command_Array := Forge.To_Commands ("echo Unused | echo Slice | cat");
+      The_Results : constant Command_Results := Run (All_Of_Them (2 .. 3));
+   begin
+      Check ("A slice of a pipeline runs", +Output_Of (The_Results) = "Slice" & ASCII.LF);
+      Check ("A slice of a pipeline didn't fail", Which_Failed (All_Of_Them (2 .. 3)) = 0);
+   end;
+
+   declare
+      All_Of_Them : Command_Array := Forge.To_Commands ("echo Unused | ls /non_existent_file | cat");
+   begin
+      Run (All_Of_Them (2 .. 3));
+      Check ("The command which failed in a slice is found", Which_Failed (All_Of_Them (2 .. 3)) = 2);
+   end;
+
+   declare
+      None : Command_Array (1 .. 0);
+   begin
+      Start (None);
+      Check ("A pipeline of no commands raises", False);
+   exception
+      when Command_Error =>
+         Check ("A pipeline of no commands raises", True);
+   end;
+
+
    -- Sending to a command which doesn't accept input.
    --
    declare
