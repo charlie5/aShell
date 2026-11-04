@@ -59,9 +59,9 @@ Three layers, each a child of the one before (see the diagrams in `library/docum
 
 `Safe` works across two processes (`library/document/safe_commands_architecture.png`):
 
-1. The `Spawn_Client` task in `shell-commands-safe.adb` is the only part of the application that talks to the server. Its entries queue actions, in order, and each pass of its loop sends them all. It starts when `Safe` elaborates and launches `ashell_spawn_server`, found through `PATH`.
+1. The `Spawn_Client` task in `shell-commands-safe.adb` is the only part of the application that talks to the server. Its entries queue actions, in order, and each pass of its loop sends them all. A nested task blocks on the server's output and delivers each action through an entry, so the client sleeps in one `select`. It starts when `Safe` elaborates and launches `ashell_spawn_server`, found through `PATH`.
 2. The client and server exchange `Server_Action` and `Client_Action` records over the server's stdin and stdout, using `'Output` and `'Input` on `Pipe_Stream`.
-3. The server (`applet/spawn_server/shell-commands-spawn_server.adb`) runs each request as an `Unsafe` command, using `Shell.Commands.Unsafe.Privy`, and keeps a map from `Command_Id` to command. It polls in a loop, sending output as it arrives and then `Command_Done`. At startup it moves the client's stream off descriptor 0 and puts `/dev/null` there, so a command started without input can't read the client's actions.
+3. The server (`applet/spawn_server/shell-commands-spawn_server.adb`) runs each request as an `Unsafe` command, using `Shell.Commands.Unsafe.Privy`, and keeps a map from `Command_Id` to command. Its loop sleeps until a command's pipe or its `Wake_Up` pipe is ready, or for up to 50 ms, then sends output as it arrives and then `Command_Done`. At startup it moves the client's stream off descriptor 0 and puts `/dev/null` there, so a command started without input can't read the client's actions.
 4. Results reach the calling task through the protected `Client_Outputs` object held by each `Safe.Command`.
 
 What this means when changing code:

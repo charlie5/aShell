@@ -294,6 +294,23 @@ begin
    end;
 
 
+   -- The server must wake when an action arrives, rather than waiting for its next check. Commands take about a
+   -- millisecond, and this allows for a busy machine, though not the 50 ms of that check.
+   --
+   declare
+      use Ada.Real_Time;
+
+      Before : constant Time := Clock;
+   begin
+      for Each in 1 .. 20
+      loop
+         Check ("A command runs",   +Output_Of (Run ("echo Quick")) = "Quick" & ASCII.LF);
+      end loop;
+
+      Check ("Commands run without waiting", To_Duration (Clock - Before) / 20 < 0.03);
+   end;
+
+
    -- A burst of actions must be handled together, rather than one for each pass over the running commands.
    --
    declare
@@ -307,7 +324,14 @@ begin
          Each.Start;
       end loop;
 
-      delay 2.0;     -- Let them all be started.
+      delay 0.5;     -- Let them all be started.
+
+      -- Each server pass must not take longer for each command which is running.
+      --
+      Before := Clock;
+      Check ("A command runs alongside others",   +Output_Of (Run ("echo Alongside")) = "Alongside" & ASCII.LF);
+      Check ("Other commands don't hold it up", To_Duration (Clock - Before) < 1.0);
+
       Before := Clock;
 
       for Each of Sleepers
@@ -321,7 +345,7 @@ begin
       end loop;
 
       Ada.Text_IO.Put_Line ("Killing all took" & Duration'Image (To_Duration (Clock - Before)));
-      Check ("A burst of actions is handled together", To_Duration (Clock - Before) < 8.0);
+      Check ("A burst of actions is handled together", To_Duration (Clock - Before) < 1.0);
    end;
 
 

@@ -17,6 +17,11 @@ is
 
    Log_Is_Open  : Boolean := False;
 
+   -- Written to when an action has been queued, so that the main loop can sleep until there is something to do. It
+   -- can't watch the client's input instead, which may show as read before the action has reached the queue.
+   --
+   Wake_Up      : constant Pipe := To_Pipe (Blocking => False);
+
    package Server_Action_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, Server_Action);
 
 
@@ -72,6 +77,7 @@ is
             Action : constant Server_Action := Server_Action'Input (Input_Stream'Access);
          begin
             New_Actions.Add (Action);     -- Keep reading after a shutdown, as the client may yet kill a command.
+            Write_To (Wake_Up, Input => [1 => 0]);
          end;
       end loop;
 
@@ -81,6 +87,7 @@ is
          Log (Ada.Exceptions.Exception_Information (E));
 
          New_Actions.Add ((Shutdown, Null_Id));     -- The client has gone, so no more actions will arrive.
+         Write_To (Wake_Up, Input => [1 => 0]);
    end New_Action_Fetcher;
 
 
@@ -397,7 +404,7 @@ begin
       -- A pass of the main loop can take a while, as it reads every command's pipes.
       -- So take all of the waiting actions, up to a limit which leaves those pipes still being read.
       --
-      procedure Perform_Waiting_Actions
+      procedure Perform_Waiting_Actions (Did_Something : in out Boolean)
       is
          Most_Actions_Per_Pass : constant := 256;
       begin
@@ -408,33 +415,58 @@ begin
             begin
                New_Actions.Get (Action);
 
-               if Action.Kind = Nil
-               then
-                  if Each = 1
-                  then
-                     delay 0.02;
-                  end if;
-
-                  exit;
-               end if;
+               exit when Action.Kind = Nil;
 
                Perform (Action);
+               Did_Something := True;
             end;
          end loop;
       end Perform_Waiting_Actions;
 
 
+      -- Sleeps until there is output to send or an action to perform. A program
+      -- may end without any change to its pipes, so wake up to check, now and then.
+      --
+      procedure Wait_For_Something
+      is
+         use Unsafe;
+
+         The_Pipes : Pipe_Array (1 .. 1 + 2 * Natural (Command_Map.Length));
+         Next      : Positive := 2;
+      begin
+         The_Pipes (1) := Wake_Up;
+
+         for Each of Command_Map
+         loop
+            The_Pipes (Next)     := (if Privy.Is_Within_A_Pipeline (Each) then Null_Pipe     -- Its output goes to the next command.
+                                                                          else Each.Output_Pipe);
+            The_Pipes (Next + 1) := Each.Error_Pipe;
+            Next                 := Next + 2;
+         end loop;
+
+         Wait_For_Output (The_Pipes, Timeout => 0.05);
+
+         declare
+            Unused : constant Data := Available_Output_Of (Wake_Up);
+         begin
+            null;
+         end;
+      end Wait_For_Something;
+
+
    begin
       Log ("Starting Spawn Server");
+
+      Set_Close_On_Exec (Wake_Up);     -- The programs it starts have no use for this.
 
       New_Action_Fetcher.Start;
 
       loop
-         Log ("");
-         Log ("looping");
-
+         declare
+            Did_Something : Boolean := False;
          begin
-            Perform_Waiting_Actions;
+            Wait_For_Something;
+            Perform_Waiting_Actions (Did_Something);
 
 
             declare
@@ -463,6 +495,8 @@ begin
                         if not (    Output'Length = 0
                                 and Errors'Length = 0)
                         then
+                           Did_Something := True;
+
                            Client_Action'Output (Output_Stream'Access,
                                                  (New_Outputs,
                                                   Id,
@@ -481,12 +515,12 @@ begin
                         if Is_Within_A_Pipeline (The_Command)
                         then
                            Send (Output => No_Data,
-                                 Errors => Shell.Output_Of (The_Command.Error_Pipe));
+                                 Errors => Available_Output_Of (The_Command.Error_Pipe));
                         else
                            --  log ("Send new results for command: " & Image (The_Command));
 
-                           Send (Output => Privy.Output_Of (The_Command.Output_Pipe),
-                                 Errors => Privy.Output_Of (The_Command. Error_Pipe));
+                           Send (Output => Available_Output_Of (The_Command.Output_Pipe),
+                                 Errors => Available_Output_Of (The_Command. Error_Pipe));
                         end if;
                      end Send_New_Results;
 
@@ -528,6 +562,7 @@ begin
                         end;
 
                         Done_Commands.Append (Id);
+                        Did_Something := True;
                      end if;
                   end;
 
@@ -546,9 +581,11 @@ begin
             exit when Shutting_Down
                   and Command_Map.Is_Empty;
 
-            if Command_Map.Is_Empty
+            -- A pipe at its end is always ready, as for a program which has closed its output and carries on.
+            --
+            if not Did_Something
             then
-               delay 0.1;
+               delay 0.002;
             end if;
          end;
       end loop;

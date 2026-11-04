@@ -179,12 +179,23 @@ is
 
    procedure Read_All_Stages (The_Pipeline : in out Shared_Pipeline)
    is
+      The_Pipes : Pipe_Array (1 .. 2 * The_Pipeline.Count);
+      Next      : Positive := 1;
    begin
       for Each of The_Pipeline.Stages
       loop
+         The_Pipes (Next)     := Each.Output_Pipe;
+         The_Pipes (Next + 1) := Each.Error_Pipe;
+         Next                 := Next + 2;
+      end loop;
+
+      Wait_For_Output (The_Pipes, Timeout => 0.01);
+
+      for Each of The_Pipeline.Stages
+      loop
          declare
-            The_Output : constant Data := Output_Of (Each.Output_Pipe);     -- Finds nothing for a pipe read by the next command.
-            The_Errors : constant Data := Output_Of (Each.Error_Pipe);
+            The_Output : constant Data := Available_Output_Of (Each.Output_Pipe);     -- Finds nothing for a pipe read by the next command.
+            The_Errors : constant Data := Available_Output_Of (Each.Error_Pipe);
          begin
             if The_Output'Length /= 0
             then
@@ -586,7 +597,6 @@ is
 
       loop
          Read_All_Stages (Last_Command.Pipeline.all);     -- An earlier command may be blocked by a full pipe.
-         Gather_Results  (Last_Command);                  -- Gather on-going results.
 
          if The_Pipeline (i).Has_Terminated     -- Of the command, rather than its process, so as to update its status.
          then

@@ -48,13 +48,4 @@ is
    end Interrupt_Without_Waiting;
 
 
-
-   function Output_Of (Pipe : in Shell.Pipe) return Data
-   is
-   begin
-      delay 0.05;
-      return Shell.Output_Of (Pipe);
-   end Output_Of;
-
-
 end Shell.Commands.Unsafe.Privy;

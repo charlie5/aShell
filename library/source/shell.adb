@@ -347,6 +347,62 @@ is
 
 
 
+   procedure Wait_For_Output (Pipes   : in Pipe_Array;
+                              Timeout : in Duration)
+   is
+      use POSIX.Event_Management,
+          POSIX.IO;
+      use type POSIX.Error_Code;
+
+      FDS_R : File_Descriptor_Set;
+      FDS_W : File_Descriptor_Set;
+      FDS_E : File_Descriptor_Set;
+      Count : Natural;
+   begin
+      Make_Empty (FDS_R);
+      Make_Empty (FDS_W);
+      Make_Empty (FDS_E);
+
+      for Each of Pipes
+      loop
+         if         Each /= Null_Pipe
+           and then Is_Readable (Each)
+         then
+            Add (FDS_R, Each.Read_End);
+         end if;
+      end loop;
+
+      Select_File (Read_Files     => FDS_R,
+                   Write_Files    => FDS_W,
+                   Except_Files   => FDS_E,
+                   Files_Selected => Count,
+                   Timeout        => Timeout);
+   exception
+      when POSIX.POSIX_Error =>
+         if POSIX.Get_Error_Code /= POSIX.Interrupted_Operation
+         then
+            raise;
+         end if;
+   end Wait_For_Output;
+
+
+
+   function Available_Output_Of (Pipe : in Shell.Pipe) return Data
+   is
+      No_Wait : constant Duration := 0.000_001;     -- A timeout of '0.0' would block.
+   begin
+      if         Pipe = Null_Pipe
+        or else not Is_Readable (Pipe)
+        or else Is_Empty (Pipe, Timeout => No_Wait)
+      then
+         return No_Data;
+      end if;
+
+      return Output_Of (Pipe);
+   end Available_Output_Of;
+
+
+
    procedure Write_To (Pipe : in Shell.Pipe;   Input : in Data)
    is
    begin
@@ -714,6 +770,15 @@ is
 
 
 
+   procedure Set_Close_On_Exec (Pipe : in Shell.Pipe)
+   is
+   begin
+      POSIX.IO.Set_Close_On_Exec (Pipe.Read_End);
+      POSIX.IO.Set_Close_On_Exec (Pipe.Write_End);
+   end Set_Close_On_Exec;
+
+
+
    procedure Close_Write_End (Pipe : in Shell.Pipe)
    is
    begin
@@ -775,7 +840,8 @@ is
                return;     -- The next read will raise End_Error.
 
             when POSIX.POSIX_Error =>
-               if POSIX.Get_Error_Code /= POSIX.Resource_Temporarily_Unavailable
+               if POSIX.Get_Error_Code not in POSIX.Resource_Temporarily_Unavailable
+                                            | POSIX.Interrupted_Operation
                then
                   raise;
                end if;

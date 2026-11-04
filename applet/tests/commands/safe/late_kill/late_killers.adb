@@ -30,7 +30,7 @@ is
          delay 0.001;
       end loop;
 
-      delay 0.07;     -- About one pass of the spawn client, which then has more than one call to accept while shutting down.
+      delay 0.07;     -- So that these calls arrive as the spawn client is shutting down. It once lost all but the last of them.
 
       The_Programs (Which).Kill;
    end Killer;

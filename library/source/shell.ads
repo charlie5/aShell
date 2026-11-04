@@ -279,6 +279,21 @@ private
    --
    procedure Set_Write_End_Close_On_Exec (Pipe : in Shell.Pipe);
 
+   procedure Set_Close_On_Exec (Pipe : in Shell.Pipe);     -- For both ends.
+
+   type Pipe_Array is array (Positive range <>) of Pipe;
+
+   -- Waits until any of the pipes has output, or is at its end, or until the timeout has passed. A null pipe, or one
+   -- whose read end is closed, is ignored. This finishes early for a pipe at its end, so a caller who loops should
+   -- also wait a little when it finds nothing to read.
+   --
+   procedure Wait_For_Output (Pipes   : in Pipe_Array;
+                              Timeout : in Duration);
+
+   -- As for 'Output_Of', though without any wait, and giving no data for a pipe whose read end is closed.
+   --
+   function Available_Output_Of (Pipe : in Shell.Pipe) return Data;
+
    -- Moves this program's standard input to a new descriptor, which programs it starts don't inherit, and returns a pipe
    -- to read it. The standard input becomes empty, so a program started without any input sees the end of its input.
    --

@@ -164,6 +164,9 @@ is
       entry Stop      (The_Command : in Command);
 
       entry Shutdown;
+
+      entry Deliver (Action : in Client_Action);     -- From the server.
+      entry Server_Output_Failed;
    end Spawn_Client;
 
 
@@ -178,7 +181,7 @@ is
       Command_Outputs_Map : Id_Maps_of_Command_Outputs.Map;
 
       Server_In_Pipe  : constant Shell.Pipe := To_Pipe;
-      Server_Out_Pipe : constant Shell.Pipe := To_Pipe (Blocking => False);
+      Server_Out_Pipe : constant Shell.Pipe := To_Pipe;
       Server_Err_Pipe : constant Shell.Pipe := To_Pipe;
 
       -- Actions accepted from callers, in order, waiting to be sent to the server. Holding them
@@ -188,14 +191,57 @@ is
       Pending_Actions : Server_Action_Vectors.Vector;
 
       Server_Input_Stream  : aliased Pipe_Stream := Stream (Server_In_Pipe);
-      Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
-
       Next_Id        : Command_Id := 1;
       Shutting_Down  : Boolean    := False;     -- A shutdown is due to be sent to the server.
       Shutdown_Sent  : Boolean    := False;
       Server_Is_Done : Boolean    := False;
 
       Spawn_Server : Shell.Process with Unreferenced;
+
+      Lost_The_Server : exception;
+
+
+      -- Blocks on the server's output, so this task can sleep until either a caller or the server needs it.
+      --
+      task Server_Output_Reader
+      is
+         entry Start;
+      end Server_Output_Reader;
+
+
+      task body Server_Output_Reader
+      is
+         Server_Output_Stream : aliased Pipe_Stream := Stream (Server_Out_Pipe);
+         Is_Done              : Boolean             := False;
+      begin
+         select
+            accept Start;
+         or
+            terminate;     -- The server failed to start.
+         end select;
+
+         while not Is_Done
+         loop
+            declare
+               Action : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
+            begin
+               Spawn_Client.Deliver (Action);
+               Is_Done := Action.Kind = Server_Done;
+            end;
+         end loop;
+
+      exception
+         when E : others =>
+            Log ("Server output reader stopped: " & Ada.Exceptions.Exception_Information (E));
+
+            begin
+               Spawn_Client.Server_Output_Failed;
+            exception
+               when Tasking_Error =>
+                  null;     -- The spawn client has already ended.
+            end;
+      end Server_Output_Reader;
+
 
    begin
       Spawn_Server := Start (Program   => "ashell_spawn_server",
@@ -209,6 +255,8 @@ is
       Close (Server_Err_Pipe);
 
       log ("Starting Spawn_Client");
+
+      Server_Output_Reader.Start;
 
       loop
          select
@@ -351,7 +399,49 @@ is
                Shutting_Down := not Shutdown_Sent;
             end Shutdown;
          or
-            delay 0.01;
+            accept Deliver (Action : in Client_Action)
+            do
+               declare
+                  Command_Outputs : Client_Outputs_Access;
+               begin
+                  case Action.Kind
+                  is
+                     when New_Outputs =>
+                        Log ("New Outputs for Command:" & Action.Id'Image);
+
+                        Command_Outputs := Command_Outputs_Map.Element (Action.Id);
+                        Command_Outputs.Add_Outputs (Action.Output.Element,
+                                                     Action.Errors.Element);
+                     when Command_Done =>
+                        Log ("Command Done:" & Action.Id'Image);
+
+                        Command_Outputs := Command_Outputs_Map.Element (Action.Id);
+
+                        declare
+                           Abandoned : Boolean;
+                        begin
+                           Command_Outputs.Set_Done   (Normal_Exit => Action.Normal_Exit,
+                                                       Abandoned   => Abandoned);
+                           Command_Outputs_Map.Delete (Action.Id);
+
+                           if Abandoned
+                           then
+                              Deallocate (Command_Outputs);
+                           end if;
+                        end;
+
+                     when Server_Done =>
+                        Log ("Server is done.");
+
+                        Server_Is_Done := True;
+                  end case;
+               end;
+            end Deliver;
+         or
+            accept Server_Output_Failed;
+            raise Lost_The_Server;
+         or
+            delay 0.05;     -- To notice the main program completing.
          end select;
 
 
@@ -384,48 +474,6 @@ is
             Shutting_Down := True;
          end if;
 
-
-         if not Is_Empty (Server_Out_Pipe, Timeout => 0.06)
-         then
-            delay 0.01;
-
-            declare
-               Action          : constant Client_Action := Client_Action'Input (Server_Output_Stream'Access);
-               Command_Outputs : Client_Outputs_Access;
-            begin
-               case Action.Kind
-               is
-                  when New_Outputs =>
-                     Log ("New Outputs for Command:" & Action.Id'Image);
-
-                     Command_Outputs := Command_Outputs_Map.Element (Action.Id);
-                     Command_Outputs.Add_Outputs (Action.Output.Element,
-                                                  Action.Errors.Element);
-                  when Command_Done =>
-                     Log ("Command Done:" & Action.Id'Image);
-
-                     Command_Outputs := Command_Outputs_Map.Element (Action.Id);
-
-                     declare
-                        Abandoned : Boolean;
-                     begin
-                        Command_Outputs.Set_Done   (Normal_Exit => Action.Normal_Exit,
-                                                    Abandoned   => Abandoned);
-                        Command_Outputs_Map.Delete (Action.Id);
-
-                        if Abandoned
-                        then
-                           Deallocate (Command_Outputs);
-                        end if;
-                     end;
-
-                  when Server_Done =>
-                     Log ("Server is done.");
-
-                     Server_Is_Done := True;
-               end case;
-            end;
-         end if;
 
          exit when Server_Is_Done
                and Command_Outputs_Map.Is_Empty;
