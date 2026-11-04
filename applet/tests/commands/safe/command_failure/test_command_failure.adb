@@ -152,6 +152,36 @@ begin
    end;
 
 
+   -- Interrupting a program which carries on must not hold up the server's other commands.
+   --
+   declare
+      use Ada.Real_Time;
+
+      Stubborn : Safe.Command := Forge.To_Command ("bash ignores_interrupt.sh");
+   begin
+      Stubborn.Start;
+      delay 0.5;
+
+      Stubborn.Interrupt;
+
+      declare
+         Before : constant Time := Clock;
+         Output : constant String := +Output_Of (Run ("echo Prompt"));
+         Taken  : constant Duration := To_Duration (Clock - Before);
+      begin
+         Ada.Text_IO.Put_Line ("Command took" & Taken'Image & " after an interrupt.");
+
+         Check ("Interrupting a program doesn't hold up other commands",     Output = "Prompt" & ASCII.LF
+                                                                          and Taken < 0.9);
+      end;
+
+      Check ("Program which ignores an interrupt keeps running", not Stubborn.Has_Terminated);
+
+      Stubborn.Kill;
+      Stubborn.Wait_On;
+   end;
+
+
    -- A pipeline which the server cannot parse must not leave the caller waiting.
    --
    declare
@@ -182,6 +212,19 @@ begin
    exception
       when Command_Error =>
          Check ("Waiting on an unstarted command raises", True);
+   end;
+
+
+   -- A command which isn't made by 'Forge'.
+   --
+   declare
+      Unmade : Safe.Command;
+      Many   : Command_Array (1 .. 3);
+   begin
+      Unmade   := Forge.To_Command ("echo Assigned");
+      Many (2) := Forge.To_Command ("echo Assigned");
+
+      Check ("Command made by assignment runs", +Output_Of (Run (Unmade)) = "Assigned" & ASCII.LF);
    end;
 
 

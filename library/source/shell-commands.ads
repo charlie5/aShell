@@ -104,7 +104,7 @@ private
       record
          Name       : Unbounded_String;
          Arguments  : String_Vector;
-         Copy_Count : Count_Access;
+         Copy_Count : Count_Access := new Count' (1);
 
          Output     : Data_Vector;
          Errors     : Data_Vector;

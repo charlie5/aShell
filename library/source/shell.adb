@@ -121,6 +121,23 @@ is
 
 
 
+      procedure Duplicate_Write_End (Pipe       : in     Shell.Pipe;
+                                     Descriptor :    out File_Descriptor;
+                                     Is_Open    :    out Boolean)
+      is
+      begin
+         Descriptor := Null_File_Descriptor;
+         Is_Open    := Owns (Pipe, Pipe.Write_End);
+
+         if Is_Open
+         then
+            Descriptor := POSIX.IO.Duplicate (Pipe.Write_End);
+            POSIX.IO.Set_Close_On_Exec (Descriptor);
+         end if;
+      end Duplicate_Write_End;
+
+
+
       function Owns (Pipe       : in Shell.Pipe;
                      Descriptor : in File_Descriptor) return Boolean
       is
@@ -358,11 +375,14 @@ is
 
    protected type Input_Queue
    is
-      procedure Add  (Input : in     Data_Access);
-      procedure Take (Input :    out Data_Access);     -- Gives null when the queue is empty.
+      procedure Add  (Input    : in     Data_Access;
+                      Accepted :    out Boolean);     -- False once shut, as the input would never be written.
+      procedure Take (Input    :    out Data_Access);     -- Gives null when the queue is empty.
+      procedure Shut;
       entry     Wait_For_Input;
    private
-      Items : Data_Access_Vectors.Vector;
+      Items   : Data_Access_Vectors.Vector;
+      Is_Shut : Boolean := False;
    end Input_Queue;
 
    type Input_Queue_Access is access Input_Queue;
@@ -371,11 +391,24 @@ is
 
    protected body Input_Queue
    is
-      procedure Add (Input : in Data_Access)
+      procedure Add (Input    : in     Data_Access;
+                     Accepted :    out Boolean)
       is
       begin
-         Items.Append (Input);
+         Accepted := not Is_Shut;
+
+         if Accepted
+         then
+            Items.Append (Input);
+         end if;
       end Add;
+
+
+      procedure Shut
+      is
+      begin
+         Is_Shut := True;
+      end Shut;
 
 
       procedure Take (Input : out Data_Access)
@@ -479,6 +512,7 @@ is
       procedure Finish
       is
       begin
+         The_Queue.Shut;     -- Any input arriving from now on is refused, rather than lost.
          Free (The_Input);
 
          loop
@@ -577,10 +611,11 @@ is
    procedure Write_In_Background (Pipe  : in Shell.Pipe;
                                   Input : in Data)
    is
-      use POSIX.IO;
-
       The_Queue : Input_Queue_Access;
       The_Input : Data_Access;
+      Accepted  : Boolean;
+
+      Write_End_Is_Closed : constant String := "The write end of pipe " & Image (Pipe) & " is closed.";
    begin
       Check_Not_Null (Pipe);
 
@@ -590,8 +625,6 @@ is
       end if;
 
       Check_Is_Writeable (Pipe);
-
-      The_Input := new Data'(Input);
 
       for i in reverse 1 .. Background_Writers.Last_Index
       loop
@@ -617,19 +650,37 @@ is
          -- will see the end of its input only once the writer has finished with it.
          --
          declare
-            Descriptor : constant File_Descriptor := Duplicate (Pipe.Write_End);
-            New_Writer : constant Background_Writer := (Pipe_Of => Pipe.Id,
-                                                        Writer  => new Input_Writer,
-                                                        Queue   => new Input_Queue);
+            Descriptor : File_Descriptor;
+            Is_Open    : Boolean;
          begin
-            Set_Close_On_Exec (Descriptor);
+            Safe_Pipes.Duplicate_Write_End (Pipe, Descriptor, Is_Open);     -- An earlier writer may have just closed it.
 
-            New_Writer.Queue.Add (The_Input);
-            New_Writer.Writer.Start (Pipe, Descriptor, New_Writer.Queue);
-            Background_Writers.Append (New_Writer);
+            if not Is_Open
+            then
+               raise Pipe_Error with Write_End_Is_Closed;
+            end if;
+
+            declare
+               New_Writer : constant Background_Writer := (Pipe_Of => Pipe.Id,
+                                                           Writer  => new Input_Writer,
+                                                           Queue   => new Input_Queue);
+            begin
+               The_Input := new Data'(Input);
+
+               New_Writer.Queue.Add (The_Input, Accepted);
+               New_Writer.Writer.Start (Pipe, Descriptor, New_Writer.Queue);
+               Background_Writers.Append (New_Writer);
+            end;
          end;
       else
-         The_Queue.Add (The_Input);
+         The_Input := new Data'(Input);
+         The_Queue.Add (The_Input, Accepted);
+
+         if not Accepted
+         then
+            Free (The_Input);
+            raise Pipe_Error with Write_End_Is_Closed;
+         end if;
       end if;
    end Write_In_Background;
 
@@ -1104,6 +1155,11 @@ is
       use POSIX.Process_Primitives;
       POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
+      if Process.State = Not_Started     -- Its null id would wait on any child, and take another process's status.
+      then
+         raise Process_Not_Started;
+      end if;
+
       if Process.State in Terminated
       then
          return;     -- The process has already been waited on.
@@ -1127,6 +1183,11 @@ is
 
       POSIX_Status : POSIX.Process_Primitives.Termination_Status;
    begin
+      if Process.State = Not_Started     -- Its null id would wait on any child, and take another process's status.
+      then
+         return False;
+      end if;
+
       if Process.State in Terminated
       then
          return True;
@@ -1205,23 +1266,28 @@ is
 
 
 
-   procedure Interrupt (Process : in out Shell.Process)
+   procedure Send_Interrupt (Process : in out Shell.Process)
    is
       use POSIX.Signals;
-
-      Most_Waits : constant := 1000;     -- About a second.
    begin
       if Process.State = Not_Started
       then
          raise Process_Not_Started;
       end if;
 
-      if Has_Terminated (Process)
+      if not Has_Terminated (Process)
       then
-         return;
+         Send_Signal (Process.Id, Signal_Interrupt);
       end if;
+   end Send_Interrupt;
 
-      Send_Signal (Process.Id, Signal_Interrupt);
+
+
+   procedure Interrupt (Process : in out Shell.Process)
+   is
+      Most_Waits : constant := 1000;     -- About a second.
+   begin
+      Send_Interrupt (Process);
 
       -- The program may end some other way, or catch the signal and carry on.
       --

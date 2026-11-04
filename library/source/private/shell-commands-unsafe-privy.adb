@@ -41,6 +41,14 @@ is
 
 
 
+   procedure Interrupt_Without_Waiting (The_Command : in out Command)
+   is
+   begin
+      Send_Interrupt (The_Command.Process);
+   end Interrupt_Without_Waiting;
+
+
+
    function Output_Of (Pipe : in Shell.Pipe) return Data
    is
    begin

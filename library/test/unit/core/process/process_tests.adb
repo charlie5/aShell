@@ -188,6 +188,34 @@ is
 
 
 
+   -- The null id of a process which hasn't started must not wait on some other process, and take its status.
+   --
+   procedure Test_Unstarted_Process
+   is
+      use Shell;
+      Unstarted : Shell.Process;
+      Other     : Shell.Process := Start ("ls /non_existant_file");
+   begin
+      delay 0.5;     -- Let the other process end.
+
+      Assert (not Has_Terminated (Unstarted), "An unstarted process has not terminated.");
+
+      begin
+         Wait_On (Unstarted);
+         Fail ("Process_Not_Started expected.");
+      exception
+         when Process_Not_Started => null;
+      end;
+
+      Assert (Status (Unstarted) = Not_Started, "Process should remain not started.");
+
+      Wait_On (Other);
+      Assert (Status (Other) = Failed_Exit,
+              "The other process's status should be 'Failed_Exit' not '" & Status (Other)'Image & "'");
+   end Test_Unstarted_Process;
+
+
+
    overriding
    procedure Initialize (T : in out Test)
    is
@@ -195,6 +223,7 @@ is
       T.Set_Name ("Process Tests");
 
       T.Add_Test_Routine (Test_Status'Access, "Process Status");
+      T.Add_Test_Routine (Test_Unstarted_Process'Access, "Unstarted Process");
       T.Add_Test_Routine (Test_Ended_Process'Access, "Ended Process");
       T.Add_Test_Routine (Test_Unexpected_Endings'Access, "Unexpected Endings");
       T.Add_Test_Routine (Test_Start_With_Closed_Pipe'Access, "Start With Closed Pipe");

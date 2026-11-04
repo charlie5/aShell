@@ -295,7 +295,7 @@ begin
                      declare
                         The_Command : Unsafe.Command := Command_Map.Element (Action.Id);
                      begin
-                        The_Command.Interrupt;
+                        Privy.Interrupt_Without_Waiting (The_Command);
                         Log ("Interrupted Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
                         Command_Map.Replace (Action.Id, The_Command);
                      end;

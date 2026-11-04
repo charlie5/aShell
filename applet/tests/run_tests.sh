@@ -227,6 +227,7 @@ check commands/unsafe/pipeline_error            60 ''   'Pipeline failed as expe
 check commands/unsafe/pipeline_output           30 ''   "End 'Pipeline_Output'"
 check commands/unsafe/wait_on                   60 ''   'Waiting on a small pipeline passed'
 check commands/unsafe/pipeline_failure          60 ''   'End test'
+check commands/unsafe/start_failure             60 ''   'End test'
 check commands/unsafe/unused_command            30 ''   'Success'
 
 check commands/safe/close_input                 60 ''      "Other commands aren't held up passed"

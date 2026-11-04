@@ -169,8 +169,8 @@ is
                     Pipeline          : in     Boolean := False);
 
 
-   procedure Wait_On        (Process : in out Shell.Process);
-   function  Has_Terminated (Process : in out Shell.Process) return Boolean;
+   procedure Wait_On        (Process : in out Shell.Process);                    -- Raises Process_Not_Started if it has not been started.
+   function  Has_Terminated (Process : in out Shell.Process) return Boolean;     -- False for a process which has not been started.
    function  Normal_Exit    (Process : in     Shell.Process) return Boolean;
 
    function  Image     (Process : in     Shell.Process) return String;
@@ -249,6 +249,13 @@ private
                        Only_Write_End : in     Boolean := False;
                        Only_Read_End  : in     Boolean := False);
 
+      -- Gives a close-on-exec copy of the write end, if it is open. Checking first and duplicating
+      -- afterwards would risk copying whichever descriptor has since reused that number.
+      --
+      procedure Duplicate_Write_End (Pipe       : in     Shell.Pipe;
+                                     Descriptor :    out File_Descriptor;
+                                     Is_Open    :    out Boolean);
+
       function  Owns  (Pipe           : in     Shell.Pipe;
                        Descriptor     : in     File_Descriptor) return Boolean;
    private
@@ -301,6 +308,11 @@ private
          Status : POSIX.Process_Primitives.Termination_Status;
          State  : Process_State := Not_Started;
       end record;
+
+
+   -- Sends the signal, without waiting to see whether the process ends. See 'Interrupt'.
+   --
+   procedure Send_Interrupt (Process : in out Shell.Process);
 
 
    -------------

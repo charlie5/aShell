@@ -10,6 +10,10 @@ is
 
    procedure Stop (The_Command : in out Command);
 
+   -- The server has other commands to serve, and sees this command end when it next checks it.
+   --
+   procedure Interrupt_Without_Waiting (The_Command : in out Command);
+
    function  Output_Of (Pipe : in Shell.Pipe) return Data;
 
 end Shell.Commands.Unsafe.Privy;
