@@ -20,6 +20,8 @@ cd applet/spawn_server && ./install_spawn_server.sh        # Builds and copies a
 
 ## Tests
 
+Run everything with `applet/tests/run_tests.sh`, or one area with a pattern such as `applet/tests/run_tests.sh commands/safe`. It takes about 3 minutes, and exits with status 0 only if everything passed. It rebuilds each test, uses the local server, sets `SIGPIPE` to its default, applies time limits, and checks each test's output. A new test needs its own line in the script.
+
 **Ahven unit tests** (`library/test/unit`) cover pipes and processes:
 
 ```shell
@@ -36,9 +38,9 @@ cd applet/tests/core/piped_processes && gprbuild -P test_piped_processes.gpr && 
 
 - Directories: `core/` (`Shell`), `commands/safe/`, `commands/unsafe/`, `commands/interactive/`, `directories/`, `stress/`.
 - `all_core_tests`, `all_safe_command_tests` and `all_unsafe_command_tests` call the individual test procedures from one main. Their project files `with` the individual test projects.
-- No applet test sets an exit status. A failure shows up as an unhandled exception or in the printed output, so read the output as well as the exit code.
+- No applet test sets an exit status. A failure shows up as an unhandled exception or in the printed output, so when running one by hand, read the output as well as the exit code.
 - `test_all_core`, `test_all_unsafe_commands` and `test_ashell` wait for `<Enter>` between steps (`Shell.Testing.Pause_Til_Tester_Is_Ready`).
-- `test_spawn_server` loops 100,000 times, as does `test_all_safe_commands` while it calls that test. Run them with a timeout.
+- `test_spawn_server` loops 100,000 times, as does `test_all_safe_commands` while it calls that test. `test_spawn_server`, `test_concurrent_commands` and `test_concurrent_pipelines` take an optional loop count, and any argument skips the long delays in `test_concurrent_pipelines` and `test_safe_pipeline_output`.
 - `stress/max_processes` needs `ulimit -s unlimited`, so use its `run_test.sh`.
 - `show.sh` and `show_server.sh` run `lsof` on a running test, which is useful for finding leaked file descriptors.
 - Each test binary is listed by name in `.gitignore`, so add new ones there.

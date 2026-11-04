@@ -1,5 +1,6 @@
 with
      Shell.Commands.Safe,
+     Ada.Command_Line,
      Ada.Text_IO,
      Ada.Exceptions;
 
@@ -8,11 +9,16 @@ is
    use Ada.Text_IO,
        Ada.Exceptions;
 
+   -- The optional argument is the number of times each task loops, for a shorter test.
+   --
+   Iterations : constant Positive := (if Ada.Command_Line.Argument_Count >= 1 then Positive'Value (Ada.Command_Line.Argument (1))
+                                                                              else 50_000);
+
    task      Task_1;
    task body Task_1
    is
    begin
-      for i in 1 .. 50_000
+      for i in 1 .. Iterations
       loop
          declare
             use Shell,
@@ -49,7 +55,7 @@ is
    task body Task_2
    is
    begin
-      for i in 1 .. 50_000
+      for i in 1 .. Iterations
       loop
          declare
             use Shell,

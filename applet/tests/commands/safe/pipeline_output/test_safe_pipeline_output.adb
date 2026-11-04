@@ -1,5 +1,6 @@
 with
      Shell.Commands.Safe,
+     Ada.Command_Line,
      Ada.Text_IO;
 
 procedure Test_Safe_Pipeline_Output
@@ -28,7 +29,12 @@ begin
    Put_Line ("End 'Pipeline_Output' test.");
 
 
-   delay 5 * 60.0;
+   -- Allow time to check for open pipes and zombie processes, unless given an argument.
+   --
+   if Ada.Command_Line.Argument_Count = 0
+   then
+      delay 5 * 60.0;
+   end if;
 
    Shell.Commands.Safe.Stop_Spawn_Client;
 end Test_Safe_Pipeline_Output;
