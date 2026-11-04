@@ -161,6 +161,12 @@ begin
    end;
 
 
+   -- A program must not inherit the pipes of other commands, or a reader
+   -- which ends early would not be seen by the commands feeding it.
+   --
+   Check ("A long pipeline ends when its last command does", +Output_Of (Run ("yes | cat | head -1")) = "y" & ASCII.LF);
+
+
    -- Sending to a command which doesn't accept input.
    --
    declare

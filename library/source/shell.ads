@@ -275,12 +275,6 @@ private
    procedure Write_In_Background (Pipe  : in Shell.Pipe;
                                   Input : in Data);
 
-   -- A process started later would otherwise inherit the write end, and prevent the reader from seeing the end of its input.
-   --
-   procedure Set_Write_End_Close_On_Exec (Pipe : in Shell.Pipe);
-
-   procedure Set_Close_On_Exec (Pipe : in Shell.Pipe);     -- For both ends.
-
    type Pipe_Array is array (Positive range <>) of Pipe;
 
    -- Waits until any of the pipes has output, or is at its end, or until the timeout has passed. A null pipe, or one

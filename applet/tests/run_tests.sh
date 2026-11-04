@@ -273,6 +273,8 @@ check commands/safe/concurrent_commands        120 '100'   'Main Task has termin
 check commands/safe/concurrent_pipelines       120 '50'    "End 'Concurrent_Pipelines'"
 check commands/safe/exit_with_input             30 ''      'Main ending'
 check commands/safe/late_kill                   15 ''      'Main ending'
+check commands/safe/stopped_program             20 ''      'Main ending'
+check commands/safe/many_commands               90 ''      'Commands all ended'
 check commands/safe/no_input                    30 ''      'Waiting on a command which failed to start raises passed'
 check_without_writeable_folder
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'

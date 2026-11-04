@@ -244,6 +244,30 @@ begin
    end;
 
 
+   -- A program must not inherit the pipes of other commands, or a reader
+   -- which ends early would not be seen by the commands feeding it.
+   --
+   Check ("A long pipeline ends when its last command does", +Output_Of (Run ("yes | cat | head -1")) = "y" & ASCII.LF);
+
+
+   -- A program which stops itself, as if by Ctrl-Z.
+   --
+   declare
+      The_Command : Unsafe.Command := Forge.To_Command ("bash stops_itself.sh");
+   begin
+      The_Command.Start;
+      delay 0.3;
+
+      Check ("A stopped program has not terminated", not The_Command.Has_Terminated);
+      Check ("A stopped program is paused",          State'(The_Command.Status) = Paused);
+
+      The_Command.Resume;
+      The_Command.Wait_On;
+
+      Check ("A stopped program can be resumed", +Output_Of (Results_Of (The_Command)) = "Resumed" & ASCII.LF);
+   end;
+
+
    -- Waiting on a connected command must leave its output for the command it is connected to.
    --
    declare

@@ -27,8 +27,10 @@ is
 
    protected New_Actions
    is
-      procedure Add (Action : in     Server_Action);
+      procedure Add (Action    : in     Server_Action;
+                     Was_Empty :    out Boolean);
       procedure Get (Action :    out Server_Action);
+      function  Has_Actions return Boolean;
    private
       Actions : Server_Action_Vectors.Vector;
    end New_Actions;
@@ -37,11 +39,20 @@ is
    protected
    body New_Actions
    is
-      procedure Add (Action : in Server_Action)
+      procedure Add (Action    : in     Server_Action;
+                     Was_Empty :    out Boolean)
       is
       begin
+         Was_Empty := Actions.Is_Empty;
          Actions.Append (Action);
       end Add;
+
+
+      function Has_Actions return Boolean
+      is
+      begin
+         return not Actions.Is_Empty;
+      end Has_Actions;
 
 
       procedure Get (Action : out Server_Action)
@@ -57,6 +68,23 @@ is
       end Get;
 
    end New_Actions;
+
+
+
+   -- The main loop only sleeps when the queue is empty, so a wake up is needed only then. This
+   -- also means that the wake up pipe can't fill, which would block the fetcher.
+   --
+   procedure Add_Action (Action : in Server_Action)
+   is
+      Was_Empty : Boolean;
+   begin
+      New_Actions.Add (Action, Was_Empty);
+
+      if Was_Empty
+      then
+         Write_To (Wake_Up, Input => [1 => 0]);
+      end if;
+   end Add_Action;
 
 
 
@@ -76,8 +104,7 @@ is
          declare
             Action : constant Server_Action := Server_Action'Input (Input_Stream'Access);
          begin
-            New_Actions.Add (Action);     -- Keep reading after a shutdown, as the client may yet kill a command.
-            Write_To (Wake_Up, Input => [1 => 0]);
+            Add_Action (Action);     -- Keep reading after a shutdown, as the client may yet kill a command.
          end;
       end loop;
 
@@ -86,8 +113,7 @@ is
          Log ("New_Action_Fetcher stopped reading.");
          Log (Ada.Exceptions.Exception_Information (E));
 
-         New_Actions.Add ((Shutdown, Null_Id));     -- The client has gone, so no more actions will arrive.
-         Write_To (Wake_Up, Input => [1 => 0]);
+         Add_Action ((Shutdown, Null_Id));     -- The client has gone, so no more actions will arrive.
    end New_Action_Fetcher;
 
 
@@ -367,31 +393,13 @@ begin
                Log ("Shutdown action.");
                Shutting_Down := True;
 
-               -- The client cannot resume a paused command, or send more input to a command
-               -- waiting on it. Either would then prevent the server, and the client, from ending.
+               -- The client cannot send more input to a command waiting on it, which would then
+               -- prevent the server, and the client, from ending. The main loop sees to any paused commands.
                --
-               declare
-                  use Id_Maps_of_Command;
-                  Cursor : Id_Maps_of_Command.Cursor := Command_Map.First;
-               begin
-                  while Has_Element (Cursor)
-                  loop
-                     declare
-                        The_Command : Unsafe.Command := Element (Cursor);
-                     begin
-                        The_Command.Close_Input;
-
-                        if The_Command.Status = Paused
-                        then
-                           The_Command.Kill;
-                           Log ("Killed paused Command:" & Key (Cursor)'Image);
-                           Command_Map.Replace_Element (Cursor, The_Command);
-                        end if;
-                     end;
-
-                     Next (Cursor);
-                  end loop;
-               end;
+               for Each of Command_Map
+               loop
+                  Each.Close_Input;
+               end loop;
          end case;
 
       exception
@@ -457,7 +465,6 @@ begin
    begin
       Log ("Starting Spawn Server");
 
-      Set_Close_On_Exec (Wake_Up);     -- The programs it starts have no use for this.
 
       New_Action_Fetcher.Start;
 
@@ -465,7 +472,11 @@ begin
          declare
             Did_Something : Boolean := False;
          begin
-            Wait_For_Something;
+            if not New_Actions.Has_Actions     -- A burst of actions may take more than one pass.
+            then
+               Wait_For_Something;
+            end if;
+
             Perform_Waiting_Actions (Did_Something);
 
 
@@ -485,8 +496,8 @@ begin
                          Shell.Commands.Unsafe.Privy,
                          Shell.Commands.Unsafe;
 
-                     Id          : constant Command_Id := Key     (Cursor);
-                     The_Command :   Unsafe.Command    := Element (Cursor);
+                     Id          :          constant Command_Id := Key (Cursor);
+                     The_Command : Unsafe.Command renames Command_Map (Cursor);     -- Not a copy, as a program stopping is seen only once.
 
                      procedure Send (Output : in Data;
                                      Errors : in Data)
@@ -563,6 +574,15 @@ begin
 
                         Done_Commands.Append (Id);
                         Did_Something := True;
+
+                     -- Nothing could resume it, and it would stop the server and the client from ending. It
+                     -- may have stopped since the shutdown began, and may not have been stopped by the client.
+                     --
+                     elsif     Shutting_Down
+                           and The_Command.Status = Paused
+                     then
+                        The_Command.Kill;
+                        Log ("Killed paused Command:" & Id'Image);
                      end if;
                   end;
 

@@ -251,7 +251,6 @@ is
          if Makes_Input
          then
             The_Command.Input_Pipe := To_Pipe;
-            Set_Write_End_Close_On_Exec (The_Command.Input_Pipe);
 
             if Input_Fits
             then
@@ -837,6 +836,11 @@ is
             declare
                Is_Terminated : constant Boolean := Has_Terminated (The_Command.Process);
             begin
+               if The_Command.Process.State = Shell.Paused     -- It may have been stopped from outside, such as by Ctrl-Z.
+               then
+                  The_Command.Status := Paused;
+               end if;
+
                if Is_Terminated
                then
                   if The_Command.Normal_Exit
@@ -887,10 +891,25 @@ is
 
 
 
+   -- A program may have been stopped from outside, such as by Ctrl-Z.
+   --
+   procedure Note_Any_Outside_Stop (The_Command : in out Command)
+   is
+   begin
+      if         The_Command.Status = Running
+        and then Shell.Status (The_Command.Process) = Shell.Paused
+      then
+         The_Command.Status := Paused;
+      end if;
+   end Note_Any_Outside_Stop;
+
+
+
    overriding
    procedure Pause (The_Command : in out Command)
    is
    begin
+      Note_Any_Outside_Stop (The_Command);
       Commands.Command (The_Command).Pause;
       Pause            (The_Command.Process);
    end Pause;
@@ -901,6 +920,7 @@ is
    procedure Resume (The_Command : in out Command)
    is
    begin
+      Note_Any_Outside_Stop (The_Command);
       Commands.Command (The_Command).Resume;
       Resume           (The_Command.Process);
    end Resume;

@@ -1007,7 +1007,14 @@ is
    procedure Resume (The_Command : in out Command)
    is
    begin
-      Commands.Command    (The_Command).Resume;
+      -- A program may have been stopped from outside, such as by Ctrl-Z, which only
+      -- the server knows of. So a command which appears to be running may be resumed.
+      --
+      if The_Command.Status /= Running
+      then
+         Commands.Command (The_Command).Resume;
+      end if;
+
       Spawn_Client.Resume (The_Command);
    exception
       when Tasking_Error =>

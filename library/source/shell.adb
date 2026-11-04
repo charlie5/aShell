@@ -75,6 +75,13 @@ is
          Create_Pipe (Read_End  => Pipe.Read_End,
                       Write_End => Pipe.Write_End);
 
+         -- Otherwise each program started would inherit every other open pipe, and a reader could
+         -- never see the end of its input, nor a writer that its reader has gone. A pipe which is
+         -- given to a program is duplicated onto the program's standard descriptors, which do stay open.
+         --
+         POSIX.IO.Set_Close_On_Exec (Pipe.Read_End);
+         POSIX.IO.Set_Close_On_Exec (Pipe.Write_End);
+
          Pipe.Id := Next_Id;
          Next_Id := Next_Id + 1;
 
@@ -286,31 +293,42 @@ is
 
 
 
+   -- 'Poll' rather than 'select', which can't handle a descriptor numbered 1024 or more.
+   --
+   function Any_Are_Ready (Files   : in out POSIX.Event_Management.Poll_FD_Array;
+                           Timeout : in     Duration) return Boolean
+   is
+      use type POSIX.Error_Code;
+      Count : Natural;
+   begin
+      POSIX.Event_Management.Poll (Files,
+                                   Response_Count => Count,
+                                   Timeout        => Timeout);
+      return Count /= 0;
+   exception
+      when POSIX.POSIX_Error =>
+         if POSIX.Get_Error_Code /= POSIX.Interrupted_Operation
+         then
+            raise;
+         end if;
+
+         return False;
+   end Any_Are_Ready;
+
+
+
    function Is_Empty (Pipe    : in Shell.Pipe;
                       Timeout : in Duration  := 0.0) return Boolean
    is
-      use POSIX.Event_Management,
-          POSIX.IO;
-      FDS_R : File_Descriptor_Set;
-      FDS_W : File_Descriptor_Set;
-      FDS_E : File_Descriptor_Set;
-      Count : Natural;
+      use POSIX.Event_Management;
+      Files : Poll_FD_Array (1 .. 1);
    begin
       Check_Is_Readable (Pipe);
 
-      Make_Empty (FDS_R);
-      Make_Empty (FDS_W);
-      Make_Empty (FDS_E);
+      Set_File   (Files (1), Pipe.Read_End);
+      Set_Events (Files (1), Read_Not_High);
 
-      add (FDS_R, Pipe.Read_End);
-
-      Select_File (Read_Files     => FDS_R,
-                   Write_Files    => FDS_W,
-                   Except_Files   => FDS_E,
-                   Files_Selected => Count,
-                   Timeout        => Timeout);
-
-      return Count = 0;
+      return not Any_Are_Ready (Files, Timeout);
    end Is_Empty;
 
 
@@ -350,39 +368,34 @@ is
    procedure Wait_For_Output (Pipes   : in Pipe_Array;
                               Timeout : in Duration)
    is
-      use POSIX.Event_Management,
-          POSIX.IO;
-      use type POSIX.Error_Code;
+      use POSIX.Event_Management;
 
-      FDS_R : File_Descriptor_Set;
-      FDS_W : File_Descriptor_Set;
-      FDS_E : File_Descriptor_Set;
-      Count : Natural;
+      Files : Poll_FD_Array (1 .. Pipes'Length);
+      Last  : Natural := 0;
    begin
-      Make_Empty (FDS_R);
-      Make_Empty (FDS_W);
-      Make_Empty (FDS_E);
-
       for Each of Pipes
       loop
          if         Each /= Null_Pipe
            and then Is_Readable (Each)
          then
-            Add (FDS_R, Each.Read_End);
+            Last := Last + 1;
+
+            Set_File   (Files (Last), Each.Read_End);
+            Set_Events (Files (Last), Read_Not_High);
          end if;
       end loop;
 
-      Select_File (Read_Files     => FDS_R,
-                   Write_Files    => FDS_W,
-                   Except_Files   => FDS_E,
-                   Files_Selected => Count,
-                   Timeout        => Timeout);
-   exception
-      when POSIX.POSIX_Error =>
-         if POSIX.Get_Error_Code /= POSIX.Interrupted_Operation
-         then
-            raise;
-         end if;
+      if Last = 0
+      then
+         delay Timeout;
+         return;
+      end if;
+
+      declare
+         Unused : constant Boolean := Any_Are_Ready (Files (1 .. Last), Timeout);
+      begin
+         null;
+      end;
    end Wait_For_Output;
 
 
@@ -525,25 +538,13 @@ is
 
       procedure Write_Next_Part
       is
-         FDS_R : File_Descriptor_Set;
-         FDS_W : File_Descriptor_Set;
-         FDS_E : File_Descriptor_Set;
-         Count : Natural;
+         Files : Poll_FD_Array (1 .. 1);
          Last  : Data_Offset;
       begin
-         Make_Empty (FDS_R);
-         Make_Empty (FDS_W);
-         Make_Empty (FDS_E);
+         Set_File   (Files (1), The_Descriptor);
+         Set_Events (Files (1), Write_Normal);
 
-         Add (FDS_W, The_Descriptor);
-
-         Select_File (Read_Files     => FDS_R,
-                      Write_Files    => FDS_W,
-                      Except_Files   => FDS_E,
-                      Files_Selected => Count,
-                      Timeout        => 1.0);
-
-         if Count /= 0
+         if Any_Are_Ready (Files, Timeout => 1.0)
          then
             Write (File   => The_Descriptor,
                    Buffer => The_Input (Next .. Data_Offset'Min (Next + Most_Per_Write - 1,
@@ -742,14 +743,6 @@ is
 
 
 
-   procedure Set_Write_End_Close_On_Exec (Pipe : in Shell.Pipe)
-   is
-   begin
-      POSIX.IO.Set_Close_On_Exec (Pipe.Write_End);
-   end Set_Write_End_Close_On_Exec;
-
-
-
    function Move_Standard_Input return Pipe
    is
       Moved : constant File_Descriptor := POSIX.IO.Duplicate (POSIX.IO.Standard_Input);
@@ -767,15 +760,6 @@ is
               Read_End  => Moved,
               Id        => No_Pipe_Id);
    end Move_Standard_Input;
-
-
-
-   procedure Set_Close_On_Exec (Pipe : in Shell.Pipe)
-   is
-   begin
-      POSIX.IO.Set_Close_On_Exec (Pipe.Read_End);
-      POSIX.IO.Set_Close_On_Exec (Pipe.Write_End);
-   end Set_Close_On_Exec;
 
 
 
