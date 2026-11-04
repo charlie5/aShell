@@ -100,8 +100,6 @@ begin
    New_Line (2);
    Put_Line ("Main Task has terminated.");
 
-   Shell.Commands.Safe.Stop_Spawn_Client;
-
    delay 0.2;
    Shell.Close_Log;
 

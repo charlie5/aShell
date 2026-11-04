@@ -1,4 +1,5 @@
 with
+     Ada.Unchecked_Deallocation,
      Ada.Strings.Fixed,
      Ada.Characters.Handling,
      Ada.Exceptions;
@@ -155,6 +156,50 @@ is
    --- Start
    --
 
+   type Pipeline_Stage is
+      record
+         Output_Pipe : Pipe;
+         Error_Pipe  : Pipe;
+
+         Output      : Data_Vector;     -- Read while waiting, until the stage's command gathers it.
+         Errors      : Data_Vector;
+      end record;
+
+   type Pipeline_Stages is array (Positive range <>) of Pipeline_Stage;
+
+   type Shared_Pipeline (Count : Positive) is
+      record
+         Users  : Natural := Count;     -- The commands which refer to this.
+         Stages : Pipeline_Stages (1 .. Count);
+      end record;
+
+   procedure Free is new Ada.Unchecked_Deallocation (Shared_Pipeline, Shared_Pipeline_Access);
+
+
+   procedure Read_All_Stages (The_Pipeline : in out Shared_Pipeline)
+   is
+   begin
+      for Each of The_Pipeline.Stages
+      loop
+         declare
+            The_Output : constant Data := Output_Of (Each.Output_Pipe);     -- Finds nothing for a pipe read by the next command.
+            The_Errors : constant Data := Output_Of (Each.Error_Pipe);
+         begin
+            if The_Output'Length /= 0
+            then
+               Each.Output.Append (The_Output);
+            end if;
+
+            if The_Errors'Length /= 0
+            then
+               Each.Errors.Append (The_Errors);
+            end if;
+         end;
+      end loop;
+   end Read_All_Stages;
+
+
+
    overriding
    procedure Start (The_Command   : in out Command;
                     Input         : in     Data    := No_Data;
@@ -253,6 +298,22 @@ is
       end loop;
 
       Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+
+      declare
+         The_Pipeline : constant Shared_Pipeline_Access := new Shared_Pipeline (Commands'Length);
+         Stage        : Positive := 1;
+      begin
+         for Each of Commands
+         loop
+            The_Pipeline.Stages (Stage).Output_Pipe := Each.Output_Pipe;
+            The_Pipeline.Stages (Stage).Error_Pipe  := Each.Error_Pipe;
+
+            Each.Pipeline := The_Pipeline;
+            Each.Stage    := Stage;
+
+            Stage := Stage + 1;
+         end loop;
+      end;
    end Start;
 
 
@@ -283,6 +344,19 @@ is
    procedure Gather_Results (The_Command : in out Command)
    is
    begin
+      if The_Command.Pipeline /= null
+      then
+         declare
+            The_Stage : Pipeline_Stage renames The_Command.Pipeline.Stages (The_Command.Stage);
+         begin
+            The_Command.Output.Append (The_Stage.Output);
+            The_Command.Errors.Append (The_Stage.Errors);
+
+            The_Stage.Output.Clear;
+            The_Stage.Errors.Clear;
+         end;
+      end if;
+
       for Each in 1 .. Most_Reads_Per_Gather
       loop
          declare
@@ -313,14 +387,8 @@ is
                   Raise_Error : in     Boolean := False)
    is
    begin
-      Start (The_Command, Input);
-
-      loop
-         Gather_Results (The_Command);   -- Gather on-going results.
-         exit when The_Command.Has_Terminated;
-      end loop;
-
-      Gather_Results (The_Command);      -- Gather any final results.
+      Start   (The_Command, Input);
+      Wait_On (The_Command);
 
       if not The_Command.Normal_Exit
          and Raise_Error
@@ -377,6 +445,9 @@ is
                   end if;
                end;
             end if;
+
+         else
+            delay 0.001;     -- The pipes may be at their end, while the program is still running.
          end if;
       end loop;
    end Run;
@@ -527,13 +598,20 @@ is
          raise Command_Error with "Cannot wait on '" & (+The_Command.Name) & "' as it has not been started.";
       end if;
 
-      -- Nothing else reads the output, and the program can't end while it is blocked by a full pipe.
+      -- Nothing else reads the output, and a program can't end while it is blocked by a full pipe. In
+      -- a pipeline, that may be the pipe of a later command, which then holds up the earlier commands.
       --
       loop
-         The_Command.Gather_Results;
+         if The_Command.Pipeline /= null
+         then
+            Read_All_Stages (The_Command.Pipeline.all);
+         else
+            The_Command.Gather_Results;
+         end if;
+
          exit when The_Command.Has_Terminated;
 
-         delay 0.01;     -- The pipes may be at their end, while the program is still running.
+         delay 0.001;     -- The pipes may be at their end, while the program is still running.
       end loop;
 
       The_Command.Gather_Results;     -- Gather any final results.
@@ -644,6 +722,16 @@ is
    begin
       if The_Command.Copy_Count.all = 1
       then
+         if The_Command.Pipeline /= null
+         then
+            The_Command.Pipeline.Users := The_Command.Pipeline.Users - 1;
+
+            if The_Command.Pipeline.Users = 0
+            then
+               Free (The_Command.Pipeline);
+            end if;
+         end if;
+
          Close_Write_End (The_Command.Input_Pipe);     -- Nothing can send any more, and it would stop any input writer from finishing.
 
          if The_Command.Owns_Input_Pipe

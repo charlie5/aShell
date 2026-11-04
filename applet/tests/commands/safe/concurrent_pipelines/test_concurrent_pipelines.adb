@@ -25,7 +25,7 @@ is
                 Shell.Commands,
                 Shell.Commands.Safe,
                 Shell.Commands.Safe.Forge;
-            Commands : Safe.Command_Array := To_Commands ("ls -alh | grep test_concurrent_pipelines");
+            Commands : Safe.Command_Array := To_Commands ("ls -alh | grep total");
          begin
             declare
                Output : constant String := +Output_Of (Safe.Run (Commands));
@@ -90,8 +90,6 @@ begin
    then
       delay 160.0 * 60.0;   -- Allow time to check for open pipes and zombie processes.
    end if;
-
-   Shell.Commands.Safe.Stop_Spawn_Client;
 
    Put_Line ("End 'Concurrent_Pipelines' test.");
 end Test_Concurrent_Pipelines;

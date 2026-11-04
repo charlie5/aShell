@@ -112,6 +112,9 @@ is
 
 private
 
+   type Shared_Pipeline;     -- The pipes of each command in a pipeline, so that waiting on any of them can read them all.
+   type Shared_Pipeline_Access is access Shared_Pipeline;
+
    type Command is new Commands.Command with
       record
          Input_Pipe       : Pipe := Standard_Input;
@@ -124,6 +127,9 @@ private
          Process          : aliased Shell.Process;
 
          Is_Within_A_Pipeline : Boolean := False;
+
+         Pipeline         : Shared_Pipeline_Access;
+         Stage            : Positive := 1;
       end record;
 
    overriding

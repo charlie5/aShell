@@ -58,9 +58,8 @@ begin
       The_Command.Kill;
    end;
 
-   Log ("Stopping spawn client.");
-   Shell.Commands.Safe.Stop_Spawn_Client;
-
    NL (2);
    Log ("End Test_Command_Input test.");
+
+   Shell.Close_Log;
 end Test_Command_Input;

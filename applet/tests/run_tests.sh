@@ -100,7 +100,8 @@ function check
 
    local Start=$SECONDS
    local Status
-   local Program=$Project
+   local Program
+   Program=$(sed -n 's/.*for Main .*("\([^".]*\)[^"]*").*/\1/p' "$Folder/$Project.gpr")     # May differ from the project's name.
 
    # 'Timeout' runs the test in its own process group, and kills the whole group. So the
    # spawn server and any commands go too.
@@ -224,7 +225,7 @@ check commands/unsafe/environment               30 ''   'Actual   output: aShell
 check commands/unsafe/large_input               60 ''   'Program which reads nothing passed'
 check commands/unsafe/pipeline_error            60 ''   'Pipeline failed as expected'  'raised an exception, as expected'  "End 'Pipeline_Error'"
 check commands/unsafe/pipeline_output           30 ''   "End 'Pipeline_Output'"
-check commands/unsafe/wait_on                   60 ''   'Waiting on a pipeline passed'
+check commands/unsafe/wait_on                   60 ''   'Waiting on a small pipeline passed'
 check commands/unsafe/unused_command            30 ''   'Success'
 
 check commands/safe/close_input                 60 ''      "Other commands aren't held up passed"
@@ -238,6 +239,7 @@ check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"
 check commands/safe/spawn_server                60 '50'    'End test'
 check commands/safe/unused_command              30 ''      'Success'
+check all_safe_command_tests                   240 '20'    'End all safe command tests'
 
 if $Stress
 then

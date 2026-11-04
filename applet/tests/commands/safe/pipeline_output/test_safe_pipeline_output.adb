@@ -35,6 +35,4 @@ begin
    then
       delay 5 * 60.0;
    end if;
-
-   Shell.Commands.Safe.Stop_Spawn_Client;
 end Test_Safe_Pipeline_Output;

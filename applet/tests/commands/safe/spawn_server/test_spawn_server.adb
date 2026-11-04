@@ -46,7 +46,6 @@ begin
       end;
    end loop;
 
-   Safe.Stop_Spawn_Client;
    Shell.Close_Log;
 
    New_Line (2);
