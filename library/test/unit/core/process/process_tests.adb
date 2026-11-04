@@ -122,6 +122,72 @@ is
 
 
 
+   -- A program may catch an interrupt, or be resumed and exit, without aShell having caused it.
+   --
+   procedure Test_Unexpected_Endings
+   is
+      use Shell;
+
+      procedure Wait_For (Process : in out Shell.Process;
+                          State   : in     Process_State)
+      is
+      begin
+         for Each in 1 .. 1000
+         loop
+            exit when Status (Process) = State;
+            delay 0.01;
+         end loop;
+
+         Assert (Status (Process) = State,
+                 "Process status should be '" & State'Image & "' not '" & Status (Process)'Image & "'");
+      end Wait_For;
+
+   begin
+      declare     -- Catches the interrupt, then exits.
+         Process : Shell.Process := Start (Program   => "bash",
+                                           Arguments => [+"-c", +"trap 'exit 3' INT; sleep 20 & wait"]);
+      begin
+         delay 0.3;
+         Interrupt (Process);
+         Assert (Status (Process) = Failed_Exit, "Status should be 'Failed_Exit' not '" & Status (Process)'Image & "'");
+      end;
+
+      declare     -- Ignores the interrupt.
+         Process : Shell.Process := Start (Program   => "bash",
+                                           Arguments => [+"-c", +"trap '' INT; sleep 3"]);
+      begin
+         delay 0.3;
+         Interrupt (Process);
+         Assert (Status (Process) = Running, "Status should be 'Running' not '" & Status (Process)'Image & "'");
+         Kill (Process);
+      end;
+
+      declare     -- Interrupting a process which has ended.
+         Process : Shell.Process := Start (Program => "true", Arguments => Nil_Strings);
+      begin
+         Wait_On   (Process);
+         Interrupt (Process);
+         Assert (Status (Process) = Normal_Exit, "Status should be 'Normal_Exit' not '" & Status (Process)'Image & "'");
+
+         begin
+            Resume (Process);
+            Fail ("Process_Has_Terminated expected.");
+         exception
+            when Process_Has_Terminated => null;
+         end;
+      end;
+
+      declare     -- Stops itself, is resumed by another process, then exits.
+         Process : Shell.Process := Start (Program   => "bash",
+                                           Arguments => [+"-c", +"(sleep 0.5; kill -CONT $$) & kill -STOP $$; exit 7"]);
+      begin
+         Wait_For (Process, Paused);
+         Wait_For (Process, Failed_Exit);
+      end;
+   end Test_Unexpected_Endings;
+
+
+
    overriding
    procedure Initialize (T : in out Test)
    is
@@ -130,6 +196,7 @@ is
 
       T.Add_Test_Routine (Test_Status'Access, "Process Status");
       T.Add_Test_Routine (Test_Ended_Process'Access, "Ended Process");
+      T.Add_Test_Routine (Test_Unexpected_Endings'Access, "Unexpected Endings");
       T.Add_Test_Routine (Test_Start_With_Closed_Pipe'Access, "Start With Closed Pipe");
 
    end Initialize;

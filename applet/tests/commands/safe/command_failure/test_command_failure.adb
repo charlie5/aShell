@@ -93,6 +93,31 @@ begin
    end;
 
 
+   -- A program which catches the interrupt, then exits. The server must not wait for it to be 'Interrupted'.
+   --
+   declare
+      The_Command : Safe.Command := Forge.To_Command ("bash -c 'trap ""exit 3"" INT; sleep 20 & wait'");
+   begin
+      The_Command.Start;
+      delay 0.5;
+      The_Command.Interrupt;
+      The_Command.Wait_On;
+
+      Check ("Program which catches an interrupt fails", not The_Command.Normal_Exit);
+   end;
+
+
+   -- An early command with large error output.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash large_errors.sh | cat");
+   begin
+      Run (The_Pipeline);
+
+      Check ("Early command's errors don't block 'Run'", Errors_Of (Results_Of (The_Pipeline (1)))'Length = 300_000);
+   end;
+
+
    -- The server must still be running.
    --
    Check ("Server still runs commands", +Output_Of (Run ("echo Alive")) = "Alive" & ASCII.LF);

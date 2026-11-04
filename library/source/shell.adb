@@ -779,26 +779,20 @@ is
                      end;
 
                   when Stopped_By_Signal =>
-                     declare
-                        use POSIX.Signals;
-                        Signal : constant POSIX.Signals.Signal := Stopping_Signal_Of (POSIX_Status);
-                     begin
-                        if Signal = Signal_Stop
-                        --  if Signal = Signal_Terminal_Stop
-                        then
-                           Process.State := Paused;
-                        else
-                           raise Program_Error with "Shell.Update_Status: Unhandled stopping signal (" & Signal'Image & ") while running.";
-                        end if;
-                     end;
+                     Process.State := Paused;     -- Any stopping signal, such as from Ctrl-Z, rather than only from 'Pause'.
                end case;
 
 
             when Paused =>
                case Cause
                is
-                  when Exited =>
-                     raise Program_Error with "Shell.Update_Status: Paused process has exited.";
+                  when Exited =>     -- Something else may have resumed the process.
+                     if Exit_Status_Of (POSIX_Status) = POSIX.Process_Primitives.Normal_Exit
+                     then
+                        Process.State := Normal_Exit;
+                     else
+                        Process.State := Failed_Exit;
+                     end if;
 
                   when Terminated_By_Signal =>
                      declare
@@ -809,12 +803,7 @@ is
                      end;
 
                   when Stopped_By_Signal =>
-                     declare
-                        use POSIX.Signals;
-                        Signal : constant POSIX.Signals.Signal := Stopping_Signal_Of (POSIX_Status);
-                     begin
-                        raise Program_Error with "Shell.Update_Status: Unhandled stopping signal (" & Signal'Image &") while paused.";
-                     end;
+                     null;     -- It is still paused.
                end case;
 
             -- The following cases should never occur.
@@ -1199,12 +1188,27 @@ is
    procedure Interrupt (Process : in out Shell.Process)
    is
       use POSIX.Signals;
+
+      Most_Waits : constant := 1000;     -- About a second.
    begin
+      if Process.State = Not_Started
+      then
+         raise Process_Not_Started;
+      end if;
+
+      if Has_Terminated (Process)
+      then
+         return;
+      end if;
+
       Send_Signal (Process.Id, Signal_Interrupt);
 
-      while Status (Process) /= Interrupted
+      -- The program may end some other way, or catch the signal and carry on.
+      --
+      for Each in 1 .. Most_Waits
       loop
-         delay Duration'Small;
+         exit when Status (Process) in Terminated;
+         delay 0.001;
       end loop;
    end Interrupt;
 
@@ -1222,7 +1226,7 @@ is
          when Running =>
             Send_Signal (Process.Id, Signal_Stop);
 
-            while Status (Process) /= Paused
+            while Status (Process) not in Paused | Terminated     -- The process may end before the signal arrives.
             loop
                delay Duration'Small;
             end loop;
@@ -1246,6 +1250,16 @@ is
    is
       use POSIX.Signals;
    begin
+      if Process.State = Not_Started
+      then
+         raise Process_Not_Started;
+      end if;
+
+      if Process.State in Terminated
+      then
+         raise Process_Has_Terminated with "Status => " & Process.State'Image;
+      end if;
+
       Send_Signal (Process.Id, Signal_Continue);
       Process.State := Running;
    end Resume;

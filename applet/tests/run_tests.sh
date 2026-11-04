@@ -226,6 +226,7 @@ check commands/unsafe/large_input               60 ''   'Program which reads not
 check commands/unsafe/pipeline_error            60 ''   'Pipeline failed as expected'  'raised an exception, as expected'  "End 'Pipeline_Error'"
 check commands/unsafe/pipeline_output           30 ''   "End 'Pipeline_Output'"
 check commands/unsafe/wait_on                   60 ''   'Waiting on a small pipeline passed'
+check commands/unsafe/pipeline_failure          60 ''   'End test'
 check commands/unsafe/unused_command            30 ''   'Success'
 
 check commands/safe/close_input                 60 ''      "Other commands aren't held up passed"
@@ -234,6 +235,7 @@ check commands/safe/command_input               30 ''      'Goodbye world'  'End
 check commands/safe/command_status              60 ''      "End +'Test_Safe_Command_Status'"
 check commands/safe/concurrent_commands        120 '100'   'Main Task has terminated'
 check commands/safe/concurrent_pipelines       120 '50'    "End 'Concurrent_Pipelines'"
+check commands/safe/exit_with_input             30 ''      'Main ending'
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'
 check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output'"
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"

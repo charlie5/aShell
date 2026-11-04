@@ -209,11 +209,15 @@ is
       Least_Pipe_Capacity : constant := 4096;     -- More than this might block, until the program is started and reads it.
 
       Input_Fits : constant Boolean := Input'Length <= Least_Pipe_Capacity;
+
+      Makes_Input  : constant Boolean :=    Input /= No_Data
+                                         or Accepts_Input;
+      Makes_Output : constant Boolean := The_Command.Output_Pipe = Null_Pipe;
+      Makes_Errors : constant Boolean := The_Command.Error_Pipe  = Null_Pipe;
    begin
       Commands.Command (The_Command).Start (Input, Accepts_Input, Pipeline);
 
-      if   Input /= No_Data
-        or Accepts_Input
+      if Makes_Input
       then
          The_Command.Input_Pipe := To_Pipe;
          Set_Write_End_Close_On_Exec (The_Command.Input_Pipe);
@@ -224,23 +228,48 @@ is
          end if;
       end if;
 
-      if The_Command.Output_Pipe = Null_Pipe
+      if Makes_Output
       then
          The_Command.Owns_Output_Pipe := True;
          The_Command.Output_Pipe      := To_Pipe (Blocking => False);
       end if;
 
-      if The_Command.Error_Pipe = Null_Pipe
+      if Makes_Errors
       then
          The_Command.Error_Pipe := To_Pipe (Blocking => False);
       end if;
 
-      The_Command.Process := Start (Program   => +The_Command.Name,
-                                    Arguments =>  To_String_Array (The_Command.Arguments),
-                                    Input     =>  The_Command.Input_Pipe,
-                                    Output    =>  The_Command.Output_Pipe,
-                                    Errors    =>  The_Command.Error_Pipe,
-                                    Pipeline  =>  Pipeline);
+      begin
+         The_Command.Process := Start (Program   => +The_Command.Name,
+                                       Arguments =>  To_String_Array (The_Command.Arguments),
+                                       Input     =>  The_Command.Input_Pipe,
+                                       Output    =>  The_Command.Output_Pipe,
+                                       Errors    =>  The_Command.Error_Pipe,
+                                       Pipeline  =>  Pipeline);
+      exception
+         when others =>     -- Rid the pipes this made, and go back to not being started.
+            if Makes_Input
+            then
+               Close (The_Command.Input_Pipe);
+               The_Command.Input_Pipe := Standard_Input;
+            end if;
+
+            if Makes_Output
+            then
+               Close (The_Command.Output_Pipe);
+               The_Command.Output_Pipe      := Null_Pipe;
+               The_Command.Owns_Output_Pipe := False;
+            end if;
+
+            if Makes_Errors
+            then
+               Close (The_Command.Error_Pipe);
+               The_Command.Error_Pipe := Null_Pipe;
+            end if;
+
+            The_Command.Status := Not_Started;
+            raise;
+      end;
 
       if not Input_Fits
       then
@@ -275,29 +304,55 @@ is
 
       Connect (Commands);
 
-      for i in Commands'Range
-      loop
-         if i = Commands'First
-         then
-            Start (Commands (i),
-                   Input,
-                   Pipeline => True);
-         else
-            Start (Commands (i),
-                   Pipeline => True);
-         end if;
+      begin
+         for i in Commands'Range
+         loop
+            if i = Commands'First
+            then
+               Start (Commands (i),
+                      Input,
+                      Pipeline => True);
+            else
+               Start (Commands (i),
+                      Pipeline => True);
+            end if;
 
-         -- Since we are making a pipeline, we need to close the write ends of
-         -- the Output & Errors pipes ourselves.
-         --
-         if i /= Commands'First
-         then
-            Close_Pipe_Write_Ends (Commands (i - 1));    -- Close ends for the prior command.
-         end if;
+            -- Since we are making a pipeline, we need to close the write ends of
+            -- the Output & Errors pipes ourselves.
+            --
+            if i /= Commands'First
+            then
+               Close_Pipe_Write_Ends (Commands (i - 1));    -- Close ends for the prior command.
+            end if;
 
-      end loop;
+         end loop;
 
-      Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+         Close_Pipe_Write_Ends (Commands (Commands'Last));  -- Close ends for the final command.
+
+      exception
+         when others =>     -- Stop those which started, and rid the pipes of those which didn't.
+            for Each of Commands
+            loop
+               begin
+                  if Shell.Status (Each.Process) /= Shell.Not_Started
+                  then
+                     Stop (Each);
+                  else
+                     Close (Each.Input_Pipe);
+
+                     if Each.Output_Pipe /= Null_Pipe
+                     then
+                        Close (Each.Output_Pipe);
+                     end if;
+                  end if;
+               exception
+                  when E : others =>
+                     Log (Ada.Exceptions.Exception_Information (E));     -- The original failure is the one to report.
+               end;
+            end loop;
+
+            raise;
+      end;
 
       declare
          The_Pipeline : constant Shared_Pipeline_Access := new Shared_Pipeline (Commands'Length);
@@ -411,7 +466,8 @@ is
       Start (The_Pipeline, Input);
 
       loop
-         Gather_Results (Last_Command);            -- Gather on-going results.
+         Read_All_Stages (Last_Command.Pipeline.all);     -- An earlier command may be blocked by a full pipe.
+         Gather_Results  (Last_Command);                  -- Gather on-going results.
 
          if Has_Terminated (The_Pipeline (i).Process)
          then
@@ -739,7 +795,8 @@ is
             Close (The_Command.Input_Pipe);
          end if;
 
-         if The_Command.Owns_Output_Pipe
+         if         The_Command.Owns_Output_Pipe
+           and then The_Command.Output_Pipe /= Null_Pipe     -- It may have failed to start.
          then
             Close (The_Command.Output_Pipe);
          end if;

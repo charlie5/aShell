@@ -299,7 +299,8 @@ begin
                      Log ("Shutdown action.");
                      Shutting_Down := True;
 
-                     -- The client cannot resume a paused command, which would then prevent the server from ending.
+                     -- The client cannot resume a paused command, or send more input to a command
+                     -- waiting on it. Either would then prevent the server, and the client, from ending.
                      --
                      declare
                         use Id_Maps_of_Command;
@@ -310,6 +311,8 @@ begin
                            declare
                               The_Command : Unsafe.Command := Element (Cursor);
                            begin
+                              The_Command.Close_Input;
+
                               if The_Command.Status = Paused
                               then
                                  The_Command.Kill;
@@ -365,11 +368,17 @@ begin
                      end Send;
 
 
+                     -- The output of a command within a pipeline goes to the next command. Its error
+                     -- output must still be read, or it would block when its error pipe fills.
+                     --
                      procedure Send_New_Results
                      is
                      begin
-                        if not Is_Within_A_Pipeline (The_Command)
+                        if Is_Within_A_Pipeline (The_Command)
                         then
+                           Send (Output => No_Data,
+                                 Errors => Shell.Output_Of (The_Command.Error_Pipe));
+                        else
                            --  log ("Send new results for command: " & Image (The_Command));
 
                            Send (Output => Privy.Output_Of (The_Command.Output_Pipe),
@@ -383,21 +392,18 @@ begin
                      procedure Send_Final_Results
                      is
                      begin
-                        if not Is_Within_A_Pipeline (The_Command)
-                        then
-                           for Each in 1 .. Most_Reads_Per_Gather
-                           loop
-                              declare
-                                 Output : constant Data := Shell.Output_Of (The_Command.Output_Pipe);
-                                 Errors : constant Data := Shell.Output_Of (The_Command. Error_Pipe);
-                              begin
-                                 exit when Output'Length = 0
-                                       and Errors'Length = 0;
+                        for Each in 1 .. Most_Reads_Per_Gather
+                        loop
+                           declare
+                              Output : constant Data := Shell.Output_Of (The_Command.Output_Pipe);     -- Finds nothing within a pipeline.
+                              Errors : constant Data := Shell.Output_Of (The_Command. Error_Pipe);
+                           begin
+                              exit when Output'Length = 0
+                                    and Errors'Length = 0;
 
-                                 Send (Output, Errors);
-                              end;
-                           end loop;
-                        end if;
+                              Send (Output, Errors);
+                           end;
+                        end loop;
                      end Send_Final_Results;
 
                   begin
