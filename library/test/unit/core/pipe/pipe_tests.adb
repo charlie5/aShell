@@ -276,6 +276,65 @@ is
 
 
 
+   -- Descriptors are reused, so a closed pipe will have the same descriptor numbers as the next pipe.
+   --
+   procedure Test_Closed_Pipe
+   is
+      use Shell;
+      use type Data_Offset;
+
+      Closed      : constant Shell.Pipe := To_Pipe;
+      Closed_Copy : constant Shell.Pipe := Closed;
+   begin
+      Close (Closed);
+
+      declare
+         Reused : constant Shell.Pipe := To_Pipe;
+      begin
+         Assert (Image (Reused) = Image (Closed),
+                 "The new pipe should reuse the descriptors of the closed pipe.");
+
+         Assert (not Is_Readable (Closed), "A closed pipe should not be readable.");
+         Assert (not Is_Writeable (Closed), "A closed pipe should not be writeable.");
+         Assert (not Is_Readable (Closed_Copy), "A copy of a closed pipe should not be readable.");
+
+         begin
+            Write_To (Closed, Input => (1 => 1));
+            Fail ("Pipe_Error expected, when writing to a closed pipe.");
+         exception
+            when Pipe_Error => null;
+         end;
+
+         begin
+            declare
+               Unused : constant Boolean := Is_Empty (Closed, Timeout => 0.01);
+            begin
+               Fail ("Pipe_Not_Readable expected, when checking a closed pipe.");
+            end;
+         exception
+            when Pipe_Not_Readable => null;
+         end;
+
+         Assert (Is_Empty (Reused, Timeout => 0.01),
+                 "Writing to a closed pipe should not reach the new pipe.");
+
+         Close           (Closed);
+         Close           (Closed_Copy);
+         Close_Write_End (Closed);
+
+         Assert (Is_Readable (Reused), "Closing a closed pipe should leave the new pipe readable.");
+         Assert (Is_Writeable (Reused), "Closing a closed pipe should leave the new pipe writeable.");
+
+         Write_To (Reused, Input => (1 => 7));
+         Assert (Output_Of (Reused)'Length = 1,
+                 "The new pipe should still carry data.");
+
+         Close (Reused);
+      end;
+   end Test_Closed_Pipe;
+
+
+
    overriding
    procedure Initialize (T : in out Test)
    is
@@ -292,6 +351,7 @@ is
       T.Add_Test_Routine (Test_Output_Of_Pipe    'Access, "Output Of Pipe");
       T.Add_Test_Routine (Test_Pipe_Close_Options'Access, "Pipe Close Options");
       T.Add_Test_Routine (Test_Pipe_Close        'Access, "Pipe Close");
+      T.Add_Test_Routine (Test_Closed_Pipe       'Access, "Closed Pipe");
    end Initialize;
 
 

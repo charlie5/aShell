@@ -72,6 +72,12 @@ is
       begin
          Create_Pipe (Read_End  => Pipe.Read_End,
                       Write_End => Pipe.Write_End);
+
+         Pipe.Id := Next_Id;
+         Next_Id := Next_Id + 1;
+
+         Owners.Include (Pipe.Read_End,  Pipe.Id);
+         Owners.Include (Pipe.Write_End, Pipe.Id);
       exception
          when POSIX.POSIX_Error =>
             raise Too_Many_Pipes_Error;
@@ -84,21 +90,45 @@ is
                        Only_Read_End  : in Boolean := False)
       is
          use POSIX.IO;
+
+         procedure Close_End (Descriptor : in File_Descriptor)
+         is
+         begin
+            if Owns (Pipe, Descriptor)
+            then
+               Owners.Delete (Descriptor);
+
+               if Is_Open (Descriptor)
+               then
+                  Close (File => Descriptor);
+               end if;
+            end if;
+         end Close_End;
+
       begin
-         if         not Only_Write_End
-           and then Pipe.Read_End /= Null_File_Descriptor
-           and then Is_Open (Pipe.Read_End)
+         if not Only_Write_End
          then
-            Close (File => Pipe.Read_End);
+            Close_End (Pipe.Read_End);
          end if;
 
-         if         not Only_Read_End
-           and then Pipe.Write_End /= Null_File_Descriptor
-           and then Is_Open (Pipe.Write_End)
+         if not Only_Read_End
          then
-            Close (File => Pipe.Write_End);
+            Close_End (Pipe.Write_End);
          end if;
       end Close;
+
+
+
+      function Owns (Pipe       : in Shell.Pipe;
+                     Descriptor : in File_Descriptor) return Boolean
+      is
+         use Descriptor_Owner_Maps;
+         Owner : constant Cursor := Owners.Find (Descriptor);
+      begin
+         return     Pipe.Id /= No_Pipe_Id
+           and then Has_Element (Owner)
+           and then Element (Owner) = Pipe.Id;
+      end Owns;
 
    end Safe_Pipes;
 
@@ -151,7 +181,7 @@ is
         and Pipe /= Standard_Output
         and Pipe /= Standard_Error
       then
-         Safe_Pipes.Close (Pipe, Only_Write_End, Only_Read_End);     -- TODO: Should 'write end' and 'read end' be set to Null_File_Descriptor when closed ?
+         Safe_Pipes.Close (Pipe, Only_Write_End, Only_Read_End);
       end if;
 
    end Close;
@@ -190,23 +220,50 @@ is
 
 
 
+   function End_Is_Open (Pipe       : in Shell.Pipe;
+                         Descriptor : in File_Descriptor) return Boolean
+   is (if Pipe.Id = No_Pipe_Id then POSIX.IO.Is_Open (Descriptor)
+                               else Safe_Pipes.Owns (Pipe, Descriptor));
+
+
+
    function Is_Readable (Pipe : in Shell.Pipe) return Boolean
    is
-      use POSIX.IO;
    begin
       Check_Not_Null (Pipe);
-      return Is_Open (Pipe.Read_End);
+      return End_Is_Open (Pipe, Pipe.Read_End);
    end Is_Readable;
 
 
 
    function Is_Writeable (Pipe : in Shell.Pipe) return Boolean
    is
-      use POSIX.IO;
    begin
       Check_Not_Null (Pipe);
-      return Is_Open (Pipe.Write_End);
+      return End_Is_Open (Pipe, Pipe.Write_End);
    end Is_Writeable;
+
+
+
+   procedure Check_Is_Readable (Pipe : in Shell.Pipe)
+   is
+   begin
+      if not Is_Readable (Pipe)
+      then
+         raise Pipe_Not_Readable with "The read end of pipe " & Image (Pipe) & " is closed.";
+      end if;
+   end Check_Is_Readable;
+
+
+
+   procedure Check_Is_Writeable (Pipe : in Shell.Pipe)
+   is
+   begin
+      if not Is_Writeable (Pipe)
+      then
+         raise Pipe_Error with "The write end of pipe " & Image (Pipe) & " is closed.";
+      end if;
+   end Check_Is_Writeable;
 
 
 
@@ -220,7 +277,7 @@ is
       FDS_E : File_Descriptor_Set;
       Count : Natural;
    begin
-      Check_Not_Null (Pipe);
+      Check_Is_Readable (Pipe);
 
       Make_Empty (FDS_R);
       Make_Empty (FDS_W);
@@ -278,6 +335,8 @@ is
 
       if Input'Length > 0
       then
+         Check_Is_Writeable (Pipe);
+
          declare
             subtype   My_Data is Data (Input'Range);
             procedure Write   is new POSIX.IO.Generic_Write (My_Data);
@@ -326,6 +385,8 @@ is
                    Last   :    out Stream_Element_Offset)
    is
    begin
+      Check_Is_Readable (Stream.Pipe);
+
       POSIX.IO.Read (File   => Stream.Pipe.Read_End,
                      Buffer => Item,
                      Last   => Last);
@@ -339,6 +400,8 @@ is
    is
       Last : Ada.Streams.Stream_Element_Offset;
    begin
+      Check_Is_Writeable (Stream.Pipe);
+
       POSIX.IO.Write (File   => Stream.Pipe.Write_End,
                       Buffer => Item,
                       Last   => Last);
@@ -500,12 +563,12 @@ is
          function Failure (Pipe_End : in String) return String
          is ("Cannot start '" & Program & "': the " & Pipe_End & " end of its '" & Name & "' pipe is not open." & Hint);
       begin
-         if not POSIX.IO.Is_Open (The_Pipe.Read_End)
+         if not End_Is_Open (The_Pipe, The_Pipe.Read_End)
          then
             raise Process_Error with Failure ("read");
          end if;
 
-         if not POSIX.IO.Is_Open (The_Pipe.Write_End)
+         if not End_Is_Open (The_Pipe, The_Pipe.Write_End)
          then
             raise Process_Error with Failure ("write");
          end if;

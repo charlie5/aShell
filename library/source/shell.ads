@@ -9,7 +9,8 @@ with
      POSIX.IO,
      POSIX.Process_Identification,
      POSIX.Process_Primitives,
-     Ada.Containers.Vectors;
+     Ada.Containers.Vectors,
+     Ada.Containers.Ordered_Maps;
 
 
 package Shell
@@ -67,12 +68,16 @@ is
    function  Is_Writeable (Pipe    : in Shell.Pipe) return Boolean;
    function  Is_Empty     (Pipe    : in Shell.Pipe;
                            Timeout : in Duration := 0.0) return Boolean;   -- A timeout of '0.0' will block until the pipe is not empty.
+   --
+   -- Is_Empty raises Pipe_Not_Readable when the 'read end' is closed.
 
    No_Output_Error   : exception;
    Pipe_Not_Readable : exception;
 
    procedure Write_To  (Pipe : in Shell.Pipe;   Input : in Data);
    function  Output_Of (Pipe : in Shell.Pipe)       return Data;   -- Returns available output from the 'read end'.
+   --
+   -- Write_To raises Pipe_Error when the 'write end' is closed.
 
 
    Pipe_Error : exception;
@@ -83,6 +88,9 @@ is
    --
    -- Only_Write_End and Only_Read_End are mutually exclusive.
    -- Pipe_Error is raised when both are set to True.
+   --
+   -- A pipe is a value which may be copied. Closing an end closes it for all copies. Closing a closed end, or
+   -- a standard pipe, does nothing. So does 'Close_Write_End'.
 
    procedure Close_Write_End (Pipe : in Shell.Pipe);
    function  Close_Write_End (Pipe : in Shell.Pipe) return Boolean;
@@ -202,30 +210,50 @@ private
    --- Pipes
    --
 
+   type Pipe_Id is mod 2**64;
+
+   No_Pipe_Id : constant Pipe_Id := 0;     -- For the standard and null pipes, which are not tracked by 'Safe_Pipes'.
+
    type Pipe is
       record
          Write_End,
          Read_End : File_Descriptor := Null_File_Descriptor;
+         Id       : Pipe_Id         := No_Pipe_Id;
       end record;
 
    Standard_Input  : constant Pipe := (Write_End => Null_File_Descriptor,
-                                       Read_End  => POSIX.IO.Standard_Input);
+                                       Read_End  => POSIX.IO.Standard_Input,
+                                       Id        => No_Pipe_Id);
 
    Standard_Output : constant Pipe := (Write_End => POSIX.IO.Standard_Output,
-                                       Read_End  => Null_File_Descriptor);
+                                       Read_End  => Null_File_Descriptor,
+                                       Id        => No_Pipe_Id);
 
    Standard_Error  : constant Pipe := (Write_End => POSIX.IO.Standard_Error,
-                                       Read_End  => Null_File_Descriptor);
+                                       Read_End  => Null_File_Descriptor,
+                                       Id        => No_Pipe_Id);
 
    Null_Pipe       : constant Pipe := (Write_End => Null_File_Descriptor,
-                                       Read_End  => Null_File_Descriptor);
+                                       Read_End  => Null_File_Descriptor,
+                                       Id        => No_Pipe_Id);
 
+   package Descriptor_Owner_Maps is new Ada.Containers.Ordered_Maps (File_Descriptor, Pipe_Id, POSIX.IO."<");
+
+   -- The OS reuses the number of a closed descriptor, and copies of a pipe outlive the closing of its ends. So each
+   -- pipe has a unique id, and only the pipe which owns an open descriptor may use it.
+   --
    protected Safe_Pipes
    is
       procedure Open  (Pipe           :    out Shell.Pipe);
       procedure Close (Pipe           : in     Shell.Pipe;
                        Only_Write_End : in     Boolean := False;
                        Only_Read_End  : in     Boolean := False);
+
+      function  Owns  (Pipe           : in     Shell.Pipe;
+                       Descriptor     : in     File_Descriptor) return Boolean;
+   private
+      Next_Id : Pipe_Id := No_Pipe_Id + 1;
+      Owners  : Descriptor_Owner_Maps.Map;
    end Safe_Pipes;
 
 
