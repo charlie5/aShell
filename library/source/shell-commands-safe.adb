@@ -556,6 +556,11 @@ is
          return;
       end if;
 
+      for Each of Commands
+      loop
+         Shell.Commands.Command (Each).Start;
+      end loop;
+
       Spawn_Client.Add (Commands, Input);
    end Start;
 
@@ -608,6 +613,8 @@ is
       Errors      : Data_Vector;
       Normal_Exit : Boolean;
    begin
+      Commands.Command (The_Command).Start (Input);
+
       Spawn_Client.Add (The_Command,
                         Input,
                         Accepts_Input => False,
@@ -640,6 +647,11 @@ is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
       i            : Positive := 1;
    begin
+      for Each of The_Pipeline
+      loop
+         Commands.Command (Each).Start;
+      end loop;
+
       Spawn_Client.Add (The_Pipeline, Input);
 
       loop
@@ -767,6 +779,22 @@ is
 
       return 0;
    end Which_Failed;
+
+
+
+   overriding
+   function Status (The_Command : in out Command) return State
+   is
+   begin
+      if        The_Command.Status in Running | Paused     -- A killed command retains its status.
+        and then The_Command.Safe_Outputs.Is_Done
+      then
+         The_Command.Status := (if The_Command.Safe_Outputs.Normal_Exit then Normal_Exit
+                                                                        else Failed_Exit);
+      end if;
+
+      return The_Command.Status;
+   end Status;
 
 
 

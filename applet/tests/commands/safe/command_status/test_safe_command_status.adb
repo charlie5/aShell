@@ -40,22 +40,22 @@ begin
       end if;
 
 
-      --  Put_Line ("Resuming command.");
-      --  The_Command.Resume;
-      --
-      --  if The_Command.Status /= Running
-      --  then
-      --     raise Command_Error with "Command status should be 'Running'.";
-      --  end if;
-      --
-      --
-      --  Put_Line ("Waiting on command.");
-      --  The_Command.Wait_On;
-      --
-      --  if The_Command.Status /= Normal_Exit
-      --  then
-      --     raise Command_Error with "Command status should be 'Normal_Exit'.";
-      --  end if;
+      Put_Line ("Resuming command.");
+      The_Command.Resume;
+
+      if The_Command.Status /= Running
+      then
+         raise Command_Error with "Command status should be 'Running'.";
+      end if;
+
+
+      Put_Line ("Waiting on command.");
+      The_Command.Wait_On;
+
+      if The_Command.Status /= Normal_Exit
+      then
+         raise Command_Error with "Command status should be 'Normal_Exit'.";
+      end if;
    end;
 
 

@@ -76,6 +76,9 @@ is
 
 
    overriding
+   function  Status         (The_Command : in out Command) return State;
+
+   overriding
    procedure Wait_On        (The_Command : in out Command);
 
    overriding
