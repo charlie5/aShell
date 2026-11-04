@@ -173,6 +173,47 @@ function check_without_writeable_folder
 }
 
 
+# Both of these fail as the program starts, so can't be expected to pass.
+#
+function check_startup_failures
+{
+   local Name=commands/startup_failures
+
+   selected "$Name" || return
+
+   local Log=$Output/${Name//\//_}.log
+   local Start=$SECONDS
+
+   if ! build applet/tests/commands/mixed_packages test_mixed_packages "$Log"
+   then
+      fail "$Name" "does not build" "$Log"
+      return
+   fi
+
+   (cd "$Tests/commands/mixed_packages" && timeout -s KILL 20 ./test_mixed_packages) < /dev/null > "$Log" 2>&1
+
+   if [ $? = 0 ] || grep -q 'Reached the main program' "$Log" || ! grep -q "may not be used in the same program" "$Log"
+   then
+      fail "$Name" "using 'Safe' and 'Unsafe' together should raise" "$Log"
+      return
+   fi
+
+   local Limit
+   Limit=$(command -v timeout)
+
+   (cd "$Tests/commands/safe/no_input" && PATH=/non_existent_folder "$Limit" -s KILL 20 ./test_no_input) < /dev/null > "$Log" 2>&1
+
+   if [ $? = 0 ] || ! grep -q "ashell_spawn_server' not found on PATH" "$Log"
+   then
+      fail "$Name" "a missing server should raise" "$Log"
+      return
+   fi
+
+   pass "$Name" $((SECONDS - Start))
+   rm -f "$Log"
+}
+
+
 function check_builds     # folder ...
 {
    local Each
@@ -250,6 +291,7 @@ check core/process_status            60 ''   "End +'Test_Process_Status'"
 check core/pause_resume             120 ''   "End 'Test_Pause_Resume'"
 
 check directories                    30 ''   'test_iterate_directory\.adb'  "End 'Iterate_Directory'"
+check directories/contents           30 ''   'End test'
 
 check commands/unsafe/close_input               60 ''   'Sending to a program which has gone raises passed'
 check commands/unsafe/command_error             30 ''   "Failed on command .* as expected"  'raised an exception, as expected'
@@ -263,6 +305,7 @@ check commands/unsafe/pipeline_output           30 ''   "End 'Pipeline_Output'"
 check commands/unsafe/wait_on                   60 ''   'Waiting on a small pipeline passed'
 check commands/unsafe/pipeline_failure          60 ''   'End test'
 check commands/unsafe/start_failure             60 ''   'End test'
+check commands/contract/unsafe                  90 ''   'End contract tests'
 check commands/unsafe/unused_command            30 ''   'Success'
 
 check commands/safe/close_input                 60 ''      "Other commands aren't held up passed"
@@ -272,11 +315,13 @@ check commands/safe/command_status              60 ''      "End +'Test_Safe_Comm
 check commands/safe/concurrent_commands        120 '100'   'Main Task has terminated'
 check commands/safe/concurrent_pipelines       120 '50'    "End 'Concurrent_Pipelines'"
 check commands/safe/exit_with_input             30 ''      'Main ending'
+check commands/contract/safe                    90 ''      'End contract tests'
 check commands/safe/late_kill                   15 ''      'Main ending'
 check commands/safe/stopped_program             20 ''      'Main ending'
 check commands/safe/many_commands               90 ''      'Commands all ended'
 check commands/safe/no_input                    30 ''      'Waiting on a command which failed to start raises passed'
 check_without_writeable_folder
+check_startup_failures
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'
 check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output'"
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"

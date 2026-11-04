@@ -21,11 +21,11 @@ is
          Append (Result, ", (");
       end if;
 
-      for Each of The_Command.Arguments
+      for i in 1 .. Natural (The_Command.Arguments.Length)
       loop
-         Append (Result, Each);
+         Append (Result, The_Command.Arguments.Element (i));
 
-         if Each = Last_Element (The_Command.Arguments)
+         if i = Natural (The_Command.Arguments.Length)     -- An argument may be the same as the last one.
          then
             Append (Result, ")");
          else

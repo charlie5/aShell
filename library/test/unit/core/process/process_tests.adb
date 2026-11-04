@@ -216,6 +216,236 @@ is
 
 
 
+   function Output_Of_Process (Program           : in String;
+                               Arguments         : in Shell.String_Array;
+                               Working_Directory : in String := ".") return String
+   is
+      use Shell;
+
+      The_Pipe : constant Pipe    := To_Pipe;
+      Process  : Shell.Process    := Start (Program, Arguments, Working_Directory, Output => The_Pipe);
+   begin
+      Wait_On (Process);
+
+      declare
+         Result : constant String := To_String (Output_Of (The_Pipe));
+      begin
+         Close (The_Pipe);
+         return Result;
+      end;
+   end Output_Of_Process;
+
+
+
+   procedure Test_Start_Forms
+   is
+      use Shell;
+   begin
+      Assert (Output_Of_Process ("echo", [+"Hello"]) = "Hello" & ASCII.LF, "Function with arguments.");
+
+      Assert (Output_Of_Process ("printf", [+"[%s]", +"one two", +"three"]) = "[one two][three]",
+              "Arguments are passed exactly, including spaces.");
+
+      Assert (Output_Of_Process ("pwd", Nil_Strings, Working_Directory => "/tmp") = "/tmp" & ASCII.LF,
+              "The working directory is used.");
+
+      declare
+         The_Pipe : constant Pipe := To_Pipe;
+         Process  : Shell.Process := Start (Command => "echo A command", Output => The_Pipe);
+      begin
+         Wait_On (Process);
+         Assert (To_String (Output_Of (The_Pipe)) = "A command" & ASCII.LF, "Function with a command line.");
+         Close (The_Pipe);
+      end;
+
+      declare
+         The_Pipe : constant Pipe := To_Pipe;
+         Process  : Shell.Process;
+      begin
+         Start (Process, Program => "echo", Arguments => [+"Procedure"], Output => The_Pipe);
+         Wait_On (Process);
+         Assert (To_String (Output_Of (The_Pipe)) = "Procedure" & ASCII.LF, "Procedure with arguments.");
+
+         begin
+            Start (Process, Program => "echo", Arguments => Nil_Strings);
+            Fail ("Process_Already_Started expected.");
+         exception
+            when Process_Already_Started => null;
+         end;
+
+         begin
+            Start (Process, Command => "echo Again");
+            Fail ("Process_Already_Started expected.");
+         exception
+            when Process_Already_Started => null;
+         end;
+
+         Close (The_Pipe);
+      end;
+
+      declare
+         The_Pipe : constant Pipe := To_Pipe;
+         Process  : Shell.Process;
+      begin
+         Start (Process, Command => "pwd", Working_Directory => "/tmp", Output => The_Pipe);
+         Wait_On (Process);
+         Assert (To_String (Output_Of (The_Pipe)) = "/tmp" & ASCII.LF, "Procedure with a command line.");
+         Close (The_Pipe);
+      end;
+   end Test_Start_Forms;
+
+
+
+   procedure Test_Process_Pipes
+   is
+      use Shell;
+   begin
+      declare     -- Input, output and errors, all through pipes.
+         Input  : constant Pipe := To_Pipe;
+         Output : constant Pipe := To_Pipe;
+         Errors : constant Pipe := To_Pipe;
+      begin
+         Write_To (Input, To_Data ("Through"));
+
+         declare
+            Process : Shell.Process := Start (Program   => "bash",
+                                              Arguments => [+"-c", +"cat; echo Oops >&2"],
+                                              Input     => Input,
+                                              Output    => Output,
+                                              Errors    => Errors);
+         begin
+            Close_Write_End (Input);     -- Which must be open for 'Start', and closed for the program to see the end.
+            Wait_On (Process);
+         end;
+
+         Assert (To_String (Output_Of (Output)) = "Through",         "Input should reach the output.");
+         Assert (To_String (Output_Of (Errors)) = "Oops" & ASCII.LF, "Errors should reach their pipe.");
+
+         Close (Input);
+         Close (Output);
+         Close (Errors);
+      end;
+
+      declare     -- Without 'Pipeline', the process closes the parent's write ends.
+         Output  : constant Pipe := To_Pipe;
+         Process : Shell.Process := Start (Program => "true", Arguments => Nil_Strings, Output => Output);
+      begin
+         Wait_On (Process);
+         Assert (not Is_Writeable (Output), "The write end should have been closed by 'Start'.");
+         Close (Output);
+      end;
+
+      declare     -- With 'Pipeline', closing them is left to the caller.
+         Output  : constant Pipe := To_Pipe;
+         Process : Shell.Process := Start (Program => "true", Arguments => Nil_Strings, Output => Output, Pipeline => True);
+      begin
+         Wait_On (Process);
+         Assert (Is_Writeable (Output), "The write end should be left open by 'Start'.");
+         Close (Output);
+      end;
+
+      declare     -- A process inherits no pipe but those it is given.
+         Unrelated : constant Pipe := To_Pipe;
+         Output    : constant Pipe := To_Pipe;
+         Process   : Shell.Process := Start (Program   => "bash",
+                                             Arguments => [+"-c", +"ls -l /proc/self/fd | grep -c pipe:"],
+                                             Output    => Output);
+      begin
+         Wait_On (Process);
+
+         declare
+            Result : constant String  := To_String (Output_Of (Output));
+            Count  : constant Natural := Natural'Value (Result (Result'First .. Result'Last - 1));     -- Without the line feed.
+         begin
+            Assert (Count = 1, "'ls' should have only the one pipe to 'grep', not" & Count'Image & ".");
+         end;
+
+         Close (Unrelated);
+         Close (Output);
+      end;
+   end Test_Process_Pipes;
+
+
+
+   procedure Test_Process_Errors
+   is
+      use Shell;
+   begin
+      begin
+         declare
+            Unused : Shell.Process := Start (Program => "no_such_program_for_ashell", Arguments => Nil_Strings);
+         begin
+            Fail ("Process_Error expected, for a missing program.");
+         end;
+      exception
+         when Process_Error => null;
+      end;
+
+      declare
+         Unstarted : Shell.Process;
+      begin
+         Assert (Status (Unstarted) = Not_Started, "A new process should not be started.");
+
+         begin
+            Kill (Unstarted);
+            Fail ("Process_Not_Started expected, from 'Kill'.");
+         exception
+            when Process_Not_Started => null;
+         end;
+
+         begin
+            Interrupt (Unstarted);
+            Fail ("Process_Not_Started expected, from 'Interrupt'.");
+         exception
+            when Process_Not_Started => null;
+         end;
+
+         begin
+            Pause (Unstarted);
+            Fail ("Process_Not_Started expected, from 'Pause'.");
+         exception
+            when Process_Not_Started => null;
+         end;
+
+         begin
+            Resume (Unstarted);
+            Fail ("Process_Not_Started expected, from 'Resume'.");
+         exception
+            when Process_Not_Started => null;
+         end;
+      end;
+
+      declare
+         Process : Shell.Process := Start (Program => "sleep", Arguments => [+"20"]);
+      begin
+         Pause (Process);
+
+         begin
+            Pause (Process);
+            Fail ("Process_Already_Paused expected.");
+         exception
+            when Process_Already_Paused => null;
+         end;
+
+         Kill (Process);
+         Assert (Status (Process) = Killed, "Should be killed, not " & Status (Process)'Image & ".");
+
+         Kill (Process);     -- Harmless.
+
+         begin
+            Pause (Process);
+            Fail ("Process_Has_Terminated expected.");
+         exception
+            when Process_Has_Terminated => null;
+         end;
+
+         Assert (not Normal_Exit (Process), "A killed process should not be a normal exit.");
+         Assert (Image (Process) /= "",     "A process should have an image.");
+      end;
+   end Test_Process_Errors;
+
+
+
    overriding
    procedure Initialize (T : in out Test)
    is
@@ -223,6 +453,9 @@ is
       T.Set_Name ("Process Tests");
 
       T.Add_Test_Routine (Test_Status'Access, "Process Status");
+      T.Add_Test_Routine (Test_Start_Forms'Access, "Start Forms");
+      T.Add_Test_Routine (Test_Process_Pipes'Access, "Process Pipes");
+      T.Add_Test_Routine (Test_Process_Errors'Access, "Process Errors");
       T.Add_Test_Routine (Test_Unstarted_Process'Access, "Unstarted Process");
       T.Add_Test_Routine (Test_Ended_Process'Access, "Ended Process");
       T.Add_Test_Routine (Test_Unexpected_Endings'Access, "Unexpected Endings");

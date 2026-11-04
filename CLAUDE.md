@@ -37,6 +37,7 @@ cd applet/tests/core/piped_processes && gprbuild -P test_piped_processes.gpr && 
 ```
 
 - Directories: `core/` (`Shell`), `commands/safe/`, `commands/unsafe/`, `commands/interactive/`, `directories/`, `stress/`.
+- `commands/contract/` holds what `Safe` and `Unsafe` have in common. The one source is built twice, with `Under_Test` renaming the package, and `Flavour` for the few documented differences. Put new checks of shared behaviour there.
 - `all_core_tests`, `all_safe_command_tests` and `all_unsafe_command_tests` call the individual test procedures from one main. Their project files `with` the individual test projects.
 - No applet test sets an exit status. A failure shows up as an unhandled exception or in the printed output, so when running one by hand, read the output as well as the exit code.
 - `test_all_core`, `test_all_unsafe_commands` and `test_ashell` wait for `<Enter>` between steps (`Shell.Testing.Pause_Til_Tester_Is_Ready`).
