@@ -444,8 +444,12 @@ is
       for Each in 1 .. Most_Reads_Per_Gather
       loop
          declare
-            The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
-            The_Errors : constant Data := Output_Of (The_Command.Error_Pipe);
+            function Read (The_Pipe : in Pipe) return Data     -- A command which failed to start has no pipes.
+            is (if The_Pipe = Null_Pipe then No_Data
+                                        else Output_Of (The_Pipe));
+
+            The_Output : constant Data := Read (The_Command.Output_Pipe);
+            The_Errors : constant Data := Read (The_Command.Error_Pipe);
          begin
             exit when The_Output'Length = 0
                   and The_Errors'Length = 0;
@@ -465,13 +469,39 @@ is
 
 
 
+   -- For 'Run', a program which can't start simply fails, as it does with safe commands.
+   --
+   procedure Note_Failure_To_Start (The_Command : in out Command;
+                                    Message     : in     String)
+   is
+   begin
+      The_Command.Errors.Append (To_Data (Message & ASCII.LF));
+      The_Command.Failed_To_Start := True;
+      The_Command.Status          := Failed_Exit;
+   end Note_Failure_To_Start;
+
+
+
    overriding
    procedure Run (The_Command : in out Command;
                   Input       : in     Data    := No_Data;
                   Raise_Error : in     Boolean := False)
    is
    begin
-      Start   (The_Command, Input);
+      begin
+         Start (The_Command, Input);
+      exception
+         when E : Process_Error =>
+            Note_Failure_To_Start (The_Command, Ada.Exceptions.Exception_Message (E));
+
+            if Raise_Error
+            then
+               raise Command_Error with Failure_Message (The_Command);
+            end if;
+
+            return;
+      end;
+
       Wait_On (The_Command);
 
       if not The_Command.Normal_Exit
@@ -492,7 +522,36 @@ is
    begin
       Last_Command.Output_Pipe := To_Pipe;
 
-      Start (The_Pipeline, Input);
+      begin
+         Start (The_Pipeline, Input);
+      exception
+         when E : Process_Error =>
+            declare
+               At_Fault : Natural := 0;
+            begin
+               for Each in The_Pipeline'Range     -- Those which did start have been stopped.
+               loop
+                  if Shell.Status (The_Pipeline (Each).Process) = Shell.Not_Started
+                  then
+                     if At_Fault = 0
+                     then
+                        At_Fault := Each;
+                        Note_Failure_To_Start (The_Pipeline (Each), Ada.Exceptions.Exception_Message (E));
+                     else
+                        The_Pipeline (Each).Status := Failed_Exit;
+                     end if;
+                  end if;
+               end loop;
+
+               if Raise_Error
+               then
+                  raise Command_Error with "Pipeline command" & Integer'Image (At_Fault) & ": "
+                                         & Failure_Message (The_Pipeline (At_Fault));
+               end if;
+
+               return;
+            end;
+      end;
 
       loop
          Read_All_Stages (Last_Command.Pipeline.all);     -- An earlier command may be blocked by a full pipe.
@@ -545,10 +604,20 @@ is
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
+      Earlier      : Data_Vector;
    begin
       Run (The_Pipeline, Input, Raise_Error);
 
-      return Results_Of (Last_Command);
+      -- Otherwise, the failure of an earlier command would give results with no sign of it.
+      -- These errors remain available from each command's own 'Results_Of'.
+      --
+      for i in The_Pipeline'First .. The_Pipeline'Last - 1
+      loop
+         Gather_Results (The_Pipeline (i));
+         Earlier.Append (The_Pipeline (i).Errors);
+      end loop;
+
+      return With_Earlier_Errors (Results_Of (Last_Command), Earlier);
    end Run;
 
 
@@ -662,6 +731,14 @@ is
    function Which_Failed (The_Pipeline : in Command_Array) return Natural
    is
    begin
+      for i in The_Pipeline'Range     -- Commands before this were only stopped because of it, so aren't at fault.
+      loop
+         if The_Pipeline (i).Failed_To_Start
+         then
+            return i;
+         end if;
+      end loop;
+
       for i in The_Pipeline'Range
       loop
          if not Normal_Exit (The_Pipeline (i).Process)

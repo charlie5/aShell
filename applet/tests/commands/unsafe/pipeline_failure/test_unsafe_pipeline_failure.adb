@@ -51,6 +51,11 @@ is
    end Open_Descriptors;
 
 
+   function Contains (Source  : in String;
+                      Pattern : in String) return Boolean
+   is (Ada.Strings.Fixed.Index (Source, Pattern) /= 0);
+
+
    Missing : constant String := "no_such_program_for_ashell";
 
 begin
@@ -93,6 +98,91 @@ begin
          Check ("Leaving the scope doesn't raise", True);
       end;
    end loop;
+
+
+   -- 'Run' treats a missing program as a failure, as safe commands do.
+   --
+   declare
+      The_Command : Unsafe.Command := Forge.To_Command (Missing);
+      The_Results : constant Command_Results := Run (The_Command);
+   begin
+      Check ("Missing program fails 'Run' function",       The_Command.Failed);
+      Check ("Missing program has ended",                  The_Command.Has_Terminated);
+      Check ("Missing program gives an error",             Contains (+Errors_Of (The_Results), Missing));
+   end;
+
+   declare
+      Results : constant Command_Results := Run (Missing);
+   begin
+      Check ("Missing program in a line gives an error",   Contains (+Errors_Of (Results), "not found on PATH"));
+   end;
+
+   declare
+      Raised : Boolean := False;
+   begin
+      begin
+         Run (Missing);
+      exception
+         when E : Command_Error =>
+            Raised := Contains (Ada.Exceptions.Exception_Message (E), "not found on PATH");
+      end;
+
+      Check ("Missing program raises in 'Run' procedure", Raised);
+   end;
+
+   for Position in 1 .. 3
+   loop
+      declare
+         Line : constant String := (case Position is
+                                       when 1      => Missing & " | cat | cat",
+                                       when 2      => "sleep 20 | " & Missing & " | cat",
+                                       when others => "sleep 20 | cat | " & Missing);
+
+         The_Pipeline : Command_Array := Forge.To_Commands (Line);
+         The_Results  : constant Command_Results := Run (The_Pipeline);
+      begin
+         Check ("Missing program in pipeline position" & Position'Image & " is the one which failed",
+                Which_Failed (The_Pipeline) = Position);
+         Check ("Pipeline with a missing program gives an error", Contains (+Errors_Of (The_Results), "not found on PATH"));
+         Check ("Pipeline with a missing program has ended",      The_Pipeline (The_Pipeline'Last).Has_Terminated);
+      end;
+   end loop;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | " & Missing);
+      Raised       : Boolean       := False;
+   begin
+      begin
+         Run (The_Pipeline, Raise_Error => True);
+      exception
+         when E : Command_Error =>
+            Raised := Contains (Ada.Exceptions.Exception_Message (E), "Pipeline command 2: ");
+      end;
+
+      Check ("Missing program in a pipeline raises, naming the command", Raised);
+   end;
+
+
+   -- The errors of every command in a pipeline reach its results.
+   --
+   declare
+      Results : constant Command_Results := Run ("ls /non_existent_file | cat");
+   begin
+      Check ("Results of a failed line have the early command's errors",
+             Contains (+Errors_Of (Results), "non_existent_file"));
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash two_errors.sh | bash two_errors.sh Last | cat");
+      The_Results  : constant Command_Results := Run (The_Pipeline);
+      All_Errors   : constant String := +Errors_Of (The_Results);
+   begin
+      Check ("Results have the errors of all commands, in order",
+             All_Errors = "First" & ASCII.LF & "Last" & ASCII.LF);
+      Check ("Output is only that of the last command", Output_Of (The_Results)'Length = 0);
+      Check ("A command still gives its own errors",    +Errors_Of (Results_Of (The_Pipeline (1))) = "First" & ASCII.LF);
+      Check ("The last command's own errors are its own", Errors_Of (Results_Of (The_Pipeline (3)))'Length = 0);
+   end;
 
 
    -- A failed single command returns to not having been started.

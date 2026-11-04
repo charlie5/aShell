@@ -668,6 +668,37 @@ is
 
 
 
+   function With_Earlier_Errors (The_Results : in Command_Results;
+                                 Earlier     : in Data_Vector) return Command_Results
+   is
+      Earlier_Size : Data_Offset := 0;
+   begin
+      for Each of Earlier
+      loop
+         Earlier_Size := Earlier_Size + Each'Length;
+      end loop;
+
+      declare
+         Errors : Data (1 .. Earlier_Size + The_Results.Error_Size);
+         First  : Data_Offset := 1;
+      begin
+         for Each of Earlier
+         loop
+            Errors (First .. First + Each'Length - 1) := Each;
+            First := First + Each'Length;
+         end loop;
+
+         Errors (First .. Errors'Last) := The_Results.Errors;
+
+         return (Output_Size => The_Results.Output_Size,
+                 Error_Size  => Errors'Length,
+                 Output      => The_Results.Output,
+                 Errors      => Errors);
+      end;
+   end With_Earlier_Errors;
+
+
+
    function Output_Of (The_Results : in Command_Results) return Data
    is
    begin

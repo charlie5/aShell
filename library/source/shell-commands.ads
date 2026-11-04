@@ -137,6 +137,11 @@ private
          Errors  : Data (1 ..  Error_Size);
       end record;
 
+   function With_Earlier_Errors (The_Results : in Command_Results;
+                                 Earlier     : in Data_Vector) return Command_Results;
+   --
+   -- Puts the errors of a pipeline's earlier commands ahead of those of its last command.
+
 
    --------------------
    --- String Utilities

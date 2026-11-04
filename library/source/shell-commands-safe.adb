@@ -805,10 +805,20 @@ is
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
+      Earlier      : Data_Vector;
    begin
       Run (The_Pipeline, Input, Raise_Error);
 
-      return Results_Of (Last_Command);
+      -- Otherwise, the failure of an earlier command would give results with no sign of it.
+      -- These errors remain available from each command's own 'Results_Of'.
+      --
+      for i in The_Pipeline'First .. The_Pipeline'Last - 1
+      loop
+         Gather_Results (The_Pipeline (i));
+         Earlier.Append (The_Pipeline (i).Errors);
+      end loop;
+
+      return With_Earlier_Errors (Results_Of (Last_Command), Earlier);
    end Run;
 
 

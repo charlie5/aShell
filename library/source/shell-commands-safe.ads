@@ -57,6 +57,9 @@ is
    function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
                   Raise_Error  : in     Boolean := False) return Command_Results;
+   --
+   -- The results hold the output of the last command, and the errors of all the commands, in order.
+   -- Each command's own 'Results_Of' gives only its own errors.
 
    function  Run (Command_Line : in     String;
                   Input        : in     Data  := No_Data) return Command_Results;

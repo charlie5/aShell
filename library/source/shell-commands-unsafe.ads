@@ -50,6 +50,9 @@ is
    overriding
    procedure Send (To    : in Command;
                    Input : in Data);
+   --
+   -- Raises 'Pipe_Error' if the input is closed or the program has gone. A safe command can't tell, as
+   -- that is known only to the spawn server, so that case is logged and the input is discarded.
 
    overriding
    procedure Close_Input (The_Command : in Command);
@@ -63,6 +66,10 @@ is
    procedure Run (The_Command  : in out Command;
                   Input        : in     Data    := No_Data;
                   Raise_Error  : in     Boolean := False);
+   --
+   -- A program which can't start, such as one not found on PATH, simply fails. 'Failed' is then true and the command's
+   -- errors hold the reason. This raises only if 'Raise_Error' is true, with 'Command_Error'. By contrast, 'Start' raises
+   -- 'Process_Error'.
 
    procedure Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
@@ -71,6 +78,9 @@ is
    function  Run (The_Pipeline : in out Command_Array;
                   Input        : in     Data    := No_Data;
                   Raise_Error  : in     Boolean := False) return Command_Results;
+   --
+   -- The results hold the output of the last command, and the errors of all the commands, in order.
+   -- Each command's own 'Results_Of' gives only its own errors.
 
    function  Run (Command_Line : in     String;
                   Input        : in     Data  := No_Data) return Command_Results;
@@ -127,6 +137,7 @@ private
          Process          : aliased Shell.Process;
 
          Is_Within_A_Pipeline : Boolean := False;
+         Failed_To_Start      : Boolean := False;     -- Seen only by 'Run'. 'Start' raises instead.
 
          Pipeline         : Shared_Pipeline_Access;
          Stage            : Positive := 1;

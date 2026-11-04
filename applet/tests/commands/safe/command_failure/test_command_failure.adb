@@ -83,6 +83,25 @@ begin
    end loop;
 
 
+   -- The errors of every command in a pipeline reach its results.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash two_errors.sh | bash two_errors.sh Last | cat");
+      The_Results  : constant Command_Results := Run (The_Pipeline);
+   begin
+      Check ("Results have the errors of all commands, in order",
+             +Errors_Of (The_Results) = "First" & ASCII.LF & "Last" & ASCII.LF);
+      Check ("A command still gives its own errors", +Errors_Of (Results_Of (The_Pipeline (1))) = "First" & ASCII.LF);
+   end;
+
+   declare
+      Results : constant Command_Results := Run ("ls /non_existent_file | cat");
+   begin
+      Check ("Results of a failed line have the early command's errors",
+             Contains (+Errors_Of (Results), "non_existent_file"));
+   end;
+
+
    -- Sending to a command which doesn't accept input.
    --
    declare
