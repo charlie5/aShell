@@ -1,3 +1,5 @@
+pragma Ada_2022;     -- Allows client code to be compiled under any Ada version.
+
 with
      Ada.Strings.Unbounded,
      Ada.Streams;

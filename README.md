@@ -41,7 +41,7 @@ A trivial shell script:
     tr '\000' '\n' | ds_harmonize
 ```
 
-Might be written like this in Ada:
+Might be written like this in Ada 2022 (for earlier versions, use '( )' rather than '[ ]'):
 
 ```ada
     with Shell;

@@ -587,6 +587,32 @@ is
    -- Command Results
    --
 
+   function Failure_Message (The_Command : in Command'Class) return String
+   is
+      Errors : Unbounded_String;
+   begin
+      for Each of The_Command.Errors
+      loop
+         Append (Errors, To_String (Each));
+      end loop;
+
+      declare
+         Text : constant String  := +Errors;
+         Last :          Natural := Text'Last;
+      begin
+         while Last >= Text'First
+           and then Text (Last) = ASCII.LF
+         loop
+            Last := Last - 1;
+         end loop;
+
+         return "Command '" & (+The_Command.Name) & "' failed."
+              & (if Last < Text'First then "" else " " & Text (Text'First .. Last));
+      end;
+   end Failure_Message;
+
+
+
    function Results_Of (The_Command : in out Command'Class) return Command_Results
    is
       use Data_Vectors;

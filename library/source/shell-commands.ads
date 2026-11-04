@@ -114,6 +114,10 @@ private
 
    procedure Gather_Results (The_Command : in out Command) is null;
 
+   function  Failure_Message (The_Command : in Command'Class) return String;
+   --
+   -- Includes any gathered errors, which remain available via 'Results_Of'.
+
 
    -------------------
    --- Command_Results

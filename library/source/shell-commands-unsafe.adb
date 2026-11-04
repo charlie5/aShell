@@ -188,6 +188,14 @@ is
                                     Output    =>  The_Command.Output_Pipe,
                                     Errors    =>  The_Command.Error_Pipe,
                                     Pipeline  =>  Pipeline);
+
+      -- All the input has been written, so let the program see the end of its input.
+      --
+      if     Input /= No_Data
+        and not Accepts_Input
+      then
+         Close_Write_End (The_Command.Input_Pipe);
+      end if;
    end Start;
 
 
@@ -292,11 +300,7 @@ is
       if not The_Command.Normal_Exit
          and Raise_Error
       then
-         declare
-            Error : constant String := +Output_Of (The_Command.Error_Pipe);
-         begin
-            raise Command_Error with Error;
-         end;
+         raise Command_Error with Failure_Message (The_Command);
       end if;
    end Run;
 
@@ -398,9 +402,23 @@ is
    procedure Run (Command_Line : in String;
                   Input        : in Data  := No_Data)
    is
-      Results : Command_Results := Run (Command_Line, Input) with Unreferenced;
+      use Ada.Strings.Fixed,
+          Unsafe.Forge;
    begin
-      null;
+      if Index (Command_Line, " | ") /= 0
+      then
+         declare
+            The_Commands : Command_Array := To_Commands (Command_Line);
+         begin
+            Run (The_Commands, Input, Raise_Error => True);
+         end;
+      else
+         declare
+            The_Command : Command := To_Command (Command_Line);
+         begin
+            Run (The_Command, Input, Raise_Error => True);
+         end;
+      end if;
    end Run;
 
 
