@@ -272,6 +272,22 @@ begin
                      Id          : constant Command_Id := Key     (Cursor);
                      The_Command :   Unsafe.Command    := Element (Cursor);
 
+                     procedure Send (Output : in Data;
+                                     Errors : in Data)
+                     is
+                     begin
+                        if not (    Output'Length = 0
+                                and Errors'Length = 0)
+                        then
+                           Client_Action'Output (Output_Stream'Access,
+                                                 (New_Outputs,
+                                                  Id,
+                                                  To_Holder (Output),
+                                                  To_Holder (Errors)));
+                        end if;
+                     end Send;
+
+
                      procedure Send_New_Results
                      is
                      begin
@@ -279,22 +295,33 @@ begin
                         then
                            --  log ("Send new results for command: " & Image (The_Command));
 
-                           declare
-                              Output : constant Data := Privy.Output_Of (The_Command.Output_Pipe);
-                              Errors : constant Data := Privy.Output_Of (The_Command. Error_Pipe);
-                           begin
-                              if not (    Output'Length = 0
-                                      and Errors'Length = 0)
-                              then
-                                 Client_Action'Output (Output_Stream'Access,
-                                                       (New_Outputs,
-                                                        Id,
-                                                        To_Holder (Output),
-                                                        To_Holder (Errors)));
-                              end if;
-                           end;
+                           Send (Output => Privy.Output_Of (The_Command.Output_Pipe),
+                                 Errors => Privy.Output_Of (The_Command. Error_Pipe));
                         end if;
                      end Send_New_Results;
+
+
+                     -- The command has ended, so this is the last chance to read what it left in its pipes.
+                     --
+                     procedure Send_Final_Results
+                     is
+                     begin
+                        if not Is_Within_A_Pipeline (The_Command)
+                        then
+                           for Each in 1 .. Most_Reads_Per_Gather
+                           loop
+                              declare
+                                 Output : constant Data := Shell.Output_Of (The_Command.Output_Pipe);
+                                 Errors : constant Data := Shell.Output_Of (The_Command. Error_Pipe);
+                              begin
+                                 exit when Output'Length = 0
+                                       and Errors'Length = 0;
+
+                                 Send (Output, Errors);
+                              end;
+                           end loop;
+                        end if;
+                     end Send_Final_Results;
 
                   begin
                      Send_New_Results;        -- Send ongoing results.
@@ -303,7 +330,7 @@ begin
                      then
                         Log ("Command: " & Id'Image & " has terminated. Normal exit: " & The_Command.Normal_Exit'Image);
 
-                        Send_New_Results;     -- Send any final results.
+                        Send_Final_Results;
 
                         declare
                            Act : constant Client_Action := (Command_Done,

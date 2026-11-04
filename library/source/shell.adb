@@ -9,7 +9,9 @@ with
      Ada.Strings.Fixed,
      Ada.Exceptions,
      Ada.IO_Exceptions,
-     Ada.Unchecked_Conversion;
+     Ada.Task_Identification,
+     Ada.Unchecked_Conversion,
+     Ada.Unchecked_Deallocation;
 
 with Ada.Text_IO;
 --  use  Ada.Text_IO;
@@ -345,6 +347,147 @@ is
          end;
       end if;
    end Write_To;
+
+
+
+   type Data_Access is access Data;
+   procedure Free is new Ada.Unchecked_Deallocation (Data, Data_Access);
+
+
+   task type Input_Writer
+   is
+      entry Start (Descriptor : in File_Descriptor;
+                   Input      : in Data_Access);
+   end Input_Writer;
+
+
+   task body Input_Writer
+   is
+      use POSIX,
+          POSIX.Event_Management,
+          POSIX.IO;
+
+      Most_Per_Write : constant := 64 * 1024;
+
+      The_Descriptor : File_Descriptor;
+      The_Input      : Data_Access;
+      Next           : Data_Offset;
+
+   begin
+      accept Start (Descriptor : in File_Descriptor;
+                    Input      : in Data_Access)
+      do
+         The_Descriptor := Descriptor;
+         The_Input      := Input;
+      end Start;
+
+      Next := The_Input'First;
+
+      Set_File_Control (The_Descriptor, Non_Blocking);
+
+      Writing:
+      while Next <= The_Input'Last
+      loop
+         declare
+            FDS_R : File_Descriptor_Set;
+            FDS_W : File_Descriptor_Set;
+            FDS_E : File_Descriptor_Set;
+            Count : Natural;
+            Last  : Data_Offset;
+         begin
+            Make_Empty (FDS_R);
+            Make_Empty (FDS_W);
+            Make_Empty (FDS_E);
+
+            Add (FDS_W, The_Descriptor);
+
+            Select_File (Read_Files     => FDS_R,
+                         Write_Files    => FDS_W,
+                         Except_Files   => FDS_E,
+                         Files_Selected => Count,
+                         Timeout        => 1.0);
+
+            if Count = 0
+            then
+               exit Writing when not Ada.Task_Identification.Is_Callable (Ada.Task_Identification.Environment_Task);
+            else
+               Write (File   => The_Descriptor,
+                      Buffer => The_Input (Next .. Data_Offset'Min (Next + Most_Per_Write - 1,
+                                                                    The_Input'Last)),
+                      Last   => Last);
+               Next := Last + 1;
+            end if;
+
+         exception
+            when POSIX_Error =>
+               if Get_Error_Code = Broken_Pipe
+               then
+                  exit Writing;     -- The reader has gone, so the rest of the input isn't wanted.
+
+               elsif    Get_Error_Code /= Resource_Temporarily_Unavailable
+                 and then Get_Error_Code /= Interrupted_Operation
+               then
+                  raise;
+               end if;
+         end;
+      end loop Writing;
+
+      Close (The_Descriptor);
+      Free  (The_Input);
+
+   exception
+      when E : others =>
+         Log ("Input writer failed: " & Ada.Exceptions.Exception_Information (E));
+
+         Free (The_Input);
+
+         if Is_Open (The_Descriptor)
+         then
+            Close (The_Descriptor);
+         end if;
+   end Input_Writer;
+
+
+   type Input_Writer_Access is access Input_Writer;
+   procedure Free is new Ada.Unchecked_Deallocation (Input_Writer, Input_Writer_Access);
+
+   package Input_Writer_Vectors is new Ada.Containers.Vectors (Positive, Input_Writer_Access);
+
+   Input_Writers : Input_Writer_Vectors.Vector;
+
+
+
+   procedure Write_In_Background (Pipe  : in Shell.Pipe;
+                                  Input : in Data)
+   is
+      use POSIX.IO;
+
+      -- The writer has its own descriptor, which nothing else can close. Marked 'close on exec', as a
+      -- process started later which inherits it would prevent the reader from seeing the end of its input.
+      --
+      Descriptor : constant File_Descriptor := Duplicate (Pipe.Write_End);
+      The_Input  : constant Data_Access     := new Data'(Input);
+
+   begin
+      Set_Close_On_Exec (Descriptor);
+      Safe_Pipes.Close  (Pipe, Only_Write_End => True);
+
+      for i in reverse 1 .. Input_Writers.Last_Index     -- Rid finished writers.
+      loop
+         declare
+            Writer : Input_Writer_Access := Input_Writers.Element (i);
+         begin
+            if Writer'Terminated
+            then
+               Free (Writer);
+               Input_Writers.Delete (i);
+            end if;
+         end;
+      end loop;
+
+      Input_Writers.Append (new Input_Writer);
+      Input_Writers.Last_Element.Start (Descriptor, The_Input);
+   end Write_In_Background;
 
 
 

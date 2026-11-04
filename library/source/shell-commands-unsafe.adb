@@ -161,6 +161,9 @@ is
                     Accepts_Input : in     Boolean := False;
                     Pipeline      : in     Boolean := False)
    is
+      Least_Pipe_Capacity : constant := 4096;     -- More than this might block, until the program is started and reads it.
+
+      Input_Fits : constant Boolean := Input'Length <= Least_Pipe_Capacity;
    begin
       Commands.Command (The_Command).Start (Input, Accepts_Input, Pipeline);
 
@@ -168,7 +171,11 @@ is
         or Accepts_Input
       then
          The_Command.Input_Pipe := To_Pipe;
-         Write_To (The_Command.Input_Pipe, Input);
+
+         if Input_Fits
+         then
+            Write_To (The_Command.Input_Pipe, Input);
+         end if;
       end if;
 
       if The_Command.Output_Pipe = Null_Pipe
@@ -189,12 +196,20 @@ is
                                     Errors    =>  The_Command.Error_Pipe,
                                     Pipeline  =>  Pipeline);
 
-      -- All the input has been written, so let the program see the end of its input.
-      --
-      if     Input /= No_Data
-        and not Accepts_Input
+      if Accepts_Input
       then
-         Close_Write_End (The_Command.Input_Pipe);
+         if not Input_Fits
+         then
+            Write_To (The_Command.Input_Pipe, Input);     -- As for 'Send', this blocks until the program has read enough.
+         end if;
+
+      elsif not Input_Fits
+      then
+         Write_In_Background (The_Command.Input_Pipe, Input);
+
+      elsif Input /= No_Data
+      then
+         Close_Write_End (The_Command.Input_Pipe);        -- All the input has been written, so let the program see the end of it.
       end if;
    end Start;
 
@@ -261,23 +276,26 @@ is
    procedure Gather_Results (The_Command : in out Command)
    is
    begin
-      declare
-         The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
-      begin
-         if The_Output'Length /= 0
-         then
-            The_Command.Output.Append (The_Output);
-         end if;
-      end;
+      for Each in 1 .. Most_Reads_Per_Gather
+      loop
+         declare
+            The_Output : constant Data := Output_Of (The_Command.Output_Pipe);
+            The_Errors : constant Data := Output_Of (The_Command.Error_Pipe);
+         begin
+            exit when The_Output'Length = 0
+                  and The_Errors'Length = 0;
 
-      declare
-         The_Errors : constant Data := Output_Of (The_Command.Error_Pipe);
-      begin
-         if The_Errors'Length /= 0
-         then
-            The_Command.Errors.Append (The_Errors);
-         end if;
-      end;
+            if The_Output'Length /= 0
+            then
+               The_Command.Output.Append (The_Output);
+            end if;
+
+            if The_Errors'Length /= 0
+            then
+               The_Command.Errors.Append (The_Errors);
+            end if;
+         end;
+      end loop;
    end Gather_Results;
 
 

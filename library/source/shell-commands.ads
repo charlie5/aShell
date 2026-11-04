@@ -150,6 +150,11 @@ private
    function Hash (Id : in Command_Id) return Ada.Containers.Hash_Type;
 
 
+   -- A pipe can hold more than a single read returns, so output is read until none is left. This is limited since another
+   -- process which inherited the pipe, such as a background child of the command, may write to it for ever.
+   --
+   Most_Reads_Per_Gather : constant := 64;
+
    package Data_Holders is new Ada.Containers.Indefinite_Holders (Element_Type => Data);
    subtype Data_Holder  is     Data_Holders.Holder;
 
