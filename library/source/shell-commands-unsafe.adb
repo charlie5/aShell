@@ -522,12 +522,21 @@ is
    procedure Wait_On (The_Command : in out Command)
    is
    begin
-      Wait_On (The_Command.Process);
-
-      if not The_Command.Has_Terminated
+      if The_Command.Status = Not_Started
       then
-         raise Command_Error with "Command has not terminated after being waited on.";
+         raise Command_Error with "Cannot wait on '" & (+The_Command.Name) & "' as it has not been started.";
       end if;
+
+      -- Nothing else reads the output, and the program can't end while it is blocked by a full pipe.
+      --
+      loop
+         The_Command.Gather_Results;
+         exit when The_Command.Has_Terminated;
+
+         delay 0.01;     -- The pipes may be at their end, while the program is still running.
+      end loop;
+
+      The_Command.Gather_Results;     -- Gather any final results.
    end Wait_On;
 
 

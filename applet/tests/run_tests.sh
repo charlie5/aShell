@@ -224,6 +224,7 @@ check commands/unsafe/environment               30 ''   'Actual   output: aShell
 check commands/unsafe/large_input               60 ''   'Program which reads nothing passed'
 check commands/unsafe/pipeline_error            60 ''   'Pipeline failed as expected'  'raised an exception, as expected'  "End 'Pipeline_Error'"
 check commands/unsafe/pipeline_output           30 ''   "End 'Pipeline_Output'"
+check commands/unsafe/wait_on                   60 ''   'Waiting on a pipeline passed'
 check commands/unsafe/unused_command            30 ''   'Success'
 
 check commands/safe/close_input                 60 ''      "Other commands aren't held up passed"
