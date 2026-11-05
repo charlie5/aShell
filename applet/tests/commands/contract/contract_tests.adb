@@ -121,6 +121,46 @@ begin
       Check ("Last command of a pipeline",      Name (Pipeline (3)) = "cat" and Arguments (Pipeline (3)) = "");
    end;
 
+   -- A pipeline with a missing command is a mistake, which must be reported as one.
+   --
+   declare
+      function Is_Rejected (Pipeline : in String) return Boolean
+      is
+      begin
+         declare
+            Unused : constant Command_Array := Forge.To_Commands (Pipeline);
+         begin
+            return False;
+         end;
+      exception
+         when Command_Error =>
+            return True;
+
+         when E : others =>
+            Ada.Text_IO.Put_Line ("Raised " & Ada.Exceptions.Exception_Name (E));
+            return False;
+      end Is_Rejected;
+   begin
+      Check ("An empty pipeline is rejected",                 Is_Rejected (""));
+      Check ("A pipeline of only spaces is rejected",         Is_Rejected ("   "));
+      Check ("A trailing '|' is rejected",                    Is_Rejected ("ls | wc |"));
+      Check ("A trailing '|' and space is rejected",          Is_Rejected ("ls | wc | "));
+      Check ("A leading '|' is rejected",                     Is_Rejected ("| ls | wc"));
+      Check ("Nothing between two '|' is rejected",           Is_Rejected ("ls || wc"));
+      Check ("Only a space between two '|' is rejected",      Is_Rejected ("ls | | wc"));
+      Check ("A '|' alone is rejected",                       Is_Rejected ("|"));
+   end;
+
+   declare
+      function Many_Cats (Count : in Natural) return String
+      is (if Count = 0 then "" else " | cat" & Many_Cats (Count - 1));
+
+      The_Pipeline : Command_Array := Forge.To_Commands ("echo Many" & Many_Cats (60));
+   begin
+      Check ("A pipeline may have more than 50 commands", The_Pipeline'Length = 61);
+      Check ("A pipeline of more than 50 commands runs",  +Output_Of (Run (The_Pipeline)) = "Many" & LF);
+   end;
+
    declare
       The_Pipeline : constant Command_Array := Forge.To_Commands ("echo Only");
    begin
@@ -650,7 +690,18 @@ begin
    begin
       Ada.Text_IO.Put_Line (Listing);
       Check ("A program inherits only the pipes it is given", Count_Of (Listing, "pipe:") <= 2);
+      Check ("A program doesn't inherit the server's log",    not Contains (Listing, "aShell_spawn_Server.log"));
    end;
+
+   Shell.Open_Log ("aShell_spawn_Client.log");
+
+   declare
+      Listing : constant String := +Output_Of (Run ("bash ../show_descriptors.sh"));
+   begin
+      Check ("A program doesn't inherit this program's log",  not Contains (Listing, "aShell_spawn_Client.log"));
+   end;
+
+   Shell.Close_Log;
 
    -- What a command line does with quotes, which isn't what a shell does.
    --

@@ -13,10 +13,12 @@ with
      Ada.Unchecked_Conversion,
      Ada.Unchecked_Deallocation;
 
-with Ada.Text_IO;
+with Ada.Text_IO.C_Streams,
+     Ada.Text_IO;
 --  use  Ada.Text_IO;
 
-with Interfaces.C;
+with Interfaces.C,
+     Interfaces.C_Streams;
 
 
 package body Shell
@@ -1559,6 +1561,11 @@ is
          end if;
 
          Create (Log_File, Out_File, Name);
+
+         -- Otherwise each program started would inherit it, as they do not inherit any pipe they aren't given.
+         --
+         POSIX.IO.Set_Close_On_Exec (POSIX.IO.File_Descriptor (Interfaces.C_Streams.fileno (Ada.Text_IO.C_Streams.C_Stream (Log_File))));
+
          Log_Enabled := True;     -- Only now, as the file may not be creatable.
       end Open;
 

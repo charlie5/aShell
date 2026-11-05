@@ -1,7 +1,6 @@
 with
      GNAT.OS_Lib,
      Ada.Strings.Fixed,
-     Ada.Strings.Maps,
      Ada.Unchecked_Deallocation;
 
 
@@ -96,36 +95,32 @@ is
    is
       use Ada.Strings.Fixed;
 
-      Cursor : Positive := Pipeline'First;
-      First,
-      Last   : Positive;
-      Count  : Natural := 0;
-
-      Max_Commands_In_Pipeline : constant := 50;     -- Arbitrary.
-
-      Result : String_Array (1 .. Max_Commands_In_Pipeline);
+      Result : String_Vector;
+      First  : Positive := Pipeline'First;
    begin
       loop
-         Find_Token (Source => Pipeline,
-                     Set    => Ada.Strings.Maps.To_Set ('|'),
-                     From   => Cursor,
-                     Test   => Ada.Strings.Outside,
-                     First  => First,
-                     Last   => Last);
          declare
+            Bar  : constant Natural := Index (Pipeline (First .. Pipeline'Last), "|");
+            Last : constant Natural := (if Bar = 0 then Pipeline'Last
+                                                   else Bar - 1);
+
             Full_Command : constant String := Trim (Pipeline (First .. Last),
                                                     Ada.Strings.Both);
          begin
-            Count          :=  Count + 1;
-            Result (Count) := +Full_Command;
+            if Full_Command = ""
+            then
+               raise Command_Error with "The pipeline '" & Pipeline & "' has a missing command.";
+            end if;
+
+            Result.Append (+Full_Command);
+
+            exit when Bar = 0;
+
+            First := Bar + 1;
          end;
-
-         exit when Last = Pipeline'Last;
-
-         Cursor := Last + 1;
       end loop;
 
-      return Result (1 .. Count);
+      return To_String_Array (Result);
    end To_Command_Lines;
 
 

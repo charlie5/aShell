@@ -155,7 +155,7 @@ private
    function To_String_Array  (Strings  : in String_Vector) return String_Array;
    function To_Command_Lines (Pipeline : in String)        return String_Array;
    --
-   -- Split a pipeline into separate command strings.
+   -- Split a pipeline into separate command strings. Raises 'Command_Error' if any would be empty.
 
 
    -----------------------
