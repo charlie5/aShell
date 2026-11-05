@@ -796,7 +796,7 @@ is
                                                            Writer  => new Input_Writer,
                                                            Queue   => new Input_Queue);
             begin
-               Safe_Pipes.Note_Writer (Pipe, New_Writer.Queue.Wake'Access);
+               Safe_Pipes.Note_Writer (Pipe, New_Writer.Queue.all.Wake'Access);     -- GNAT before 16 rejects this without the '.all'.
 
                The_Input := new Data'(Input);
 

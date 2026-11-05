@@ -1,12 +1,18 @@
 # Changelog
 
+## 2.0.1 (2026-11-06)
+
+### Fixed
+
+- `alire.toml` depended on a `gcc` crate which doesn't exist, so Alire couldn't resolve the dependencies. It now depends on `gnat` 12.1 or later, and `florist_blady` 6.1.0 or later.
+- `shell.adb` built only with GNAT 16, as earlier versions rejected one line. It now builds with GNAT 12.1 and later.
+
 ## 2.0.0 (2026-11-06)
 
 This release makes commands report failure accurately, and fixes many hangs and lost results. Some programs which built against 1.3.0 will need changes, and some will behave differently.
 
 ### Upgrading
 
-- **Check your compiler.** Through Alire, this release needs GCC 12.1 or later and `florist_blady` 6.1.0 or later.
 - **Reinstall the spawn server.** `Safe` programs need the matching `ashell_spawn_server`. With an older or newer one, callers get a `Command_Error` saying to reinstall. Run `applet/spawn_server/install_spawn_server.sh`.
 - **Check calls to `Run (Command_Line)`.** It now raises `Command_Error` if any command in a pipeline fails, not only the last. This includes a command ended by SIGPIPE, as in `yes | head -1`, so a pipeline like that one now raises.
 
