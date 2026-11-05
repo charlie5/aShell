@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-aShell is an Ada 2022 library for starting and interacting with OS processes, pipes and pipelines (POSIX only, via Florist).
+aShell is an Ada 2022 library for starting and interacting with OS processes, pipes and pipelines (POSIX only, via Florist). It has only been used on Linux, and `Note_Any_Continue` in `shell.adb` hard-codes Linux's `waitid` values.
 
 ## Build
 

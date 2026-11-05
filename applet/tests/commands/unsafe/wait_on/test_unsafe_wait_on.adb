@@ -27,7 +27,95 @@ is
       Ada.Text_IO.Put_Line (Test & " passed.");
    end Check;
 
+
+   function Times_This_Task_Has_Slept return Natural
+   is
+      use Ada.Text_IO;
+
+      Label  : constant String := "voluntary_ctxt_switches:";
+      Status : File_Type;
+      Result : Natural := 0;
+   begin
+      Open (Status, In_File, "/proc/thread-self/status");
+
+      while not End_Of_File (Status)
+      loop
+         declare
+            Line : constant String := Get_Line (Status);
+         begin
+            if         Line'Length > Label'Length
+              and then Line (Line'First .. Line'First + Label'Length - 1) = Label
+            then
+               Result := Natural'Value (Line (Line'First + Label'Length + 1 .. Line'Last));     -- After the tab.
+            end if;
+         end;
+      end loop;
+
+      Close (Status);
+      return Result;
+   end Times_This_Task_Has_Slept;
+
+
+   -- Once a program has closed its pipes, only its end is left to wait for, so nothing should keep checking.
+   --
+   Most_Wake_Ups : constant := 50;
+
 begin
+   declare
+      The_Command : Unsafe.Command := Forge.To_Command ("bash closes_output.sh");
+   begin
+      The_Command.Start;
+
+      declare
+         Before : constant Natural := Times_This_Task_Has_Slept;
+      begin
+         The_Command.Wait_On;
+
+         Ada.Text_IO.Put_Line ("Wake ups in 'Wait_On':" & Natural'Image (Times_This_Task_Has_Slept - Before));
+         Check ("'Wait_On' sleeps once a program has closed its pipes", Times_This_Task_Has_Slept - Before < Most_Wake_Ups);
+         Check ("The program which closed its pipes ends normally",     The_Command.Normal_Exit);
+      end;
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash closes_output.sh | bash closes_output.sh");
+      Before       : constant Natural := Times_This_Task_Has_Slept;
+   begin
+      Run (The_Pipeline);
+
+      Ada.Text_IO.Put_Line ("Wake ups in pipeline 'Run':" & Natural'Image (Times_This_Task_Has_Slept - Before));
+      Check ("Pipeline 'Run' sleeps once its programs have closed their pipes", Times_This_Task_Has_Slept - Before < Most_Wake_Ups);
+      Check ("The pipeline which closed its pipes didn't fail",                 Which_Failed (The_Pipeline) = 0);
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash closes_output.sh | bash closes_output.sh");
+   begin
+      Start (The_Pipeline);
+
+      declare
+         Before : constant Natural := Times_This_Task_Has_Slept;
+      begin
+         The_Pipeline (2).Wait_On;
+         The_Pipeline (1).Wait_On;
+
+         Ada.Text_IO.Put_Line ("Wake ups waiting on a pipeline:" & Natural'Image (Times_This_Task_Has_Slept - Before));
+         Check ("Waiting on a pipeline sleeps once its programs have closed their pipes", Times_This_Task_Has_Slept - Before < Most_Wake_Ups);
+         Check ("Each command of that pipeline ends normally", The_Pipeline (1).Normal_Exit and The_Pipeline (2).Normal_Exit);
+      end;
+   end;
+
+   -- A program which closes its pipes, stops, and is continued from outside, is still waited on until it ends.
+   --
+   declare
+      The_Command : Unsafe.Command := Forge.To_Command ("bash stops_after_closing.sh");
+   begin
+      The_Command.Run;
+
+      Check ("A stopped program which closed its pipes is waited on", The_Command.Failed);     -- It exits with a failure, at its end.
+   end;
+
+
    -- Large output.
    --
    declare

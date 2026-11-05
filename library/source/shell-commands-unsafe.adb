@@ -190,6 +190,8 @@ is
 
 
    -- A program usually closes its pipes just before it can be seen to have ended, and nothing then wakes the wait.
+   -- While any pipes are open, the wait must also notice a program which ends without closing them, so it can't
+   -- simply block. For example, a background child of the program may have inherited a pipe, and hold it open.
    --
    Most_Wait_On_Pipes : constant Duration := 0.002;
 
@@ -227,6 +229,51 @@ is
          end;
       end loop;
    end Read_All_Stages;
+
+
+
+   -- A program can't end while it is blocked by a full pipe, so a wait must keep reading any which are open.
+   --
+   function Has_Pipes_To_Read (The_Command : in Command) return Boolean
+   is
+      function Is_Open (The_Pipe : in Pipe) return Boolean
+      is (The_Pipe /= Null_Pipe and then Is_Readable (The_Pipe));
+   begin
+      if The_Command.Pipeline /= null
+      then
+         for Each of The_Command.Pipeline.Stages
+         loop
+            if    Is_Open (Each.Output_Pipe)
+               or Is_Open (Each.Error_Pipe)
+            then
+               return True;
+            end if;
+         end loop;
+
+         return False;
+      end if;
+
+      return    (not The_Command.Output_Is_Connected and then Is_Open (The_Command.Output_Pipe))
+             or Is_Open (The_Command.Error_Pipe);
+   end Has_Pipes_To_Read;
+
+
+
+   -- With no pipes left to read, only the program's end is left to wait for.
+   --
+   procedure Wait_Until_Program_Ends (The_Command : in out Command)
+   is
+      use Ada.Characters.Handling,
+          Ada.Exceptions;
+   begin
+      Wait_On (The_Command.Process);
+   exception
+      when E : POSIX.POSIX_Error =>
+         if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"     -- 'Has_Terminated' accepts this, as ended.
+         then
+            raise;
+         end if;
+   end Wait_Until_Program_Ends;
 
 
 
@@ -651,6 +698,9 @@ is
                end;
             end if;
 
+         elsif not Has_Pipes_To_Read (Last_Command)
+         then
+            Wait_Until_Program_Ends (The_Pipeline (i));
          end if;
       end loop;
    end Run_Commands;
@@ -866,6 +916,11 @@ is
          end if;
 
          exit when The_Command.Has_Terminated;
+
+         if not Has_Pipes_To_Read (The_Command)
+         then
+            Wait_Until_Program_Ends (The_Command);
+         end if;
       end loop;
 
       The_Command.Gather_Results;     -- Gather any final results.

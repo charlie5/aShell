@@ -1004,6 +1004,9 @@ is
    -- A process which has been stopped may have been continued from outside. Florist's waits don't report
    -- this, so ask directly. Only a continue is asked about, so the process's exit will not be taken.
    --
+   -- Florist has no binding for 'waitid'. The size of a 'siginfo_t', the position of its signal number and the values of
+   -- the constants below are those of Linux, so they need checking before aShell is used on any other POSIX system.
+   --
    procedure Note_Any_Continue (Process : in out Shell.Process)
    is
       use Interfaces.C;
