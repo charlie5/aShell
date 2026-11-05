@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0 (2026-11-06)
 
 This release makes commands report failure accurately, and fixes many hangs and lost results. Some programs which built against 1.3.0 will need changes, and some will behave differently.
 
