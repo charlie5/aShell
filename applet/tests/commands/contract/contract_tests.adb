@@ -581,6 +581,78 @@ begin
    end;
 
 
+   -- A command which is still running hasn't failed, whichever others have.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | false");
+   begin
+      Start (The_Pipeline);
+      The_Pipeline (2).Wait_On;
+
+      Check ("Which_Failed passes over a command still running", Which_Failed (The_Pipeline) = 2);
+      Check ("Failed passes over a command still running",       Failed (The_Pipeline));
+
+      The_Pipeline (1).Kill;
+      The_Pipeline (1).Wait_On;
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | sleep 20");
+   begin
+      Start (The_Pipeline);
+
+      Check ("Which_Failed is 0 when all are still running", Which_Failed (The_Pipeline) = 0);
+      Check ("Failed is false when all are still running",   not Failed (The_Pipeline));
+
+      for Each of The_Pipeline
+      loop
+         Each.Kill;
+         Each.Wait_On;
+      end loop;
+   end;
+
+   -- Nothing has waited on the command which failed.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("false | sleep 20");
+      Found        : Natural       := 0;
+   begin
+      Start (The_Pipeline);
+
+      for Each in 1 .. 500
+      loop
+         Found := Which_Failed (The_Pipeline);
+         exit when Found /= 0;
+         delay 0.01;
+      end loop;
+
+      Check ("Which_Failed sees a command end without it being waited on", Found = 1);
+
+      The_Pipeline (2).Kill;
+      The_Pipeline (2).Wait_On;
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("true | sleep 20");
+   begin
+      Start (The_Pipeline);
+      The_Pipeline (1).Wait_On;
+
+      Check ("Which_Failed is 0 with one ended well, and another running", Which_Failed (The_Pipeline) = 0);
+      Check ("Failed is false with one ended well, and another running",   not Failed (The_Pipeline));
+
+      The_Pipeline (2).Kill;
+      The_Pipeline (2).Wait_On;
+   end;
+
+   declare
+      Unstarted : Command_Array := Forge.To_Commands ("true | true");
+   begin
+      Check ("Which_Failed is 0 when none have started", Which_Failed (Unstarted) = 0);
+      Check ("Failed is false when none have started",   not Failed (Unstarted));
+   end;
+
+
    -- Only the command which can't start is at fault. Those before it are stopped, which isn't a normal exit.
    --
    declare

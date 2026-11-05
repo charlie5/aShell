@@ -997,16 +997,7 @@ is
    function Failed (The_Pipeline : in Command_Array) return Boolean
    is
    begin
-      for Each of The_Pipeline
-      loop
-         if        Each.Safe_Outputs.Not_At_Fault     -- Another command couldn't start, and what the server says of it may be on its way.
-           or else Each.Failed
-         then
-            return True;
-         end if;
-      end loop;
-
-      return False;
+      return Which_Failed (The_Pipeline) /= 0;
    end Failed;
 
 
@@ -1026,7 +1017,8 @@ is
          then
             Start_Failed := True;
 
-         elsif not The_Pipeline (i).Normal_Exit
+         elsif     The_Pipeline (i).Safe_Outputs.Is_Done
+           and then not The_Pipeline (i).Normal_Exit
          then
             return i;
          end if;
@@ -1034,7 +1026,8 @@ is
 
       for i in The_Pipeline'Range
       loop
-         if not The_Pipeline (i).Normal_Exit
+         if        The_Pipeline (i).Safe_Outputs.Is_Done
+           and then not The_Pipeline (i).Normal_Exit
          then
             return i;
          end if;

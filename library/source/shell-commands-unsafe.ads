@@ -102,10 +102,10 @@ is
 
 
 
-   function  Failed       (The_Pipeline : in Command_Array) return Boolean;
-   function  Which_Failed (The_Pipeline : in Command_Array) return Natural;
+   function  Failed       (The_Pipeline : in out Command_Array) return Boolean;
+   function  Which_Failed (The_Pipeline : in out Command_Array) return Natural;
    --
-   -- Returns 0 if no command failed.
+   -- Returns 0 if no command has failed so far. A command which hasn't ended, or hasn't started, hasn't failed.
 
    overriding
    procedure Wait_On        (The_Command : in out Command);

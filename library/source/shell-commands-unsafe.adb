@@ -834,23 +834,15 @@ is
 
 
 
-   function Failed (The_Pipeline : in Command_Array) return Boolean
+   function Failed (The_Pipeline : in out Command_Array) return Boolean
    is
    begin
-      for Each of The_Pipeline
-      loop
-         if Failed (Each)
-         then
-            return True;
-         end if;
-      end loop;
-
-      return False;
+      return Which_Failed (The_Pipeline) /= 0;
    end Failed;
 
 
 
-   function Which_Failed (The_Pipeline : in Command_Array) return Natural
+   function Which_Failed (The_Pipeline : in out Command_Array) return Natural
    is
    begin
       for i in The_Pipeline'Range     -- Commands before this were only stopped because of it, so aren't at fault.
@@ -863,7 +855,8 @@ is
 
       for i in The_Pipeline'Range
       loop
-         if not Normal_Exit (The_Pipeline (i).Process)
+         if         The_Pipeline (i).Has_Terminated
+           and then not Normal_Exit (The_Pipeline (i).Process)
          then
             return i;
          end if;
