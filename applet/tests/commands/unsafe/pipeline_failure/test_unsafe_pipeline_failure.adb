@@ -385,6 +385,56 @@ begin
          Check ("A pipeline of no commands raises", True);
    end;
 
+   declare
+      None : Command_Array (1 .. 0);
+   begin
+      Run (None);
+      Check ("Running a pipeline of no commands raises", False);
+   exception
+      when Command_Error =>
+         Check ("Running a pipeline of no commands raises", True);
+   end;
+
+   declare
+      None : Command_Array (1 .. 0);
+   begin
+      declare
+         Unused : constant Command_Results := Run (None);
+      begin
+         Check ("The function running a pipeline of no commands raises", False);
+      end;
+   exception
+      when Command_Error =>
+         Check ("The function running a pipeline of no commands raises", True);
+   end;
+
+
+   -- Commands which are connected, and never started, must leak nothing.
+   --
+   declare
+      Before : constant Natural := Open_Descriptors;
+   begin
+      for Each in 1 .. 50
+      loop
+         declare
+            Writer : Unsafe.Command := Forge.To_Command ("echo Unused");
+            Reader : Unsafe.Command := Forge.To_Command ("cat");
+         begin
+            Connect (Writer, Reader);
+            Connect (Writer, Reader);     -- The first pipe is replaced.
+         end;
+
+         declare
+            The_Pipeline : Command_Array := Forge.To_Commands ("echo Connected | cat");
+         begin
+            Connect (The_Pipeline);       -- 'Run' connects them again.
+            Run (The_Pipeline);
+         end;
+      end loop;
+
+      Check ("Connecting commands leaks no descriptors", Open_Descriptors = Before);
+   end;
+
 
    -- A pipeline of one command must leak nothing.
    --

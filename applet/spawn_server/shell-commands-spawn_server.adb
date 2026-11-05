@@ -137,6 +137,31 @@ begin
       Shutting_Down :         Boolean     := False;
 
 
+      function To_Command (The_Line : in Command_Line) return Unsafe.Command
+      is
+      begin
+         return Result : Unsafe.Command := Unsafe.Privy.To_Command_With_Pipes
+         do
+            Command (Result).Name      := The_Line.Name;
+            Command (Result).Arguments := The_Line.Arguments;
+         end return;
+      end To_Command;
+
+
+      function To_Commands (The_Lines : in Command_Lines) return Unsafe.Command_Array
+      is
+      begin
+         return Result : Unsafe.Command_Array (1 .. Natural (The_Lines.Length))
+         do
+            for i in Result'Range
+            loop
+               Command (Result (i)).Name      := The_Lines.Element (i).Name;
+               Command (Result (i)).Arguments := The_Lines.Element (i).Arguments;
+            end loop;
+         end return;
+      end To_Commands;
+
+
       procedure Send_Error (Id      : in Command_Id;
                             Message : in String)
       is
@@ -191,7 +216,7 @@ begin
 
                begin
                   declare
-                     The_Command : Unsafe.Command := Privy.To_Command (+Action.Command_Line);
+                     The_Command : Unsafe.Command := To_Command (Action.The_Line);
                   begin
                      The_Command.Start (Input => Action.Command_Input.Element,
                                         Accepts_Input => Action.Accepts_Input);
@@ -216,18 +241,9 @@ begin
                   declare
                      use Shell.Commands.Unsafe.Privy;
 
-                     The_Commands  : Unsafe.Command_Array := Forge.To_Commands (+Action.Pipeline);
+                     The_Commands  : Unsafe.Command_Array := To_Commands (Action.The_Lines);
                      Error_Is_Sent : Boolean              := False;
                   begin
-                     -- The client joins its commands into one line, so an argument containing a '|' splits a command.
-                     --
-                     if The_Commands'Length /= Action.Pipeline_Count
-                     then
-                        raise Command_Error with "Cannot start pipeline of"       & Action.Pipeline_Count'Image
-                                               & " commands, as its line has"     & The_Commands'Length'Image
-                                               & ". An argument may contain a '|'.";
-                     end if;
-
                      begin
                         Start (The_Commands,
                                Input    => Action.Pipeline_Input.Element,
@@ -272,7 +288,7 @@ begin
                            goto Pipeline_Done;
                      end;
 
-                     Log ("New Pipeline: First command Id =>" & Action.Id'Image & "   '" & (+Action.Pipeline) & "'");
+                     Log ("New Pipeline: First command Id =>" & Action.Id'Image);
 
                      for i in The_Commands'Range
                      loop
@@ -289,12 +305,12 @@ begin
                   end;
 
                exception
-                  when E : others =>     -- The line could not be parsed, so no command exists. Release the client's callers.
+                  when E : others =>     -- No command exists. Release the client's callers.
                      Log (Ada.Exceptions.Exception_Information (E));
 
                      Send_Error (First_Id, Ada.Exceptions.Exception_Message (E));
 
-                     for Each in 0 .. Command_Id (Action.Pipeline_Count) - 1
+                     for Each in 0 .. Command_Id (Action.The_Lines.Length) - 1
                      loop
                         Send_Done (First_Id + Each, Normal_Exit => False);
                      end loop;
@@ -432,13 +448,15 @@ begin
       Quick_Checks : Natural := 0;
 
 
+      Ready : Pipe_Id_Sets.Set;     -- The pipes which the last wait found ready, so that the others needn't be asked.
+
+
       function Read_Noting_End (The_Pipe : in Pipe) return Data
       is
-         Was_Open : constant Boolean := Is_Readable (The_Pipe);
-         Result   : constant Data    := Available_Output_Of (The_Pipe);
+         Result : constant Data := Output_If_Ready (The_Pipe, Ready);
       begin
-         if     Was_Open
-            and not Is_Readable (The_Pipe)
+         if         Ready.Contains (The_Pipe.Id)
+           and then not Is_Readable (The_Pipe)
          then
             Quick_Checks := 25;
          end if;
@@ -467,7 +485,13 @@ begin
             Next                 := Next + 2;
          end loop;
 
-         Wait_For_Output (The_Pipes, Timeout => (if Quick_Checks > 0 then 0.001 else 0.05));
+         -- With actions waiting, a burst of them may take more than one pass, so just see which pipes are ready.
+         --
+         Wait_For_Output (The_Pipes,
+                          Timeout => (if    New_Actions.Has_Actions then 0.0
+                                      elsif Quick_Checks > 0        then 0.001
+                                      else                               0.05),
+                          Ready   => Ready);
 
          if Quick_Checks > 0
          then
@@ -475,7 +499,7 @@ begin
          end if;
 
          declare
-            Unused : constant Data := Available_Output_Of (Wake_Up);
+            Unused : constant Data := Output_If_Ready (Wake_Up, Ready);
          begin
             null;
          end;
@@ -490,11 +514,7 @@ begin
 
       loop
          begin
-            if not New_Actions.Has_Actions     -- A burst of actions may take more than one pass.
-            then
-               Wait_For_Something;
-            end if;
-
+            Wait_For_Something;
             Perform_Waiting_Actions;
 
 

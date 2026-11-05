@@ -278,7 +278,7 @@ is
 
                Pending_Actions.Append (Server_Action' (New_Command,
                                                        The_Command.Id,
-                                                       To_Unbounded_String (Name (The_Command) & " " & Arguments (The_Command)),
+                                                       To_Command_Line (The_Command),
                                                        Data_Holders.To_Holder (Input),
                                                        Accepts_Input));
             end Add;
@@ -292,41 +292,24 @@ is
 
                declare
                   First_Id : constant Command_Id := Next_Id;
-                  Line     : Unbounded_String;
+                  Lines    : Command_Lines;
                begin
-                  for i in The_Pipeline'Range
+                  for The_Command of The_Pipeline
                   loop
-                     declare
-                        The_Command : Command renames The_Pipeline (i);
-                     begin
-                        The_Command.Id := Next_Id;
-                        Next_Id        := Next_Id + 1;
+                     The_Command.Id := Next_Id;
+                     Next_Id        := Next_Id + 1;
 
-                        if i = The_Pipeline'First
-                        then
-                           Set_Unbounded_String (Line,
-                                                 Name (The_Command)
-                                                 & " "
-                                                 & Arguments (The_Command));
-                        else
-                           Append (Line,
-                                   " | "
-                                   & Name (The_Command)
-                                   & " "
-                                   & Arguments (The_Command));
-                        end if;
+                     Lines.Append (To_Command_Line (The_Command));
 
-                        The_Command.Safe_Outputs.Hold;
-                        Command_Outputs_Map.Insert (The_Command.Id,
-                                                    The_Command.Safe_Outputs);
-                     end;
+                     The_Command.Safe_Outputs.Hold;
+                     Command_Outputs_Map.Insert (The_Command.Id,
+                                                 The_Command.Safe_Outputs);
                   end loop;
 
                   Pending_Actions.Append (Server_Action' (New_Pipeline,
                                                           First_Id,
-                                                          Line,
-                                                          Data_Holders.To_Holder (Input),
-                                                          The_Pipeline'Length));
+                                                          Lines,
+                                                          Data_Holders.To_Holder (Input)));
                end;
             end Add;
          or
@@ -757,9 +740,9 @@ is
 
 
 
-   procedure Run (The_Pipeline : in out Command_Array;
-                  Input        : in     Data    := No_Data;
-                  Raise_Error  : in     Boolean := False)
+   procedure Run_Commands (The_Pipeline : in out Command_Array;
+                           Input        : in     Data;
+                           Raise_Error  : in     Boolean)
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
       i            : Positive := The_Pipeline'First;
@@ -824,6 +807,21 @@ is
    exception
       when Tasking_Error =>
          raise Command_Error with Client_Gone_Message;
+   end Run_Commands;
+
+
+
+   procedure Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False)
+   is
+   begin
+      if The_Pipeline'Length = 0
+      then
+         raise Command_Error with "Cannot run a pipeline with no commands.";
+      end if;
+
+      Run_Commands (The_Pipeline, Input, Raise_Error);
    end Run;
 
 
@@ -832,8 +830,7 @@ is
                  Input        : in     Data    := No_Data;
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
-      Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-      Earlier      : Data_Vector;
+      Earlier : Data_Vector;
    begin
       Run (The_Pipeline, Input, Raise_Error);
 
@@ -846,7 +843,7 @@ is
          Earlier.Append (The_Pipeline (i).Errors);
       end loop;
 
-      return With_Earlier_Errors (Results_Of (Last_Command), Earlier);
+      return With_Earlier_Errors (Results_Of (The_Pipeline (The_Pipeline'Last)), Earlier);
    end Run;
 
 

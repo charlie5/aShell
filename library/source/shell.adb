@@ -391,20 +391,26 @@ is
 
 
 
-   procedure Wait_For_Output (Pipes   : in Pipe_Array;
-                              Timeout : in Duration)
+   procedure Wait_For_Output (Pipes   : in     Pipe_Array;
+                              Timeout : in     Duration;
+                              Ready   :    out Pipe_Id_Sets.Set)
    is
       use POSIX.Event_Management;
+      use type POSIX.Option_Set;
 
       Files : Poll_FD_Array (1 .. Pipes'Length);
+      Ids   : array (Files'Range) of Pipe_Id;
       Last  : Natural := 0;
    begin
+      Ready.Clear;
+
       for Each of Pipes
       loop
          if         Each /= Null_Pipe
            and then Is_Readable (Each)
          then
-            Last := Last + 1;
+            Last       := Last + 1;
+            Ids (Last) := Each.Id;
 
             Set_File   (Files (Last), Each.Read_End);
             Set_Events (Files (Last), Read_Not_High);
@@ -417,24 +423,26 @@ is
          return;
       end if;
 
-      declare
-         Unused : constant Boolean := Any_Are_Ready (Files (1 .. Last), Timeout);
-      begin
-         null;
-      end;
+      if Any_Are_Ready (Files (1 .. Last), Timeout)
+      then
+         for i in 1 .. Last
+         loop
+            if POSIX.Option_Set (Get_Returned_Events (Files (i))) /= POSIX.Empty_Set
+            then
+               Ready.Include (Ids (i));
+            end if;
+         end loop;
+      end if;
    end Wait_For_Output;
 
 
 
-   function Available_Output_Of (Pipe : in Shell.Pipe) return Data
+   function Output_If_Ready (Pipe  : in Shell.Pipe;
+                             Ready : in Pipe_Id_Sets.Set) return Data
    is
       use type POSIX.Error_Code;
-
-      No_Wait : constant Duration := 0.000_001;     -- A timeout of '0.0' would block.
    begin
-      if         Pipe = Null_Pipe
-        or else not Is_Readable (Pipe)
-        or else Is_Empty (Pipe, Timeout => No_Wait)
+      if not Ready.Contains (Pipe.Id)
       then
          return No_Data;
       end if;
@@ -462,7 +470,7 @@ is
          end if;
 
          return No_Data;
-   end Available_Output_Of;
+   end Output_If_Ready;
 
 
 

@@ -250,6 +250,15 @@ is
 
 
 
+   function To_Command_Line (The_Command : in Command'Class) return Command_Line
+   is
+   begin
+      return (Name      => The_Command.Name,
+              Arguments => The_Command.Arguments);
+   end To_Command_Line;
+
+
+
    function Name (The_Command : in Command) return String
    is
    begin

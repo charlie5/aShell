@@ -84,12 +84,24 @@ is
    is
       Pipe : constant Shell.Pipe := To_Pipe;
    begin
+      -- These may have been connected already.
+      --
+      if From.Owns_Output_Pipe
+      then
+         Close (From.Output_Pipe);
+      end if;
+
+      if To.Owns_Input_Pipe
+      then
+         Close (To.Input_Pipe);
+      end if;
+
       From.Output_Pipe         := Pipe;
       From.Output_Is_Connected := True;
       To.   Input_Pipe         := Pipe;
 
-      From.Owns_Input_Pipe  := True;
-      To.  Owns_Output_Pipe := True;
+      From.Owns_Output_Pipe := True;     -- Closing a pipe twice is harmless, and each may go first.
+      To.  Owns_Input_Pipe  := True;
    end Connect;
 
 
@@ -186,6 +198,7 @@ is
    is
       The_Pipes : Pipe_Array (1 .. 2 * The_Pipeline.Count);
       Next      : Positive := 1;
+      Ready     : Pipe_Id_Sets.Set;
    begin
       for Each of The_Pipeline.Stages
       loop
@@ -194,13 +207,13 @@ is
          Next                 := Next + 2;
       end loop;
 
-      Wait_For_Output (The_Pipes, Timeout => Most_Wait_On_Pipes);
+      Wait_For_Output (The_Pipes, Most_Wait_On_Pipes, Ready);
 
       for Each of The_Pipeline.Stages
       loop
          declare
-            The_Output : constant Data := Available_Output_Of (Each.Output_Pipe);     -- Finds nothing for a pipe read by the next command.
-            The_Errors : constant Data := Available_Output_Of (Each.Error_Pipe);
+            The_Output : constant Data := Output_If_Ready (Each.Output_Pipe, Ready);     -- Finds nothing for a pipe read by the next command.
+            The_Errors : constant Data := Output_If_Ready (Each.Error_Pipe,  Ready);
          begin
             if The_Output'Length /= 0
             then
@@ -373,9 +386,10 @@ is
       end if;
 
       Check_None_Are_Started (Commands);
-      Connect (Commands);
 
       begin
+         Connect (Commands);
+
          for i in Commands'Range
          loop
             if i = Commands'First
@@ -556,9 +570,9 @@ is
 
 
 
-   procedure Run (The_Pipeline : in out Command_Array;
-                  Input        : in     Data    := No_Data;
-                  Raise_Error  : in     Boolean := False)
+   procedure Run_Commands (The_Pipeline : in out Command_Array;
+                           Input        : in     Data;
+                           Raise_Error  : in     Boolean)
    is
       Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
       i            : Positive     := The_Pipeline'First;
@@ -638,6 +652,21 @@ is
 
          end if;
       end loop;
+   end Run_Commands;
+
+
+
+   procedure Run (The_Pipeline : in out Command_Array;
+                  Input        : in     Data    := No_Data;
+                  Raise_Error  : in     Boolean := False)
+   is
+   begin
+      if The_Pipeline'Length = 0
+      then
+         raise Command_Error with "Cannot run a pipeline with no commands.";
+      end if;
+
+      Run_Commands (The_Pipeline, Input, Raise_Error);
    end Run;
 
 
@@ -646,8 +675,7 @@ is
                  Input        : in     Data    := No_Data;
                  Raise_Error  : in     Boolean := False) return Command_Results
    is
-      Last_Command : Command renames The_Pipeline (The_Pipeline'Last);
-      Earlier      : Data_Vector;
+      Earlier : Data_Vector;
    begin
       Run (The_Pipeline, Input, Raise_Error);
 
@@ -660,7 +688,7 @@ is
          Earlier.Append (The_Pipeline (i).Errors);
       end loop;
 
-      return With_Earlier_Errors (Results_Of (Last_Command), Earlier);
+      return With_Earlier_Errors (Results_Of (The_Pipeline (The_Pipeline'Last)), Earlier);
    end Run;
 
 
@@ -815,12 +843,13 @@ is
             declare
                Output_Pipe : constant Pipe := (if The_Command.Output_Is_Connected then Null_Pipe
                                                                                   else The_Command.Output_Pipe);
+               Ready : Pipe_Id_Sets.Set;
             begin
-               Wait_For_Output ([Output_Pipe, The_Command.Error_Pipe], Timeout => Most_Wait_On_Pipes);
+               Wait_For_Output ([Output_Pipe, The_Command.Error_Pipe], Most_Wait_On_Pipes, Ready);
 
                declare
-                  The_Output : constant Data := Available_Output_Of (Output_Pipe);
-                  The_Errors : constant Data := Available_Output_Of (The_Command.Error_Pipe);
+                  The_Output : constant Data := Output_If_Ready (Output_Pipe,            Ready);
+                  The_Errors : constant Data := Output_If_Ready (The_Command.Error_Pipe, Ready);
                begin
                   if The_Output'Length /= 0
                   then

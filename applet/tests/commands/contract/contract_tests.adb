@@ -551,9 +551,11 @@ begin
    Check ("Single quotes aren't understood",
           +Output_Of (Run ("printf [%s] 'one two' three")) = "['one][two'][three]");
 
-   Check ("A backslash keeps a space within an argument on 'Unsafe', but 'Safe' loses it",
-          +Output_Of (Run ("printf [%s] one\ two three")) = (if Flavour.Is_Safe then "[one][two][three]"
-                                                                                 else "[one two][three]"));
+   Check ("A backslash keeps a space within an argument",
+          +Output_Of (Run ("printf [%s] one\ two three")) = "[one two][three]");
+
+   Check ("A backslash is kept with what it escapes in a pipeline",
+          +Output_Of (Run ("printf [%s] one\ two | cat")) = "[one two]");
 
    if Failures /= 0
    then

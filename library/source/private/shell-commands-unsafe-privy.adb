@@ -1,19 +1,16 @@
 package body Shell.Commands.Unsafe.Privy
 is
 
-   function To_Command (Command_Line : in String) return Command
+   function To_Command_With_Pipes return Command
    is
    begin
       return Result : Command
       do
-         Define (Result, Command_Line);
-
          Result.Owns_Output_Pipe := True;
          Result.     Output_Pipe := To_Pipe (Blocking => False);
          Result.      Error_Pipe := To_Pipe (Blocking => False);
-
       end return;
-   end to_Command;
+   end To_Command_With_Pipes;
 
 
 

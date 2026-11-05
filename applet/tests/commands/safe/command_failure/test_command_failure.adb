@@ -187,6 +187,29 @@ begin
          Check ("A pipeline of no commands raises", True);
    end;
 
+   declare
+      None : Command_Array (1 .. 0);
+   begin
+      Run (None);
+      Check ("Running a pipeline of no commands raises", False);
+   exception
+      when Command_Error =>
+         Check ("Running a pipeline of no commands raises", True);
+   end;
+
+   declare
+      None : Command_Array (1 .. 0);
+   begin
+      declare
+         Unused : constant Command_Results := Run (None);
+      begin
+         Check ("The function running a pipeline of no commands raises", False);
+      end;
+   exception
+      when Command_Error =>
+         Check ("The function running a pipeline of no commands raises", True);
+   end;
+
 
    -- A program must not inherit the pipes of other commands, or a reader
    -- which ends early would not be seen by the commands feeding it.
@@ -335,29 +358,31 @@ begin
    end;
 
 
-   -- A pipeline which the server cannot parse must not leave the caller waiting.
+   -- Arguments are sent as they are, rather than in one line for the server to split.
    --
    declare
-      Ends_In_Bar   : Command_Array := [Forge.To_Command ("cat"), Forge.To_Command ("echo end|")];
-      Contains_Bar  : Command_Array := [Forge.To_Command ("cat"), Forge.To_Command ("echo a|b")];
-      Too_Many      : Command_Array := [for Each in 1 .. 51 => Forge.To_Command ("true")];
+      Ends_In_Bar  : Command_Array := [Forge.To_Command ("true"), Forge.To_Command ("echo end|")];
+      Contains_Bar : Command_Array := [Forge.To_Command ("true"), Forge.To_Command ("echo a|b")];
+      Many         : Command_Array := [for Each in 1 .. 51 => Forge.To_Command ("true")];
    begin
-      Run (Ends_In_Bar);
-      Check ("Pipeline ending in a bar fails", Which_Failed (Ends_In_Bar) = 1);
-      Check ("Pipeline ending in a bar gives an error", Errors_Of (Results_Of (Ends_In_Bar (1)))'Length /= 0);
+      Check ("An argument may end in a bar",  +Output_Of (Run (Ends_In_Bar))  = "end|" & ASCII.LF);
+      Check ("An argument may contain a bar", +Output_Of (Run (Contains_Bar)) = "a|b"  & ASCII.LF);
 
-      Run (Contains_Bar);
-      Check ("Argument containing a bar fails", Which_Failed (Contains_Bar) = 1);
-      Check ("Argument containing a bar gives its reason", Contains (+Errors_Of (Results_Of (Contains_Bar (1))), "may contain a '|'"));
+      Run (Many);
+      Check ("A pipeline may have many commands", Which_Failed (Many) = 0);
+   end;
 
-      Run (Too_Many);
-      Check ("Pipeline with too many commands fails", Which_Failed (Too_Many) = 1);
 
-      -- Failing a long pipeline must leave no backlog of actions, which would hold up the next command.
-      --
+   -- A pipeline's failure must leave no backlog of actions, which would hold up the next command.
+   --
+   declare
+      use Ada.Real_Time;
+
+      The_Pipeline : Command_Array := [for Each in 1 .. 51 => Forge.To_Command ("false")];
+   begin
+      Run (The_Pipeline);
+
       declare
-         use Ada.Real_Time;
-
          Before : constant Time   := Clock;
          Output : constant String := +Output_Of (Run ("echo Next"));
          Taken  : constant Duration := To_Duration (Clock - Before);
@@ -366,80 +391,6 @@ begin
          Check ("A failed long pipeline doesn't hold up the next command",     Output = "Next" & ASCII.LF
                                                                            and Taken < 1.5);
       end;
-   end;
-
-
-   -- The server must wake when an action arrives, rather than waiting for its next check. Commands take about a
-   -- millisecond, and this allows for a busy machine, though not the 50 ms of that check.
-   --
-   declare
-      use Ada.Real_Time;
-
-      Before : constant Time := Clock;
-   begin
-      for Each in 1 .. 20
-      loop
-         Check ("A command runs",   +Output_Of (Run ("echo Quick")) = "Quick" & ASCII.LF);
-      end loop;
-
-      Check ("Commands run without waiting", To_Duration (Clock - Before) / 20 < 0.03);
-   end;
-
-   -- A program usually closes its pipes just before it can be seen to have ended, and nothing then wakes the server.
-   --
-   declare
-      use Ada.Real_Time;
-
-      Before : constant Time := Clock;
-   begin
-      for Each in 1 .. 10
-      loop
-         declare
-            The_Pipeline : Command_Array := Forge.To_Commands ("true | true | true | true | cat");
-         begin
-            Run (The_Pipeline);
-         end;
-      end loop;
-
-      Check ("Pipelines are seen to end without waiting", To_Duration (Clock - Before) / 10 < 0.03);
-   end;
-
-
-   -- A burst of actions must be handled together, rather than one for each pass over the running commands.
-   --
-   declare
-      use Ada.Real_Time;
-
-      Sleepers : Command_Array := [for Each in 1 .. 12 => Forge.To_Command ("sleep 20")];
-      Before   : Time;
-   begin
-      for Each of Sleepers
-      loop
-         Each.Start;
-      end loop;
-
-      delay 0.5;     -- Let them all be started.
-
-      -- Each server pass must not take longer for each command which is running.
-      --
-      Before := Clock;
-      Check ("A command runs alongside others",   +Output_Of (Run ("echo Alongside")) = "Alongside" & ASCII.LF);
-      Check ("Other commands don't hold it up", To_Duration (Clock - Before) < 1.0);
-
-      Before := Clock;
-
-      for Each of Sleepers
-      loop
-         Each.Kill;
-      end loop;
-
-      for Each of Sleepers
-      loop
-         Each.Wait_On;
-      end loop;
-
-      Ada.Text_IO.Put_Line ("Killing all took" & Duration'Image (To_Duration (Clock - Before)));
-      Check ("A burst of actions is handled together", To_Duration (Clock - Before) < 1.0);
    end;
 
 

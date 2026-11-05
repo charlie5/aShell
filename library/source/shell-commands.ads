@@ -1,5 +1,6 @@
 private
 with
+     Ada.Containers.Vectors,
      Ada.Containers.Indefinite_Vectors,
      Ada.Containers.Indefinite_Holders,
      Ada.Finalization;
@@ -175,6 +176,21 @@ private
    ------------------
    --- Server Actions
    --
+   -- A command's name and arguments are sent as they are, as joining them into one line to be split again would lose
+   -- what was escaped, and an argument containing a '|' would become another command.
+   --
+   type Command_Line is
+      record
+         Name      : Unbounded_String;
+         Arguments : String_Vector;
+      end record;
+
+   package Command_Line_Vectors is new Ada.Containers.Vectors (Positive, Command_Line);
+   subtype Command_Lines        is Command_Line_Vectors.Vector;
+
+   function To_Command_Line (The_Command : in Command'Class) return Command_Line;
+
+
    type Server_Action_Kind is (Nil,
                                New_Command, New_Pipeline, New_Input,
                                Kill, Interrupt, Pause, Resume, Stop,
@@ -188,14 +204,13 @@ private
          case Kind
          is
          when New_Command =>
-            Command_Line  : Unbounded_String;
+            The_Line      : Command_Line;
             Command_Input : Data_Holder;
             Accepts_Input : Boolean;
 
          when New_Pipeline =>
-            Pipeline       : Unbounded_String;
+            The_Lines      : Command_Lines;     -- Their commands have ids from 'Id' onwards.
             Pipeline_Input : Data_Holder;
-            Pipeline_Count : Positive;     -- The commands the client has given ids, from 'Id' onwards.
 
          when New_Input =>
             Data : Data_Holder;

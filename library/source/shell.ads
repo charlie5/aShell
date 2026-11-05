@@ -10,7 +10,8 @@ with
      POSIX.Process_Identification,
      POSIX.Process_Primitives,
      Ada.Containers.Vectors,
-     Ada.Containers.Ordered_Maps;
+     Ada.Containers.Ordered_Maps,
+     Ada.Containers.Ordered_Sets;
 
 
 package Shell
@@ -67,7 +68,7 @@ is
    function  Is_Readable  (Pipe    : in Shell.Pipe) return Boolean;
    function  Is_Writeable (Pipe    : in Shell.Pipe) return Boolean;
    function  Is_Empty     (Pipe    : in Shell.Pipe;
-                           Timeout : in Duration := 0.0) return Boolean;   -- A timeout of '0.0' will block until the pipe is not empty.
+                           Timeout : in Duration := 0.0) return Boolean;   -- Waits for up to the timeout. A timeout of '0.0' doesn't wait.
    --
    -- Is_Empty raises Pipe_Not_Readable when the 'read end' is closed.
 
@@ -288,16 +289,20 @@ private
 
    type Pipe_Array is array (Positive range <>) of Pipe;
 
-   -- Waits until any of the pipes has output, or is at its end, or until the
-   -- timeout has passed. A null pipe, or one whose read end is closed, is ignored.
-   --
-   procedure Wait_For_Output (Pipes   : in Pipe_Array;
-                              Timeout : in Duration);
+   package Pipe_Id_Sets is new Ada.Containers.Ordered_Sets (Pipe_Id);
 
-   -- As for 'Output_Of', though without any wait, and giving no data for a pipe whose read end is closed. It closes the read
-   -- end of a pipe at its end, as no more can arrive, and 'Wait_For_Output' would otherwise find that pipe always ready.
+   -- Waits until any of the pipes has output, or is at its end, or until the timeout has passed, and
+   -- gives those which are ready. A null pipe, or one whose read end is closed, is ignored.
    --
-   function Available_Output_Of (Pipe : in Shell.Pipe) return Data;
+   procedure Wait_For_Output (Pipes   : in     Pipe_Array;
+                              Timeout : in     Duration;
+                              Ready   :    out Pipe_Id_Sets.Set);
+
+   -- As for 'Output_Of', though it gives no data for a pipe which isn't ready, so it doesn't wait. It closes the read end
+   -- of a pipe at its end, as no more can arrive, and 'Wait_For_Output' would otherwise find that pipe always ready.
+   --
+   function Output_If_Ready (Pipe  : in Shell.Pipe;
+                             Ready : in Pipe_Id_Sets.Set) return Data;
 
    -- Moves this program's standard input to a new descriptor, which programs it starts don't inherit, and returns a pipe
    -- to read it. The standard input becomes empty, so a program started without any input sees the end of its input.
