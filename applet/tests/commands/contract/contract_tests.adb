@@ -318,6 +318,48 @@ begin
       Check ("A failed start leaves the status alone", State'(The_Command.Status) = Normal_Exit);
    end;
 
+   -- These don't read the status first, as a read of it could hide a stale one.
+   --
+   declare
+      Killed_Late  : Command := Forge.To_Command ("true");
+      Paused_Late  : Command := Forge.To_Command ("true");
+      Resumed_Late : Command := Forge.To_Command ("true");
+
+      procedure Kill_It is
+      begin
+         Killed_Late.Kill;
+      end Kill_It;
+
+      procedure Pause_It is
+      begin
+         Paused_Late.Pause;
+      end Pause_It;
+
+      procedure Resume_It is
+      begin
+         Resumed_Late.Resume;
+      end Resume_It;
+
+      procedure Check_Kill   is new Check_Raises (Kill_It);
+      procedure Check_Pause  is new Check_Raises (Pause_It);
+      procedure Check_Resume is new Check_Raises (Resume_It);
+   begin
+      Killed_Late.Start;
+      Killed_Late.Wait_On;
+      Check_Kill ("Killing a command just seen to end raises");
+      Check ("Killing a command which has ended leaves its status", State'(Killed_Late.Status) = Normal_Exit);
+
+      Paused_Late.Start;
+      Paused_Late.Wait_On;
+      Check_Pause ("Pausing a command just seen to end raises");
+      Check ("Pausing a command which has ended leaves its status", State'(Paused_Late.Status) = Normal_Exit);
+
+      Resumed_Late.Start;
+      Resumed_Late.Wait_On;
+      Check_Resume ("Resuming a command just seen to end raises");
+      Check ("Resuming a command which has ended leaves its status", State'(Resumed_Late.Status) = Normal_Exit);
+   end;
+
    declare
       The_Command : Command := Forge.To_Command ("sleep 0.5");
 

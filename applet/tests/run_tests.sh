@@ -289,6 +289,7 @@ check core/pipe_output_to_string     60 ''   "End 'Pipe_Output_To_String'"
 check core/wait_on_process           30 ''   "End 'Wait_On_Process'"
 check core/process_status            60 ''   "End +'Test_Process_Status'"
 check core/pause_resume             120 ''   "End 'Test_Pause_Resume'"
+check core/stale_ready               30 ''   'End test'
 
 check directories                    30 ''   'test_iterate_directory\.adb'  "End 'Iterate_Directory'"
 check directories/contents           30 ''   'End test'
@@ -317,6 +318,7 @@ check commands/safe/concurrent_pipelines       120 '50'    "End 'Concurrent_Pipe
 check commands/safe/exit_with_input             30 ''      'Main ending'
 check commands/contract/safe                    90 ''      'End contract tests'
 check commands/safe/late_kill                   15 ''      'Main ending'
+check commands/safe/stopped_pipeline            60 ''      'End test'
 check commands/safe/stopped_program             20 ''      'Main ending'
 check commands/safe/many_commands               90 ''      'Commands all ended'
 check commands/safe/no_input                    30 ''      'Waiting on a command which failed to start raises passed'

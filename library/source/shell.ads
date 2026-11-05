@@ -127,8 +127,10 @@ is
 
    -- For 'Start', when pipeline is true, closing the write ends of any
    -- non-standard 'Output' and 'Errors' pipes becomes the callers responsibility.
-   -- A 'Process_Error' is raised if 'Start' fails, including when either end of
-   -- a non-standard 'Input', 'Output' or 'Errors' pipe is not open.
+   -- A 'Process_Error' is raised if 'Start' fails, including when either end of a non-standard 'Input', 'Output'
+   -- or 'Errors' pipe is not open, when the 'Input' pipe is also the 'Output' or 'Errors' pipe, or when the
+   -- 'Working_Directory' is not a folder. 'Output' and 'Errors' may be the same pipe. A folder which exists
+   -- and can't be entered isn't found until the process has started, which then ends with a 'Failed_Exit'.
 
    Process_Error            : exception;
    Process_Already_Started  : exception;

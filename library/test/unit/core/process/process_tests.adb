@@ -482,6 +482,131 @@ is
 
 
 
+   -- The working directory is set in the child process, which must not carry on as a copy of this program.
+   --
+   procedure Test_Bad_Working_Directory
+   is
+      use Shell;
+
+      procedure Check_Raises (Working_Directory : in String)
+      is
+      begin
+         declare
+            Unused : Shell.Process := Start (Program           => "true",
+                                             Arguments         => Nil_Strings,
+                                             Working_Directory => Working_Directory);
+         begin
+            Fail ("Process_Error expected, for working directory '" & Working_Directory & "'.");
+         end;
+      exception
+         when Process_Error => null;
+      end Check_Raises;
+
+      Folder : constant String := "unsearchable_folder_for_ashell_test";
+
+      function Ended_Normally (Command : in String) return Boolean
+      is
+         Process : Shell.Process := Start (Command);
+      begin
+         Wait_On (Process);
+         return Status (Process) = Normal_Exit;
+      end Ended_Normally;
+
+   begin
+      Check_Raises ("/non_existent_folder_for_ashell");
+      Check_Raises ("/etc/passwd");     -- Not a folder.
+      Check_Raises ("");
+
+      begin
+         declare
+            Unused : Shell.Process := Start (Command => "true", Working_Directory => "/non_existent_folder_for_ashell");
+         begin
+            Fail ("Process_Error expected, for a command line.");
+         end;
+      exception
+         when Process_Error => null;
+      end;
+
+      -- A folder which can't be entered only fails in the child, so the process must fail.
+      --
+      Assert (Ended_Normally ("mkdir -p " & Folder & " && chmod 000 " & Folder), "The folder should be made.");
+
+      if not Ended_Normally ("test -x " & Folder)     -- As root, any folder can be entered.
+      then
+         declare
+            Process : Shell.Process := Start (Program           => "true",
+                                              Arguments         => Nil_Strings,
+                                              Working_Directory => Folder);
+         begin
+            Wait_On (Process);
+
+            declare
+               Final_Status : constant Process_State := Status (Process);
+            begin
+               Assert (Ended_Normally ("chmod 700 " & Folder & " && rmdir " & Folder), "The folder should be removed.");
+               Assert (Final_Status = Failed_Exit, "Status should be 'Failed_Exit' not '" & Final_Status'Image & "'");
+            end;
+         end;
+      else
+         Assert (Ended_Normally ("chmod 700 " & Folder & " && rmdir " & Folder), "The folder should be removed.");
+      end if;
+   end Test_Bad_Working_Directory;
+
+
+
+   procedure Test_Shared_Pipes
+   is
+      use Shell;
+   begin
+      declare     -- Like '2>&1' in a shell.
+         The_Pipe : constant Pipe := To_Pipe;
+         Process  : Shell.Process := Start (Program   => "bash",
+                                            Arguments => [+"-c", +"echo Out; echo Err >&2"],
+                                            Output    => The_Pipe,
+                                            Errors    => The_Pipe);
+      begin
+         Wait_On (Process);
+
+         Assert (Status (Process) = Normal_Exit, "Status should be 'Normal_Exit' not '" & Status (Process)'Image & "'");
+         Assert (To_String (Output_Of (The_Pipe)) = "Out" & ASCII.LF & "Err" & ASCII.LF, "Both should reach the pipe.");
+         Assert (not Is_Writeable (The_Pipe), "The write end should have been closed by 'Start'.");
+
+         Close (The_Pipe);
+      end;
+
+      declare     -- A process can't be given the same pipe to read and to write.
+         The_Pipe : constant Pipe := To_Pipe;
+
+         procedure Check_Raises (Output : in Pipe := Shell.Standard_Output;
+                                 Errors : in Pipe := Shell.Standard_Error)
+         is
+         begin
+            declare
+               Unused : Shell.Process := Start (Program   => "cat",
+                                                Arguments => Nil_Strings,
+                                                Input     => The_Pipe,
+                                                Output    => Output,
+                                                Errors    => Errors);
+            begin
+               Fail ("Process_Error expected, for sharing a pipe with the input.");
+            end;
+         exception
+            when Process_Error => null;
+         end Check_Raises;
+
+      begin
+         Check_Raises (Output => The_Pipe);
+         Check_Raises (Errors => The_Pipe);
+
+         Assert (Is_Readable  (The_Pipe), "The read end should be left open.");
+         Assert (Is_Writeable (The_Pipe), "The write end should be left open.");
+
+         Close (The_Pipe);
+      end;
+   end Test_Shared_Pipes;
+
+
+
    overriding
    procedure Initialize (T : in out Test)
    is
@@ -498,6 +623,8 @@ is
       T.Add_Test_Routine (Test_Ended_Process'Access, "Ended Process");
       T.Add_Test_Routine (Test_Unexpected_Endings'Access, "Unexpected Endings");
       T.Add_Test_Routine (Test_Start_With_Closed_Pipe'Access, "Start With Closed Pipe");
+      T.Add_Test_Routine (Test_Bad_Working_Directory'Access, "Bad Working Directory");
+      T.Add_Test_Routine (Test_Shared_Pipes'Access, "Shared Pipes");
 
    end Initialize;
 

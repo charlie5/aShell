@@ -1,0 +1,13 @@
+with
+     "../../../../library/ashell",
+     "../../../../library/ashell_shared";
+
+project Stale_Ready
+is
+   for Object_Dir use "build";
+   for Exec_Dir   use ".";
+   for Main       use ("shell-test_stale_ready.adb");
+
+   package Compiler renames aShell_shared.Compiler;
+
+end Stale_Ready;

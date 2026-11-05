@@ -31,8 +31,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Directories;
-
 with POSIX.Implementation,
      POSIX.Unsafe_Process_Primitives,
      Ada.Unchecked_Conversion;
@@ -114,6 +112,9 @@ package body POSIX.Process_Primitives.Extensions is
 
    function dup2 (fildes, fildes2 : int) return int;
    pragma Import (C, dup2, dup2_LINKNAME);
+
+   function chdir (path : char_ptr) return int;
+   pragma Import (C, chdir, chdir_LINKNAME);
 
    procedure Execute_Template (Template : Process_Template) is
       FD1, FD2 : int;
@@ -262,7 +263,8 @@ package body POSIX.Process_Primitives.Extensions is
       Result : int;
       pragma Unreferenced (Result);
 
-      Filename_With_NUL : POSIX_String := Filename & NUL;
+      Filename_With_NUL  : POSIX_String := Filename & NUL;
+      Directory_With_NUL : POSIX_String := To_POSIX_String (Working_Directory) & NUL;
       Arg : String_List_Ptr := To_String_List_Ptr (Arg_List);
 
    begin
@@ -272,7 +274,10 @@ package body POSIX.Process_Primitives.Extensions is
       Validate (Template);
       pid := To_pid_t (UFork); Check (int (pid));
       if pid = 0 then    --  child process
-         Ada.Directories.Set_Directory (Working_Directory);
+         --  An exception here would leave the child running as a copy of
+         --  the parent. See the comments in Execute_Template.
+         Check_Fatal (chdir (Directory_With_NUL
+           (Directory_With_NUL'First)'Unchecked_Access));
          Execute_Template (Template);
          Result := execvp (Filename_With_NUL
            (Filename_With_NUL'First)'Unchecked_Access, Arg.Char (1)'Access);

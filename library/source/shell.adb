@@ -442,7 +442,10 @@ is
    is
       use type POSIX.Error_Code;
    begin
-      if not Ready.Contains (Pipe.Id)
+      -- The pipe may have been closed since it was found ready, and its descriptor given to another pipe.
+      --
+      if        not Ready.Contains (Pipe.Id)
+        or else not End_Is_Open (Pipe, Pipe.Read_End)
       then
          return No_Data;
       end if;
@@ -1106,6 +1109,21 @@ is
          Free (Pathname);
       end if;
 
+      -- The child process would only be able to exit, so the parent could not tell why it had failed.
+      --
+      if not Is_Directory (Working_Directory)
+      then
+         raise Process_Error with "Cannot start '" & Program & "': its working directory '" & Working_Directory & "' is not a folder.";
+      end if;
+
+      -- The child process would close the ends of the pipe before it could use them both, and the parent can't tell.
+      --
+      if     Input /= Standard_Input
+        and (Input = Output or Input = Errors)
+      then
+         raise Process_Error with "Cannot start '" & Program & "': its 'Input' pipe is also used for its output.";
+      end if;
+
       if Errors /= Standard_Error
       then
          Check_Ends_Are_Open (Errors, "Errors");
@@ -1130,10 +1148,17 @@ is
          Set_File_Action_To_Close     (The_Template, Errors.Read_End);
          Set_File_Action_To_Duplicate (The_Template, POSIX.IO.Standard_Error,
                                                      Errors.Write_End);
+         if Errors = Output     -- Each end can only be closed once.
+         then
+            Set_File_Action_To_Duplicate (The_Template, POSIX.IO.Standard_Output,
+                                                        Output.Write_End);
+         end if;
+
          Set_File_Action_To_Close     (The_Template, Errors.Write_End);
       end if;
 
-      if Output /= Standard_Output
+      if    Output /= Standard_Output
+        and Output /= Errors
       then
          Set_File_Action_To_Close     (The_Template, Output.Read_End);
          Set_File_Action_To_Duplicate (The_Template, POSIX.IO.Standard_Output,

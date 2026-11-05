@@ -931,8 +931,9 @@ is
 
 
 
-   overriding
-   function Status (The_Command : in out Command) return State
+   -- The server tells of a command ending, and the status isn't changed by that until this is called.
+   --
+   procedure Note_Any_End (The_Command : in out Command)
    is
    begin
       if        The_Command.Status in Running | Paused     -- A killed command retains its status.
@@ -941,7 +942,15 @@ is
          The_Command.Status := (if The_Command.Safe_Outputs.Normal_Exit then Normal_Exit
                                                                         else Failed_Exit);
       end if;
+   end Note_Any_End;
 
+
+
+   overriding
+   function Status (The_Command : in out Command) return State
+   is
+   begin
+      Note_Any_End (The_Command);
       return The_Command.Status;
    end Status;
 
@@ -983,6 +992,7 @@ is
    procedure Kill (The_Command : in out Command)
    is
    begin
+      Note_Any_End (The_Command);
       Commands.Command (The_Command).Kill;
       Spawn_Client.Kill (The_Command);
    exception
@@ -1008,6 +1018,7 @@ is
    procedure Pause (The_Command : in out Command)
    is
    begin
+      Note_Any_End (The_Command);
       Commands.Command   (The_Command).Pause;
       Spawn_Client.Pause (The_Command);
    exception
@@ -1021,6 +1032,8 @@ is
    procedure Resume (The_Command : in out Command)
    is
    begin
+      Note_Any_End (The_Command);
+
       -- A program may have been stopped from outside, such as by Ctrl-Z, which only
       -- the server knows of. So a command which appears to be running may be resumed.
       --
