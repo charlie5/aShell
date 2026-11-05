@@ -79,11 +79,13 @@ is
 
       procedure Set_Done (Normal_Exit  : in     Boolean;
                           Not_At_Fault : in     Boolean;
+                          Was_Killed   : in     Boolean;
                           Abandoned    :    out Boolean)
       is
       begin
          Exit_Is_Normal  := Normal_Exit;
          Is_Not_At_Fault := Not_At_Fault;
+         Is_Killed       := Was_Killed;
          Done            := True;
          Is_Held         := False;
          Abandoned       := Is_Abandoned;
@@ -106,6 +108,7 @@ is
          Is_Lost := True;
          Set_Done (Normal_Exit  => False,
                    Not_At_Fault => False,
+                   Was_Killed   => False,
                    Abandoned    => Abandoned);
       end Set_Lost;
 
@@ -141,6 +144,14 @@ is
             raise Process_Error with "Process has not terminated.";
          end if;
       end Normal_Exit;
+
+
+
+      function Was_Killed return Boolean
+      is
+      begin
+         return Done and Is_Killed;
+      end Was_Killed;
 
 
 
@@ -453,6 +464,7 @@ is
                         begin
                            Command_Outputs.Set_Done   (Normal_Exit  => Action.Normal_Exit,
                                                        Not_At_Fault => Action.Not_At_Fault,
+                                                       Was_Killed   => Action.Was_Killed,
                                                        Abandoned    => Abandoned);
                            Command_Outputs_Map.Delete (Action.Id);
 
@@ -1055,8 +1067,9 @@ is
       if        The_Command.Status in Running | Paused     -- A killed command retains its status.
         and then The_Command.Safe_Outputs.Is_Done
       then
-         The_Command.Status := (if The_Command.Safe_Outputs.Normal_Exit then Normal_Exit
-                                                                        else Failed_Exit);
+         The_Command.Status := (if    The_Command.Safe_Outputs.Was_Killed  then Killed
+                                elsif The_Command.Safe_Outputs.Normal_Exit then Normal_Exit
+                                else                                            Failed_Exit);
       end if;
    end Note_Any_End;
 

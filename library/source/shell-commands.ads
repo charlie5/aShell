@@ -181,7 +181,7 @@ private
    -- The server writes this before anything else, as it is a separate program which may be older or newer than the
    -- client. Increase it with any change to the actions below. How it is written must never change.
    --
-   Protocol_Version : constant Integer := 1;
+   Protocol_Version : constant Integer := 2;
 
 
    ------------------
@@ -250,6 +250,7 @@ private
             when Command_Done =>
                Normal_Exit  : Boolean;
                Not_At_Fault : Boolean;     -- It only ended as another command of its pipeline couldn't start.
+               Was_Killed   : Boolean;     -- The server killed it, rather than it having ended by itself first.
 
             when Server_Done =>
                null;

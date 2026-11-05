@@ -168,14 +168,16 @@ begin
 
       procedure Send_Done (Id           : in Command_Id;
                            Normal_Exit  : in Boolean;
-                           Not_At_Fault : in Boolean := False)
+                           Not_At_Fault : in Boolean := False;
+                           Was_Killed   : in Boolean := False)
       is
       begin
          Client_Action'Output (Output_Stream'Access,
                                (Command_Done,
                                 Id,
                                 Normal_Exit  => Normal_Exit,
-                                Not_At_Fault => Not_At_Fault));
+                                Not_At_Fault => Not_At_Fault,
+                                Was_Killed   => Was_Killed));
       end Send_Done;
 
 
@@ -276,6 +278,7 @@ begin
                               declare
                                  Started     : Boolean := True;
                                  Exited_Well : Boolean := False;     -- It may have ended before it could be stopped.
+                                 Was_Killed  : Boolean := False;
                               begin
                                  begin
                                     Started :=     Shell.Status (Unsafe.Process (The_Commands (i)).all)
@@ -284,6 +287,7 @@ begin
                                     then
                                        Privy.Stop (The_Commands (i));
                                        Exited_Well := The_Commands (i).Normal_Exit;
+                                       Was_Killed  := State'(The_Commands (i).Status) = Killed;
                                     end if;
                                  exception
                                     when Stop_Failure : others =>     -- The client must still be told of every command.
@@ -312,7 +316,8 @@ begin
 
                                     Send_Done (Action.Id,
                                                Normal_Exit  => Exited_Well and not At_Fault,
-                                               Not_At_Fault => not At_Fault);
+                                               Not_At_Fault => not At_Fault,
+                                               Was_Killed   => Was_Killed);
                                  end;
 
                                  Action.Id := Action.Id + 1;
@@ -633,7 +638,8 @@ begin
                            Act : constant Client_Action := (Command_Done,
                                                             Id,
                                                             Normal_Exit  => The_Command.Normal_Exit,
-                                                            Not_At_Fault => False);
+                                                            Not_At_Fault => False,
+                                                            Was_Killed   => State'(The_Command.Status) = Killed);
                         begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;

@@ -610,6 +610,39 @@ begin
       The_Pipeline (1).Wait_On;
    end;
 
+   -- A command which a pipeline has to stop reads as killed, as it was.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("false | sleep 20");
+   begin
+      Run (The_Pipeline);
+
+      Check ("The command which failed reads as failed",         State'(The_Pipeline (1).Status) = Failed_Exit);
+      Check ("A command stopped by that failure reads as killed", State'(The_Pipeline (2).Status) = Killed);
+      Check ("A command stopped by that failure has failed",     The_Pipeline (2).Failed);
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | no_such_program_for_ashell | cat");
+   begin
+      Run (The_Pipeline);
+
+      Check ("A command stopped by a failed start reads as killed",  State'(The_Pipeline (1).Status) = Killed);
+      Check ("The command which can't start reads as failed",        State'(The_Pipeline (2).Status) = Failed_Exit);
+      Check ("A command after that one reads as failed",             State'(The_Pipeline (3).Status) = Failed_Exit);
+   end;
+
+   -- A command which had already ended well, when a later one fails, isn't killed by that.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("true | false");
+   begin
+      Run (The_Pipeline);
+
+      Check ("A command which ended well keeps that",    State'(The_Pipeline (1).Status) = Normal_Exit);
+      Check ("The last command which failed reads so",   State'(The_Pipeline (2).Status) = Failed_Exit);
+   end;
+
    -- A command which is still running hasn't failed, whichever others have.
    --
    declare

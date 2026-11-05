@@ -145,6 +145,7 @@ private
 
       procedure Set_Done    (Normal_Exit  : in     Boolean;
                              Not_At_Fault : in     Boolean;
+                             Was_Killed   : in     Boolean;
                              Abandoned    :    out Boolean);     -- True when the spawn client should deallocate.
 
       procedure Abandon     (Unused      :    out Boolean);      -- True when the command should deallocate.
@@ -154,6 +155,7 @@ private
       entry     Wait_Til_Done;                                   -- Raises Command_Error, if lost.
       function  Is_Done     return Boolean;
       function  Normal_Exit return Boolean;
+      function  Was_Killed  return Boolean;
       function  Not_At_Fault return Boolean;                     -- It only ended as another command of its pipeline couldn't start.
 
    private
@@ -165,6 +167,7 @@ private
       Is_Lost        : Boolean := False;
 
       Is_Not_At_Fault : Boolean := False;
+      Is_Killed       : Boolean := False;
 
       Is_Held        : Boolean := False;
       Is_Abandoned   : Boolean := False;
