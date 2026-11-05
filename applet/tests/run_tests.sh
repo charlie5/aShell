@@ -151,6 +151,12 @@ function check_without_writeable_folder
    local Start=$SECONDS
    local Status
 
+   if ! build applet/tests/commands/safe/no_input test_no_input "$Log"
+   then
+      fail "$Name" "does not build" "$Log"
+      return
+   fi
+
    Folder=$(mktemp -d)
    chmod a-w "$Folder"
 
@@ -184,7 +190,8 @@ function check_startup_failures
    local Log=$Output/${Name//\//_}.log
    local Start=$SECONDS
 
-   if ! build applet/tests/commands/mixed_packages test_mixed_packages "$Log"
+   if    ! build applet/tests/commands/mixed_packages test_mixed_packages "$Log" \
+      || ! build applet/tests/commands/safe/no_input    test_no_input       "$Log"
    then
       fail "$Name" "does not build" "$Log"
       return

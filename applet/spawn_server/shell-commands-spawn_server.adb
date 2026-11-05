@@ -174,14 +174,16 @@ begin
       end Send_Error;
 
 
-      procedure Send_Done (Id          : in Command_Id;
-                           Normal_Exit : in Boolean)
+      procedure Send_Done (Id           : in Command_Id;
+                           Normal_Exit  : in Boolean;
+                           Not_At_Fault : in Boolean := False)
       is
       begin
          Client_Action'Output (Output_Stream'Access,
                                (Command_Done,
                                 Id,
-                                Normal_Exit => Normal_Exit));
+                                Normal_Exit  => Normal_Exit,
+                                Not_At_Fault => Not_At_Fault));
       end Send_Done;
 
       procedure Perform (Action : in out Server_Action)
@@ -253,13 +255,14 @@ begin
                         when E : others =>     -- Such as a program not being found.
                            Log (Ada.Exceptions.Exception_Information (E));
 
-                           -- Stop the commands which did start. They aren't at fault, so that
-                           -- 'Which_Failed' finds the one which is, and report the error against it.
+                           -- Stop the commands which did start. Only the first which didn't is at
+                           -- fault, so that the client can find it, and the error is reported against it.
                            --
                            for i in The_Commands'Range
                            loop
                               declare
-                                 Started : Boolean := True;
+                                 Started     : Boolean := True;
+                                 Exited_Well : Boolean := False;     -- It may have ended before it could be stopped.
                               begin
                                  begin
                                     Started :=     Shell.Status (Unsafe.Process (The_Commands (i)).all)
@@ -267,20 +270,28 @@ begin
                                     if Started
                                     then
                                        Privy.Stop (The_Commands (i));
+                                       Exited_Well := The_Commands (i).Normal_Exit;
                                     end if;
                                  exception
                                     when Stop_Failure : others =>     -- The client must still be told of every command.
                                        Log (Ada.Exceptions.Exception_Information (Stop_Failure));
                                  end;
 
-                                 if         not (Started and i /= The_Commands'Last)
-                                   and then not Error_Is_Sent
-                                 then
-                                    Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
-                                    Error_Is_Sent := True;
-                                 end if;
+                                 declare
+                                    At_Fault : constant Boolean :=         not (Started and i /= The_Commands'Last)
+                                                                   and then not Error_Is_Sent;
+                                 begin
+                                    if At_Fault
+                                    then
+                                       Send_Error (Action.Id, Ada.Exceptions.Exception_Message (E));
+                                       Error_Is_Sent := True;
+                                    end if;
 
-                                 Send_Done (Action.Id, Normal_Exit => Started and i /= The_Commands'Last);
+                                    Send_Done (Action.Id,
+                                               Normal_Exit  => Exited_Well and not At_Fault,
+                                               Not_At_Fault => not At_Fault);
+                                 end;
+
                                  Action.Id := Action.Id + 1;
                               end;
                            end loop;
@@ -603,7 +614,8 @@ begin
                         declare
                            Act : constant Client_Action := (Command_Done,
                                                             Id,
-                                                            Normal_Exit => The_Command.Normal_Exit);
+                                                            Normal_Exit  => The_Command.Normal_Exit,
+                                                            Not_At_Fault => False);
                         begin
                            Client_Action'Output (Output_Stream'Access, Act);
                         end;

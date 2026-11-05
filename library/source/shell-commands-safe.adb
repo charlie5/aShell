@@ -69,14 +69,16 @@ is
 
 
 
-      procedure Set_Done (Normal_Exit : in     Boolean;
-                          Abandoned   :    out Boolean)
+      procedure Set_Done (Normal_Exit  : in     Boolean;
+                          Not_At_Fault : in     Boolean;
+                          Abandoned    :    out Boolean)
       is
       begin
-         Exit_Is_Normal := Normal_Exit;
-         Done           := True;
-         Is_Held        := False;
-         Abandoned      := Is_Abandoned;
+         Exit_Is_Normal  := Normal_Exit;
+         Is_Not_At_Fault := Not_At_Fault;
+         Done            := True;
+         Is_Held         := False;
+         Abandoned       := Is_Abandoned;
       end Set_Done;
 
 
@@ -94,8 +96,9 @@ is
       is
       begin
          Is_Lost := True;
-         Set_Done (Normal_Exit => False,
-                   Abandoned   => Abandoned);
+         Set_Done (Normal_Exit  => False,
+                   Not_At_Fault => False,
+                   Abandoned    => Abandoned);
       end Set_Lost;
 
 
@@ -130,6 +133,14 @@ is
             raise Process_Error with "Process has not terminated.";
          end if;
       end Normal_Exit;
+
+
+
+      function Not_At_Fault return Boolean
+      is
+      begin
+         return Done and Is_Not_At_Fault;
+      end Not_At_Fault;
 
    end Client_Outputs;
 
@@ -403,8 +414,9 @@ is
                         declare
                            Abandoned : Boolean;
                         begin
-                           Command_Outputs.Set_Done   (Normal_Exit => Action.Normal_Exit,
-                                                       Abandoned   => Abandoned);
+                           Command_Outputs.Set_Done   (Normal_Exit  => Action.Normal_Exit,
+                                                       Not_At_Fault => Action.Not_At_Fault,
+                                                       Abandoned    => Abandoned);
                            Command_Outputs_Map.Delete (Action.Id);
 
                            if Abandoned
@@ -653,6 +665,7 @@ is
                    Input : in Data)
    is
    begin
+      Check_Is_Started (To, "send to");
       Spawn_Client.Send (To, Input);
    exception
       when Tasking_Error =>
@@ -710,18 +723,7 @@ is
       Errors      : Data_Vector;
       Normal_Exit : Boolean;
    begin
-      Commands.Command (The_Command).Start (Input);
-
-      begin
-         Spawn_Client.Add (The_Command,
-                           Input,
-                           Accepts_Input => False,
-                           Outputs       => The_Command.Safe_Outputs);
-      exception
-         when Tasking_Error =>
-            The_Command.Status := Not_Started;
-            raise Command_Error with "Cannot run '" & (+The_Command.Name) & "'. " & Client_Gone_Message;
-      end;
+      Start (The_Command, Input);
 
       The_Command.Safe_Outputs.Wait_Til_Done;
       The_Command.Safe_Outputs.Get_Outputs (Output,
@@ -760,7 +762,8 @@ is
       loop
          The_Pipeline (i).Safe_Outputs.Wait_Til_Done;     -- Output is held for each command as it arrives, so just wait.
 
-         if Normal_Exit (The_Pipeline (i))
+         if        Normal_Exit (The_Pipeline (i))
+           or else The_Pipeline (i).Safe_Outputs.Not_At_Fault     -- Carry on, to the command which is.
          then
             i := i + 1;
 
@@ -918,6 +921,15 @@ is
    function Which_Failed (The_Pipeline : in Command_Array) return Natural
    is
    begin
+      for i in The_Pipeline'Range     -- Commands before this were only stopped because of it.
+      loop
+         if        not The_Pipeline (i).Normal_Exit
+           and then not The_Pipeline (i).Safe_Outputs.Not_At_Fault
+         then
+            return i;
+         end if;
+      end loop;
+
       for i in The_Pipeline'Range
       loop
          if not The_Pipeline (i).Normal_Exit
@@ -1006,6 +1018,7 @@ is
    procedure Interrupt (The_Command : in out Command)
    is
    begin
+      Check_Is_Started (The_Command, "interrupt");
       Spawn_Client.Interrupt (The_Command);
    exception
       when Tasking_Error =>

@@ -124,6 +124,11 @@ private
    procedure Gather_Results (The_Command : in out Command) is null;
 
    function  Failure_Message (The_Command : in Command'Class) return String;
+
+   -- Raises 'Command_Error', when the command has not been started. The action is part of the message.
+   --
+   procedure Check_Is_Started (The_Command : in Command'Class;
+                               Action      : in String);
    --
    -- Includes any gathered errors, which remain available via 'Results_Of'.
 
@@ -237,7 +242,8 @@ private
                Errors : Data_Holder;
 
             when Command_Done =>
-               Normal_Exit : Boolean;
+               Normal_Exit  : Boolean;
+               Not_At_Fault : Boolean;     -- It only ended as another command of its pipeline couldn't start.
 
             when Server_Done =>
                null;

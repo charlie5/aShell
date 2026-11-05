@@ -271,6 +271,16 @@ begin
          The_Command.Kill;
       end Kill_It;
 
+      procedure Interrupt_It is
+      begin
+         The_Command.Interrupt;
+      end Interrupt_It;
+
+      procedure Send_It is
+      begin
+         The_Command.Send (+"Input");
+      end Send_It;
+
       procedure Start_It is
       begin
          The_Command.Start;
@@ -285,6 +295,8 @@ begin
       procedure Check_Pause  is new Check_Raises (Pause_It);
       procedure Check_Resume is new Check_Raises (Resume_It);
       procedure Check_Kill   is new Check_Raises (Kill_It);
+      procedure Check_Interrupt is new Check_Raises (Interrupt_It);
+      procedure Check_Send   is new Check_Raises (Send_It);
       procedure Check_Start  is new Check_Raises (Start_It);
       procedure Check_Run    is new Check_Raises (Run_It);
    begin
@@ -295,6 +307,8 @@ begin
       Check_Pause  ("Pausing a new command raises");
       Check_Resume ("Resuming a new command raises");
       Check_Kill   ("Killing a new command raises");
+      Check_Interrupt ("Interrupting a new command raises");
+      Check_Send   ("Sending to a new command raises");
 
       The_Command.Start;
 
@@ -524,6 +538,36 @@ begin
          Each.Wait_On;
          Check ("Commands which aren't a pipeline each get the input", +Output_Of (Results_Of (Each)) = "Each");
       end loop;
+   end;
+
+
+   -- Only the command which can't start is at fault. Those before it are stopped, which isn't a normal exit.
+   --
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | no_such_program_for_ashell | cat");
+   begin
+      Run (The_Pipeline);
+
+      Check ("Which_Failed finds the command which can't start",       Which_Failed (The_Pipeline) = 2);
+      Check ("A command stopped by another not starting has failed",   The_Pipeline (1).Failed);
+      Check ("A command stopped by another isn't a normal exit",       not The_Pipeline (1).Normal_Exit);
+      Check ("A command which can't start isn't a normal exit",        not The_Pipeline (2).Normal_Exit);
+      Check ("A command after one which can't start isn't either",     not The_Pipeline (3).Normal_Exit);
+      Check ("Which_Failed finds a stopped command, if all it is given", Which_Failed (The_Pipeline (1 .. 1)) = 1);
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | no_such_program_for_ashell | cat");
+      Named        : Boolean       := False;
+   begin
+      begin
+         Run (The_Pipeline, Raise_Error => True);
+      exception
+         when E : Command_Error =>
+            Named := Contains (Ada.Exceptions.Exception_Message (E), "Pipeline command 2: ");
+      end;
+
+      Check ("The error names the command which can't start", Named);
    end;
 
 

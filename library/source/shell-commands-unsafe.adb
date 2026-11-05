@@ -463,6 +463,7 @@ is
                    Input : in Data)
    is
    begin
+      Check_Is_Started (To, "send to");
       Write_In_Background (To.Input_Pipe, Input);
    end Send;
 
@@ -942,6 +943,7 @@ is
    procedure Interrupt (The_Command : in out Command)
    is
    begin
+      Check_Is_Started (The_Command, "interrupt");
       Interrupt (The_Command.Process);
    end Interrupt;
 

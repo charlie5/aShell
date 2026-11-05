@@ -829,6 +829,18 @@ is
 
 
 
+   procedure Check_Is_Started (The_Command : in Command'Class;
+                               Action      : in String)
+   is
+   begin
+      if The_Command.Status = Not_Started
+      then
+         raise Command_Error with "Cannot " & Action & " '" & (+The_Command.Name) & "' as it is not started.";
+      end if;
+   end Check_Is_Started;
+
+
+
    procedure Kill (The_Command : in out Command)
    is
    begin
