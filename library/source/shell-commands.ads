@@ -124,13 +124,13 @@ private
    procedure Gather_Results (The_Command : in out Command) is null;
 
    function  Failure_Message (The_Command : in Command'Class) return String;
+   --
+   -- Includes any gathered errors, which remain available via 'Results_Of'.
 
    -- Raises 'Command_Error', when the command has not been started. The action is part of the message.
    --
    procedure Check_Is_Started (The_Command : in Command'Class;
                                Action      : in String);
-   --
-   -- Includes any gathered errors, which remain available via 'Results_Of'.
 
 
    -------------------
@@ -176,6 +176,12 @@ private
 
    package Data_Holders is new Ada.Containers.Indefinite_Holders (Element_Type => Data);
    subtype Data_Holder  is     Data_Holders.Holder;
+
+
+   -- The server writes this before anything else, as it is a separate program which may be older or newer than the
+   -- client. Increase it with any change to the actions below. How it is written must never change.
+   --
+   Protocol_Version : constant Integer := 1;
 
 
    ------------------

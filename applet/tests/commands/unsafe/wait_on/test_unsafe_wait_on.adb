@@ -1,7 +1,9 @@
 with
      Shell.Commands.Unsafe,
      Ada.Calendar,
-     Ada.Text_IO;
+     Ada.Text_IO,
+     Interfaces.C,
+     System;
 
 
 procedure Test_Unsafe_Wait_On
@@ -56,9 +58,10 @@ is
    end Times_This_Task_Has_Slept;
 
 
-   -- Once a program has closed its pipes, only its end is left to wait for, so nothing should keep checking.
+   -- Once a program has closed its pipes, only its end is left to wait for, so a wait should rarely check. It checks every
+   -- 2 ms until then, so this leaves room for a busy machine to take a while to get the program to close its pipes.
    --
-   Most_Wake_Ups : constant := 50;
+   Most_Wake_Ups : constant := 150;
 
 begin
    declare
@@ -112,7 +115,96 @@ begin
    begin
       The_Command.Run;
 
-      Check ("A stopped program which closed its pipes is waited on", The_Command.Failed);     -- It exits with a failure, at its end.
+      Check ("A stopped program which closed its pipes is waited on", The_Command.Normal_Exit);
+   end;
+
+   -- A wait must remain open to being given up on, including once a program has closed its pipes.
+   --
+   declare
+      use Ada.Calendar;
+
+      The_Command : Unsafe.Command := Forge.To_Command ("bash closes_output.sh 10");
+      The_Start   : constant Time  := Clock;
+   begin
+      The_Command.Start;
+
+      select
+         delay 0.3;
+      then abort
+         The_Command.Wait_On;
+      end select;
+
+      Ada.Text_IO.Put_Line ("Took" & Duration'Image (Clock - The_Start) & " to give up on a wait.");
+      Check ("A wait can be aborted, once a program has closed its pipes", Clock - The_Start < 5.0);
+
+      The_Command.Kill;
+      The_Command.Wait_On;
+   end;
+
+   declare
+      use Ada.Calendar;
+
+      The_Pipeline : Command_Array := Forge.To_Commands ("bash closes_output.sh 10 | bash closes_output.sh 10");
+      The_Start    : constant Time := Clock;
+   begin
+      select
+         delay 0.3;
+      then abort
+         Run (The_Pipeline);
+      end select;
+
+      Check ("A pipeline 'Run' can be aborted, once its programs have closed their pipes", Clock - The_Start < 5.0);
+
+      for Each of The_Pipeline
+      loop
+         Each.Kill;
+         Each.Wait_On;
+      end loop;
+   end;
+
+   -- A signal must not end a wait, which also leaves the program running. Most signals are blocked in an Ada
+   -- program's main thread, but not an interrupt, and this handler doesn't ask for the system call to be restarted.
+   --
+   declare
+      use Interfaces.C;
+
+      SIGINT : constant int := 2;
+
+      Handled : int := 0
+        with Volatile;
+
+      procedure Handler (Signal : in int)
+        with Convention => C;
+
+      procedure Handler (Signal : in int)
+      is
+         pragma Unreferenced (Signal);
+      begin
+         Handled := Handled + 1;
+      end Handler;
+
+      function Set_Handler (Signal  : in int;
+                            Handler : in System.Address) return System.Address
+        with Import, Convention => C, External_Name => "signal";
+
+      function Allow_Interruption (Signal : in int;
+                                   Flag   : in int) return int
+        with Import, Convention => C, External_Name => "siginterrupt";
+
+      The_Command : Unsafe.Command := Forge.To_Command ("bash interrupts_parent.sh");
+
+      Old_Handler : constant System.Address := Set_Handler (SIGINT, Handler'Address);
+      Unused      : constant int            := Allow_Interruption (SIGINT, 1);
+   begin
+      The_Command.Run;
+
+      declare
+         Ignored : constant System.Address := Set_Handler (SIGINT, Old_Handler);
+         pragma Unreferenced (Ignored);
+      begin
+         Check ("The interrupt reached this program",       Handled = 1);
+         Check ("A wait carries on after a signal",         The_Command.Normal_Exit);
+      end;
    end;
 
 

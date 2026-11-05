@@ -5,6 +5,7 @@ with
      Ada.Unchecked_Deallocation,
      Ada.Containers.Hashed_Maps,
      Ada.Containers.Indefinite_Vectors,
+     Ada.Real_Time,
      Ada.Strings.Fixed,
      Ada.Task_Identification,
      Ada.Text_IO,
@@ -13,10 +14,20 @@ with
 
 package body Shell.Commands.Safe
 is
-   Server_Lost_Message : constant String := "The spawn server has stopped unexpectedly. See 'aShell_spawn_Server.log'.";
-
    Server_Is_Lost : Boolean := False
      with Atomic;
+
+   Server_Is_Out_Of_Date : Boolean := False
+     with Atomic;
+
+   Server_Is_Silent : Boolean := False
+     with Atomic;
+
+
+   function Server_Lost_Message return String
+   is (if    Server_Is_Out_Of_Date then "The spawn server found on the PATH does not match this program. Reinstall it with 'install_spawn_server.sh'."
+       elsif Server_Is_Silent      then "The spawn server found on the PATH did not respond. It may be stuck, or older than this program. If older, reinstall it with 'install_spawn_server.sh'."
+       else                             "The spawn server has stopped unexpectedly. See 'aShell_spawn_Server.log'.");
 
 
    function Client_Gone_Message return String
@@ -178,6 +189,7 @@ is
 
       entry Deliver (Action : in Client_Action);     -- From the server.
       entry Server_Output_Failed;
+      entry Server_Matches;
    end Spawn_Client;
 
 
@@ -207,9 +219,16 @@ is
       Shutdown_Sent  : Boolean    := False;
       Server_Is_Done : Boolean    := False;
 
-      Spawn_Server : Shell.Process with Unreferenced;
+      Spawn_Server : Shell.Process;
 
       Lost_The_Server : exception;
+
+      -- An older server says nothing and waits for actions it might misread, so hold them until the server has said which
+      -- protocol it uses. The limit is a long one, as a server slow to start on a busy machine mustn't be taken for old.
+      --
+      Is_Matched         : Boolean  := False;
+      Most_Time_To_Match : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
+      Match_Deadline     : Ada.Real_Time.Time;
 
 
       -- Blocks on the server's output, so this task can sleep until either a caller or the server needs it.
@@ -230,6 +249,20 @@ is
          or
             terminate;     -- The server failed to start.
          end select;
+
+         declare
+            Version : Integer;
+         begin
+            Integer'Read (Server_Output_Stream'Access, Version);
+
+            if Version /= Protocol_Version
+            then
+               Server_Is_Out_Of_Date := True;
+               raise Program_Error with "The server has protocol version" & Version'Image & ".";
+            end if;
+
+            Spawn_Client.Server_Matches;
+         end;
 
          while not Is_Done
          loop
@@ -266,6 +299,12 @@ is
       Close (Server_Err_Pipe);
 
       log ("Starting Spawn_Client");
+
+      declare
+         use type Ada.Real_Time.Time;
+      begin
+         Match_Deadline := Ada.Real_Time.Clock + Most_Time_To_Match;
+      end;
 
       Server_Output_Reader.Start;
 
@@ -436,41 +475,65 @@ is
             accept Server_Output_Failed;
             raise Lost_The_Server;
          or
+            accept Server_Matches;
+            Is_Matched := True;
+         or
             delay 0.05;     -- To notice the main program completing.
          end select;
 
 
-         for Each of Pending_Actions
-         loop
-            Log ("Sending " & Each.Kind'Image & " action for command" & Each.Id'Image & " to server.");
+         declare
+            use type Ada.Real_Time.Time;
+         begin
+            if     not Is_Matched
+              and then Ada.Real_Time.Clock > Match_Deadline
+            then
+               Log ("The server has not given its protocol version.");
+               Server_Is_Silent := True;
 
-            begin
-               Server_Action'Output (Server_Input_Stream'Access, Each);
-            exception
-               when others =>
-                  -- The server may have finished, and exited, with its last results still on their way.
-                  --
-                  if not Shutdown_Sent
-                  then
-                     raise;
-                  end if;
+               Shell.Kill (Spawn_Server);     -- Otherwise, it may never close its output, and the reader of that would never end, nor this program.
+               raise Lost_The_Server;
+            end if;
+         end;
 
-                  Log ("Dropped a late action, as the server has ended.");
-            end;
-         end loop;
 
-         Pending_Actions.Clear;
+         if Is_Matched
+         then
+            for Each of Pending_Actions
+            loop
+               Log ("Sending " & Each.Kind'Image & " action for command" & Each.Id'Image & " to server.");
+
+               begin
+                  Server_Action'Output (Server_Input_Stream'Access, Each);
+               exception
+                  when others =>
+                     -- The server may have finished, and exited, with its last results still on their way.
+                     --
+                     if not Shutdown_Sent
+                     then
+                        raise;
+                     end if;
+
+                     Log ("Dropped a late action, as the server has ended.");
+               end;
+            end loop;
+
+            Pending_Actions.Clear;
+         end if;
 
 
          if Shutting_Down
          then
-            Log ("Client is shutting down.");
-            Server_Action'Output (Server_Input_Stream'Access,
-                                  Server_Action' (Shutdown,
-                                                  Null_Id));
-            Log ("Client asks server to stop.");
-            Shutting_Down := False;
-            Shutdown_Sent := True;
+            if Is_Matched
+            then
+               Log ("Client is shutting down.");
+               Server_Action'Output (Server_Input_Stream'Access,
+                                     Server_Action' (Shutdown,
+                                                     Null_Id));
+               Log ("Client asks server to stop.");
+               Shutting_Down := False;
+               Shutdown_Sent := True;
+            end if;
 
          -- The runtime makes the environment task uncallable when the main subprogram has completed (normally or
          -- due to an unhandled exception), and then waits for this task. So, shutdown if that has happened.
@@ -483,8 +546,7 @@ is
          end if;
 
 
-         -- The server ended without finishing these commands, so no more results will come. It may be
-         -- an older version, which couldn't understand the actions, and so ended as if asked to.
+         -- The server ended without finishing these commands, so no more results will come.
          --
          if     Server_Is_Done
             and not Command_Outputs_Map.Is_Empty
@@ -907,7 +969,8 @@ is
    begin
       for Each of The_Pipeline
       loop
-         if Each.Failed
+         if        Each.Safe_Outputs.Not_At_Fault     -- Another command couldn't start, and what the server says of it may be on its way.
+           or else Each.Failed
          then
             return True;
          end if;
@@ -920,11 +983,20 @@ is
 
    function Which_Failed (The_Pipeline : in Command_Array) return Natural
    is
+      Start_Failed : Boolean := False;     -- The server has said so of a command, and what it says of the rest is on its way.
    begin
       for i in The_Pipeline'Range     -- Commands before this were only stopped because of it.
       loop
-         if        not The_Pipeline (i).Normal_Exit
-           and then not The_Pipeline (i).Safe_Outputs.Not_At_Fault
+         if Start_Failed
+         then
+            The_Pipeline (i).Safe_Outputs.Wait_Til_Done;
+         end if;
+
+         if The_Pipeline (i).Safe_Outputs.Not_At_Fault
+         then
+            Start_Failed := True;
+
+         elsif not The_Pipeline (i).Normal_Exit
          then
             return i;
          end if;

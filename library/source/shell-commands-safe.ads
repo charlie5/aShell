@@ -79,7 +79,9 @@ is
    function  Failed       (The_Pipeline : in Command_Array) return Boolean;
    function  Which_Failed (The_Pipeline : in Command_Array) return Natural;
    --
-   -- Returns 0 if no command failed.
+   -- Returns 0 if no command failed. When a command of the pipeline couldn't start, this briefly waits to hear
+   -- which, and raises 'Command_Error' if the server is lost. Otherwise, each command before the one which failed
+   -- must have ended, or this raises 'Process_Error'.
 
 
    overriding

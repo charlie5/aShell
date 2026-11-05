@@ -118,14 +118,6 @@ is
 
 
 begin
-   begin
-      Open_Log ("aShell_spawn_Server.log");
-      Log_Is_Open := True;
-   exception
-      when others =>     -- The working directory may not be writeable. Commands can still be run, without a log.
-         null;
-   end;
-
    declare
       use type Unsafe.Command;
       package Id_Maps_of_Command is new Ada.Containers.Hashed_Maps (Key_Type        => Command_Id,
@@ -185,6 +177,27 @@ begin
                                 Normal_Exit  => Normal_Exit,
                                 Not_At_Fault => Not_At_Fault));
       end Send_Done;
+
+
+
+      -- 'Stop' gathers what was left in the pipes it closes, and this is the only chance to send it.
+      --
+      procedure Send_Results_Of (Stopped : in out Unsafe.Command;
+                                 Id      : in     Command_Id)
+      is
+         The_Results : constant Command_Results := Results_Of (Stopped);
+      begin
+         if    Output_Of (The_Results)'Length /= 0
+            or Errors_Of (The_Results)'Length /= 0
+         then
+            Client_Action'Output (Output_Stream'Access,
+                                  (New_Outputs,
+                                   Id,
+                                   Data_Holders.To_Holder (Output_Of (The_Results)),
+                                   Data_Holders.To_Holder (Errors_Of (The_Results))));
+         end if;
+      end Send_Results_Of;
+
 
       procedure Perform (Action : in out Server_Action)
       is
@@ -271,6 +284,8 @@ begin
                                     then
                                        Privy.Stop (The_Commands (i));
                                        Exited_Well := The_Commands (i).Normal_Exit;
+
+                                       Send_Results_Of (The_Commands (i), Action.Id);
                                     end if;
                                  exception
                                     when Stop_Failure : others =>     -- The client must still be told of every command.
@@ -393,22 +408,7 @@ begin
                   Stop (The_Command);
                   Log ("Stop Command:" & Action.Id'Image & "   '" & Image (The_Command) & "'");
 
-                  -- 'Stop' gathered what was left in the pipes it closed, and this is the only chance to send it.
-                  --
-                  declare
-                     The_Results : constant Command_Results := Results_Of (The_Command);
-                  begin
-                     if    Output_Of (The_Results)'Length /= 0
-                        or Errors_Of (The_Results)'Length /= 0
-                     then
-                        Client_Action'Output (Output_Stream'Access,
-                                              (New_Outputs,
-                                               Action.Id,
-                                               Data_Holders.To_Holder (Output_Of (The_Results)),
-                                               Data_Holders.To_Holder (Errors_Of (The_Results))));
-                     end if;
-                  end;
-
+                  Send_Results_Of (The_Command, Action.Id);
                end;
 
             when Shutdown =>
@@ -518,6 +518,16 @@ begin
 
 
    begin
+      Integer'Write (Output_Stream'Access, Protocol_Version);     -- First of all, so that nothing here can make the client wait for it.
+
+      begin
+         Open_Log ("aShell_spawn_Server.log");
+         Log_Is_Open := True;
+      exception
+         when others =>     -- The working directory may not be writeable. Commands can still be run, without a log.
+            null;
+      end;
+
       Log ("Starting Spawn Server");
 
 

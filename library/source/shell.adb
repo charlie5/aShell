@@ -1330,10 +1330,21 @@ is
 
       -- A program which has merely been stopped hasn't ended, so isn't reported.
       --
-      Wait_For_Child_Process (Status        => POSIX_Status,
-                              Child         => Process.Id,
-                              Block         => True,
-                              Trace_Stopped => False);
+      loop
+         begin
+            Wait_For_Child_Process (Status        => POSIX_Status,
+                                    Child         => Process.Id,
+                                    Block         => True,
+                                    Trace_Stopped => False);
+            exit;
+         exception
+            when POSIX.POSIX_Error =>
+               if POSIX."/=" (POSIX.Get_Error_Code, POSIX.Interrupted_Operation)     -- A signal, with the program still running.
+               then
+                  raise;
+               end if;
+         end;
+      end loop;
 
       Update_Status (Process, POSIX_Status);
 

@@ -221,6 +221,45 @@ function check_startup_failures
 }
 
 
+# A server which doesn't match the client must give an error, rather than leave the caller waiting for ever.
+#
+function check_stale_servers
+{
+   local Each
+   for Each in never_says_hello wrong_version wedged
+   do
+      local Name=commands/safe/stale_server/$Each
+
+      selected "$Name" || continue
+
+      local Folder=$Tests/commands/safe/stale_server
+      local Log=$Output/${Name//\//_}.log
+      local Start=$SECONDS
+
+      if ! build applet/tests/commands/safe/stale_server test_stale_server "$Log"
+      then
+         fail "$Name" "does not build" "$Log"
+         continue
+      fi
+
+      (cd "$Folder" && PATH=$Folder/$Each:$PATH env --default-signal=PIPE timeout -s KILL 60 ./test_stale_server) < /dev/null > "$Log" 2>&1
+
+      local Status=$?
+
+      if [ $Status = 137 ]
+      then
+         fail "$Name" "still running after the 60s limit" "$Log"
+      elif [ $Status != 0 ] || ! grep -q 'End test' "$Log" || grep -qE '^Task [0-9]+: Fatal Error' "$Log"
+      then
+         fail "$Name" "exit status $Status, or a task failed" "$Log"
+      else
+         pass "$Name" $((SECONDS - Start))
+         rm -f "$Log"
+      fi
+   done
+}
+
+
 function check_builds     # folder ...
 {
    local Each
@@ -331,6 +370,7 @@ check commands/safe/many_commands               90 ''      'Commands all ended'
 check commands/safe/no_input                    30 ''      'Waiting on a command which failed to start raises passed'
 check_without_writeable_folder
 check_startup_failures
+check_stale_servers
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'
 check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output'"
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"

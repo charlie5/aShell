@@ -82,6 +82,7 @@ test_start_failure
 test_safe_close_input
 test_command_failure
 test_stopped_pipeline
+test_stale_server
 shell-test_stale_ready
 test_server_lost
 test_unsafe_command_status
@@ -98,3 +99,6 @@ test_unused_unsafe_command
 #
 
 attic
+
+# Stand-ins for the spawn server, used by a test.
+!applet/tests/commands/safe/stale_server/*/ashell_spawn_server

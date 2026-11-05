@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Says nothing, and doesn't notice its input closing, so it won't end unless it is killed.
+
+exec 3>&1
+exec sleep 300

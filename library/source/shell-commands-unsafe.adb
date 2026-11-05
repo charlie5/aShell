@@ -662,7 +662,14 @@ is
       end;
 
       loop
-         Read_All_Stages (Last_Command.Pipeline.all);     -- An earlier command may be blocked by a full pipe.
+         if Has_Pipes_To_Read (Last_Command)
+         then
+            Read_All_Stages (Last_Command.Pipeline.all);     -- An earlier command may be blocked by a full pipe.
+
+         elsif not The_Pipeline (i).Has_Terminated
+         then
+            Wait_Until_Program_Ends (The_Pipeline (i));
+         end if;
 
          if The_Pipeline (i).Has_Terminated     -- Of the command, rather than its process, so as to update its status.
          then
@@ -698,9 +705,6 @@ is
                end;
             end if;
 
-         elsif not Has_Pipes_To_Read (Last_Command)
-         then
-            Wait_Until_Program_Ends (The_Pipeline (i));
          end if;
       end loop;
    end Run_Commands;
@@ -821,14 +825,11 @@ is
       end;
 
       begin
-         Wait_On (The_Command.Process);   -- Reap zombies.
+         Wait_Until_Program_Ends (The_Command);   -- Reap zombies.
       exception
-         when E : POSIX.POSIX_Error =>
-            if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"
-            then
-               Log ("Unable to wait on process" & Image (The_Command.Process));
-               raise;
-            end if;
+         when POSIX.POSIX_Error =>
+            Log ("Unable to wait on process" & Image (The_Command.Process));
+            raise;
       end;
    end Stop;
 
@@ -887,7 +888,14 @@ is
       -- a pipeline, that may be the pipe of a later command, which then holds up the earlier commands.
       --
       loop
-         if The_Command.Pipeline /= null
+         if not Has_Pipes_To_Read (The_Command)
+         then
+            if not The_Command.Has_Terminated
+            then
+               Wait_Until_Program_Ends (The_Command);
+            end if;
+
+         elsif The_Command.Pipeline /= null
          then
             Read_All_Stages (The_Command.Pipeline.all);
          else
@@ -916,11 +924,6 @@ is
          end if;
 
          exit when The_Command.Has_Terminated;
-
-         if not Has_Pipes_To_Read (The_Command)
-         then
-            Wait_Until_Program_Ends (The_Command);
-         end if;
       end loop;
 
       The_Command.Gather_Results;     -- Gather any final results.

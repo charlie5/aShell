@@ -110,6 +110,44 @@ begin
    end loop;
 
 
+   -- 'Which_Failed' may be called once the first command of such a pipeline is seen to have
+   -- ended, with what the server has yet to say of the command at fault still on its way.
+   --
+   for Each in 1 .. 50
+   loop
+      declare
+         The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | " & Missing & " | cat");
+      begin
+         Start (The_Pipeline);
+         The_Pipeline (1).Wait_On;
+
+         if Which_Failed (The_Pipeline) /= 2
+         then
+            raise Program_Error with "'Which_Failed' should find the command at fault.";
+         end if;
+      end;
+   end loop;
+
+   Ada.Text_IO.Put_Line ("'Which_Failed' finds the command at fault as soon as another has ended passed.");
+
+   for Each in 1 .. 50
+   loop
+      declare
+         The_Pipeline : Command_Array := Forge.To_Commands ("true | " & Missing & " | cat");
+      begin
+         Start (The_Pipeline);
+         The_Pipeline (1).Wait_On;
+
+         if not Failed (The_Pipeline)
+         then
+            raise Program_Error with "'Failed' should see that the pipeline failed.";
+         end if;
+      end;
+   end loop;
+
+   Ada.Text_IO.Put_Line ("'Failed' sees a failed start as soon as another command has ended passed.");
+
+
    -- The errors of every command in a pipeline reach its results.
    --
    declare

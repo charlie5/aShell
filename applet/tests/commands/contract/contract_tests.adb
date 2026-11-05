@@ -571,6 +571,29 @@ begin
    end;
 
 
+   -- What a command left in its pipes before being stopped is kept, when a later command can't start.
+   -- It may not have written anything yet, so allow a few tries. Starting the many commands gives it time.
+   --
+   declare
+      Is_Kept : Boolean := False;
+   begin
+      for Each in 1 .. 5
+      loop
+         declare
+            The_Pipeline : Command_Array := Forge.To_Commands ("bash ../writes_then_sleeps.sh | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | cat | no_such_program_for_ashell");
+         begin
+            Run (The_Pipeline);
+
+            Is_Kept := +Errors_Of (Results_Of (The_Pipeline (1))) = "Early" & LF;
+         end;
+
+         exit when Is_Kept;
+      end loop;
+
+      Check ("A stopped command's results are kept, when a later command can't start", Is_Kept);
+   end;
+
+
    ----------
    --- Copies
    --

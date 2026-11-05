@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Like a server from before the protocol version was sent, it says nothing until it is given
+# an action. It keeps its output open, on another descriptor, as a server would while it runs.
+
+exec 3>&1
+exec cat > /dev/null

@@ -3,4 +3,4 @@
 # Closes its output, and carries on for a while.
 
 exec >&- 2>&-
-sleep 1
+exec sleep "${1:-1}"
