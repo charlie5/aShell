@@ -147,6 +147,31 @@ begin
 
    Ada.Text_IO.Put_Line ("'Failed' sees a failed start as soon as another command has ended passed.");
 
+   -- What the server says of each command may arrive at any time during a call of 'Which_Failed', which must
+   -- only ever find the command at fault, and not one which was stopped because of it.
+   --
+   for Each in 1 .. 100
+   loop
+      declare
+         The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | sleep 20 | " & Missing);
+         Found        : Natural       := 0;
+      begin
+         Start (The_Pipeline);
+
+         while Found = 0
+         loop
+            Found := Which_Failed (The_Pipeline);
+         end loop;
+
+         if Found /= 3
+         then
+            raise Program_Error with "'Which_Failed' should find the command at fault, not" & Found'Image & ".";
+         end if;
+      end;
+   end loop;
+
+   Ada.Text_IO.Put_Line ("'Which_Failed' never finds a stopped command, while hearing of a failed start passed.");
+
 
    -- The errors of every command in a pipeline reach its results.
    --

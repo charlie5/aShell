@@ -20,7 +20,7 @@ is
    function  Image     (The_Command : in Command)       return String;
    function  Name      (The_Command : in Command)       return String;
    function  Arguments (The_Command : in Command)       return String;
-   function  Failed    (The_Command : in Command'Class) return Boolean;
+   function  Failed    (The_Command : in out Command'Class) return Boolean;     -- A command which hasn't ended, or hasn't started, hasn't failed.
 
 
    -------------------

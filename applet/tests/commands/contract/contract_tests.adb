@@ -581,6 +581,35 @@ begin
    end;
 
 
+   declare
+      The_Command : Command := Forge.To_Command ("sleep 20");
+   begin
+      Check ("A command which hasn't started hasn't failed", not The_Command.Failed);
+
+      The_Command.Start;
+      Check ("A command which is running hasn't failed",     not The_Command.Failed);
+
+      The_Command.Pause;
+      Check ("A command which is paused hasn't failed",      not The_Command.Failed);
+
+      The_Command.Kill;
+      The_Command.Wait_On;
+      Check ("A command which was killed has failed",        The_Command.Failed);
+   end;
+
+   declare
+      The_Pipeline : Command_Array := Forge.To_Commands ("sleep 20 | false");
+   begin
+      Start (The_Pipeline);
+      The_Pipeline (2).Wait_On;
+
+      Check ("A running command of a failed pipeline hasn't failed", not The_Pipeline (1).Failed);
+      Check ("The command which ended badly has failed",             The_Pipeline (2).Failed);
+
+      The_Pipeline (1).Kill;
+      The_Pipeline (1).Wait_On;
+   end;
+
    -- A command which is still running hasn't failed, whichever others have.
    --
    declare

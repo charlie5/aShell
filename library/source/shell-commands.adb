@@ -546,10 +546,11 @@ is
 
 
 
-   function Failed (The_Command : in Command'Class) return Boolean
+   function Failed (The_Command : in out Command'Class) return Boolean
    is
    begin
-      return not Normal_Exit (The_Command);
+      return     Has_Terminated (The_Command)
+        and then not Normal_Exit (The_Command);
    end Failed;
 
 

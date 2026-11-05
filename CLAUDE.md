@@ -42,7 +42,7 @@ cd applet/tests/core/piped_processes && gprbuild -P test_piped_processes.gpr && 
 - No applet test sets an exit status. A failure shows up as an unhandled exception or in the printed output, so when running one by hand, read the output as well as the exit code.
 - `test_all_core`, `test_all_unsafe_commands` and `test_ashell` wait for `<Enter>` between steps (`Shell.Testing.Pause_Til_Tester_Is_Ready`).
 - `test_spawn_server` loops 100,000 times, as does `test_all_safe_commands` while it calls that test. `test_spawn_server`, `test_concurrent_commands` and `test_concurrent_pipelines` take an optional loop count, and any argument skips the long delays in `test_concurrent_pipelines` and `test_safe_pipeline_output`.
-- `stress/max_processes` needs `ulimit -s unlimited`, so use its `run_test.sh`.
+- `stress/max_processes` needs `ulimit -s unlimited`, so use its `run_test.sh`, which also caps how many processes it starts. Don't run the binary directly, as it would otherwise start as many as the system allows.
 - `show.sh` and `show_server.sh` run `lsof` on a running test, which is useful for finding leaked file descriptors.
 - Each test binary is listed by name in `.gitignore`, so add new ones there.
 

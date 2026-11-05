@@ -224,6 +224,7 @@ is
       -- protocol it uses. The limit is a long one, as a server slow to start on a busy machine mustn't be taken for old.
       --
       Is_Matched         : Boolean  := False;
+      Had_Grace          : Boolean  := False;
       Most_Time_To_Match : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
       Match_Deadline     : Ada.Real_Time.Time;
 
@@ -486,14 +487,17 @@ is
               and then Ada.Real_Time.Clock > Match_Deadline
             then
                -- This program may have been stopped, with the version waiting for the reader to have its turn.
+               -- The server may have been stopped along with it, before writing that, so give it a chance to.
                --
-               if Is_Empty (Server_Out_Pipe)
+               if        Is_Empty (Server_Out_Pipe)
+                 and then Had_Grace
                then
                   Log ("The server has not given its protocol version.");
                   Server_Loss := Silent;
                   raise Lost_The_Server;
                end if;
 
+               Had_Grace      := True;
                Match_Deadline := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (1);
             end if;
          end;
@@ -587,19 +591,6 @@ is
             Server_Loss := Stopped;
          end if;
 
-         -- A server which doesn't match has been sent nothing, so has nothing to finish. It may never
-         -- close its output, and the reader of that would then never end, and neither would this program.
-         --
-         if Server_Loss in Out_Of_Date | Silent
-         then
-            begin
-               Shell.Kill (Spawn_Server);
-            exception
-               when Kill_Failure : others =>
-                  Log (Ada.Exceptions.Exception_Information (Kill_Failure));
-            end;
-         end if;
-
          -- The server has gone, or can't be understood. No more results will arrive, so release all waiting callers.
          --
 
@@ -619,6 +610,22 @@ is
          end loop;
 
          Command_Outputs_Map.Clear;
+
+         -- A server which doesn't match has been sent nothing, so has nothing to finish. It may never close its output,
+         -- and neither may a child of it, such as when it is a script. The reader of that would then never end, and
+         -- neither would this program. So don't rely on the server's end to stop the reader.
+         --
+         if Server_Loss in Out_Of_Date | Silent
+         then
+            abort Server_Output_Reader;
+
+            begin
+               Shell.Kill (Spawn_Server);
+            exception
+               when Kill_Failure : others =>
+                  Log (Ada.Exceptions.Exception_Information (Kill_Failure));
+            end;
+         end if;
 
          Close (Server_In_Pipe,  Only_Write_End => True);
          Close (Server_Out_Pipe, Only_Read_End  => True);
@@ -1005,35 +1012,37 @@ is
    function Which_Failed (The_Pipeline : in Command_Array) return Natural
    is
       Start_Failed : Boolean := False;     -- The server has said so of a command, and what it says of the rest is on its way.
+      Stopped      : Natural := 0;         -- The first command stopped because of that, for when the one at fault isn't given.
    begin
-      for i in The_Pipeline'Range     -- Commands before this were only stopped because of it.
+      -- Only one pass, as what the server says may arrive at any time, and a later look may then see something different.
+      --
+      for i in The_Pipeline'Range
       loop
          if Start_Failed
          then
             The_Pipeline (i).Safe_Outputs.Wait_Til_Done;
          end if;
 
-         if The_Pipeline (i).Safe_Outputs.Not_At_Fault
+         if The_Pipeline (i).Safe_Outputs.Is_Done     -- First, as all that the server says of a command arrives together with this.
          then
-            Start_Failed := True;
+            if The_Pipeline (i).Safe_Outputs.Not_At_Fault
+            then
+               Start_Failed := True;
 
-         elsif     The_Pipeline (i).Safe_Outputs.Is_Done
-           and then not The_Pipeline (i).Normal_Exit
-         then
-            return i;
+               if     Stopped = 0
+                 and then not The_Pipeline (i).Normal_Exit
+               then
+                  Stopped := i;
+               end if;
+
+            elsif not The_Pipeline (i).Normal_Exit
+            then
+               return i;
+            end if;
          end if;
       end loop;
 
-      for i in The_Pipeline'Range
-      loop
-         if        The_Pipeline (i).Safe_Outputs.Is_Done
-           and then not The_Pipeline (i).Normal_Exit
-         then
-            return i;
-         end if;
-      end loop;
-
-      return 0;
+      return Stopped;
    end Which_Failed;
 
 

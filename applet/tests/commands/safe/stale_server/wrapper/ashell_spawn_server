@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# A wrapper which doesn't 'exec' the server, so killing this leaves its child, which holds the output open.
+
+sleep 31338

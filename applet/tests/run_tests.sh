@@ -231,13 +231,14 @@ function check_stale_server_without_commands
 
    local Folder=$Tests/commands/safe/stale_server
    local Log=$Output/${Name//\//_}.log
-   local Start=$SECONDS
 
    if ! build applet/tests/commands/safe/stale_server test_stale_server "$Log"
    then
       fail "$Name" "does not build" "$Log"
       return
    fi
+
+   local Start=$SECONDS
 
    (cd "$Folder" && PATH=$Folder/never_says_hello:$PATH env --default-signal=PIPE timeout -s KILL 60 ./test_stale_server without_commands) < /dev/null > "$Log" 2>&1
 
@@ -262,7 +263,7 @@ function check_stale_server_without_commands
 function check_stale_servers
 {
    local Each
-   for Each in never_says_hello wrong_version wedged
+   for Each in never_says_hello wrong_version wedged wrapper
    do
       local Name=commands/safe/stale_server/$Each
 
@@ -287,6 +288,8 @@ function check_stale_servers
       then
          Left=true
       fi
+
+      pkill -fx 'sleep 31338'     # The child of the wrapper, which can't be known of, so is expected to be left.
 
       if [ $Status = 137 ]
       then

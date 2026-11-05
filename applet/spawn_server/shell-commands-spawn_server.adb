@@ -292,7 +292,12 @@ begin
 
                                  if Started
                                  then
-                                    Send_Results_Of (The_Commands (i), Action.Id);
+                                    begin
+                                       Send_Results_Of (The_Commands (i), Action.Id);
+                                    exception
+                                       when Send_Failure : others =>     -- As above. The handler below would report every command again.
+                                          Log (Ada.Exceptions.Exception_Information (Send_Failure));
+                                    end;
                                  end if;
 
                                  declare
