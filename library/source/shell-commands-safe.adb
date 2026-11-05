@@ -14,25 +14,22 @@ with
 
 package body Shell.Commands.Safe
 is
-   Server_Is_Lost : Boolean := False
-     with Atomic;
+   type Server_Loss_Kind is (Not_Lost, Stopped, Out_Of_Date, Silent);
 
-   Server_Is_Out_Of_Date : Boolean := False
-     with Atomic;
-
-   Server_Is_Silent : Boolean := False
+   Server_Loss : Server_Loss_Kind := Not_Lost
      with Atomic;
 
 
    function Server_Lost_Message return String
-   is (if    Server_Is_Out_Of_Date then "The spawn server found on the PATH does not match this program. Reinstall it with 'install_spawn_server.sh'."
-       elsif Server_Is_Silent      then "The spawn server found on the PATH did not respond. It may be stuck, or older than this program. If older, reinstall it with 'install_spawn_server.sh'."
-       else                             "The spawn server has stopped unexpectedly. See 'aShell_spawn_Server.log'.");
+   is (case Server_Loss is
+          when Out_Of_Date => "The spawn server found on the PATH does not match this program. Reinstall it with 'install_spawn_server.sh'.",
+          when Silent      => "The spawn server found on the PATH did not respond. It may be stuck, or older than this program. If older, reinstall it with 'install_spawn_server.sh'.",
+          when others      => "The spawn server has stopped unexpectedly. See 'aShell_spawn_Server.log'.");
 
 
    function Client_Gone_Message return String
-   is (if Server_Is_Lost then Server_Lost_Message
-                         else "The Spawn client has shut down.");
+   is (if Server_Loss /= Not_Lost then Server_Lost_Message
+                                  else "The Spawn client has shut down.");
 
 
    -----------------------
@@ -257,7 +254,7 @@ is
 
             if Version /= Protocol_Version
             then
-               Server_Is_Out_Of_Date := True;
+               Server_Loss := Out_Of_Date;
                raise Program_Error with "The server has protocol version" & Version'Image & ".";
             end if;
 
@@ -488,11 +485,16 @@ is
             if     not Is_Matched
               and then Ada.Real_Time.Clock > Match_Deadline
             then
-               Log ("The server has not given its protocol version.");
-               Server_Is_Silent := True;
+               -- This program may have been stopped, with the version waiting for the reader to have its turn.
+               --
+               if Is_Empty (Server_Out_Pipe)
+               then
+                  Log ("The server has not given its protocol version.");
+                  Server_Loss := Silent;
+                  raise Lost_The_Server;
+               end if;
 
-               Shell.Kill (Spawn_Server);     -- Otherwise, it may never close its output, and the reader of that would never end, nor this program.
-               raise Lost_The_Server;
+               Match_Deadline := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (1);
             end if;
          end;
 
@@ -533,6 +535,17 @@ is
                Log ("Client asks server to stop.");
                Shutting_Down := False;
                Shutdown_Sent := True;
+
+            -- Nothing needs the server, so don't wait to find out which it is. Any server ends once its input
+            -- closes, without its version having to be read, and one which doesn't will reach the deadline.
+            --
+            elsif Command_Outputs_Map.Is_Empty
+            then
+               Log ("Client is shutting down, without having heard from the server.");
+               Pending_Actions.Clear;
+               Close (Server_In_Pipe, Only_Write_End => True);
+               Shutting_Down := False;
+               Shutdown_Sent := True;
             end if;
 
          -- The runtime makes the environment task uncallable when the main subprogram has completed (normally or
@@ -569,9 +582,26 @@ is
          Log ("Unhandled error in Spawn_Client.");
          Log (Ada.Exceptions.Exception_Information (E));
 
+         if Server_Loss = Not_Lost
+         then
+            Server_Loss := Stopped;
+         end if;
+
+         -- A server which doesn't match has been sent nothing, so has nothing to finish. It may never
+         -- close its output, and the reader of that would then never end, and neither would this program.
+         --
+         if Server_Loss in Out_Of_Date | Silent
+         then
+            begin
+               Shell.Kill (Spawn_Server);
+            exception
+               when Kill_Failure : others =>
+                  Log (Ada.Exceptions.Exception_Information (Kill_Failure));
+            end;
+         end if;
+
          -- The server has gone, or can't be understood. No more results will arrive, so release all waiting callers.
          --
-         Server_Is_Lost := True;
 
          for Each of Command_Outputs_Map
          loop

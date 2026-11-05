@@ -221,6 +221,42 @@ function check_startup_failures
 }
 
 
+# A program which runs no commands shouldn't be held up by an older server, which ends when its input closes.
+#
+function check_stale_server_without_commands
+{
+   local Name=commands/safe/stale_server/without_commands
+
+   selected "$Name" || return
+
+   local Folder=$Tests/commands/safe/stale_server
+   local Log=$Output/${Name//\//_}.log
+   local Start=$SECONDS
+
+   if ! build applet/tests/commands/safe/stale_server test_stale_server "$Log"
+   then
+      fail "$Name" "does not build" "$Log"
+      return
+   fi
+
+   (cd "$Folder" && PATH=$Folder/never_says_hello:$PATH env --default-signal=PIPE timeout -s KILL 60 ./test_stale_server without_commands) < /dev/null > "$Log" 2>&1
+
+   local Status=$?
+   local Took=$((SECONDS - Start))
+
+   if [ $Status != 0 ] || ! grep -q 'End test' "$Log"
+   then
+      fail "$Name" "exit status $Status" "$Log"
+   elif [ $Took -ge 5 ]
+   then
+      fail "$Name" "took ${Took}s to end" "$Log"
+   else
+      pass "$Name" "$Took"
+      rm -f "$Log"
+   fi
+}
+
+
 # A server which doesn't match the client must give an error, rather than leave the caller waiting for ever.
 #
 function check_stale_servers
@@ -245,6 +281,12 @@ function check_stale_servers
       (cd "$Folder" && PATH=$Folder/$Each:$PATH env --default-signal=PIPE timeout -s KILL 60 ./test_stale_server) < /dev/null > "$Log" 2>&1
 
       local Status=$?
+      local Left=false
+
+      if pkill -fx 'sleep 31337'     # What these servers run. It would otherwise be left behind.
+      then
+         Left=true
+      fi
 
       if [ $Status = 137 ]
       then
@@ -252,6 +294,9 @@ function check_stale_servers
       elif [ $Status != 0 ] || ! grep -q 'End test' "$Log" || grep -qE '^Task [0-9]+: Fatal Error' "$Log"
       then
          fail "$Name" "exit status $Status, or a task failed" "$Log"
+      elif $Left
+      then
+         fail "$Name" "the server was left running" "$Log"
       else
          pass "$Name" $((SECONDS - Start))
          rm -f "$Log"
@@ -371,6 +416,7 @@ check commands/safe/no_input                    30 ''      'Waiting on a command
 check_without_writeable_folder
 check_startup_failures
 check_stale_servers
+check_stale_server_without_commands
 check commands/safe/large_input                 60 ''      'Program which reads nothing passed'
 check commands/safe/pipeline_output             60 'quick' "End 'Pipeline_Output'"
 check commands/safe/server_lost                 60 ''      "'Stop_Spawn_Client' returns passed"

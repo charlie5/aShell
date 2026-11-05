@@ -1,5 +1,6 @@
 with
      Shell.Commands.Unsafe,
+     Signal_Counter,
      Ada.Calendar,
      Ada.Text_IO,
      Interfaces.C,
@@ -170,19 +171,6 @@ begin
 
       SIGINT : constant int := 2;
 
-      Handled : int := 0
-        with Volatile;
-
-      procedure Handler (Signal : in int)
-        with Convention => C;
-
-      procedure Handler (Signal : in int)
-      is
-         pragma Unreferenced (Signal);
-      begin
-         Handled := Handled + 1;
-      end Handler;
-
       function Set_Handler (Signal  : in int;
                             Handler : in System.Address) return System.Address
         with Import, Convention => C, External_Name => "signal";
@@ -193,18 +181,30 @@ begin
 
       The_Command : Unsafe.Command := Forge.To_Command ("bash interrupts_parent.sh");
 
-      Old_Handler : constant System.Address := Set_Handler (SIGINT, Handler'Address);
+      Old_Handler : constant System.Address := Set_Handler (SIGINT, Signal_Counter.Handler'Address);
       Unused      : constant int            := Allow_Interruption (SIGINT, 1);
-   begin
-      The_Command.Run;
 
-      declare
+      procedure Restore_Handler
+      is
          Ignored : constant System.Address := Set_Handler (SIGINT, Old_Handler);
          pragma Unreferenced (Ignored);
       begin
-         Check ("The interrupt reached this program",       Handled = 1);
-         Check ("A wait carries on after a signal",         The_Command.Normal_Exit);
+         null;
+      end Restore_Handler;
+
+   begin
+      begin
+         The_Command.Run;
+      exception
+         when others =>
+            Restore_Handler;
+            raise;
       end;
+
+      Restore_Handler;
+
+      Check ("The interrupt reached this program", Signal_Counter.Handled = 1);
+      Check ("A wait carries on after a signal",   The_Command.Normal_Exit);
    end;
 
 

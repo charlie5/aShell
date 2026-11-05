@@ -263,13 +263,12 @@ is
    --
    procedure Wait_Until_Program_Ends (The_Command : in out Command)
    is
-      use Ada.Characters.Handling,
-          Ada.Exceptions;
+      use type POSIX.Error_Code;
    begin
       Wait_On (The_Command.Process);
    exception
-      when E : POSIX.POSIX_Error =>
-         if To_Upper (Exception_Message (E)) /= "NO_CHILD_PROCESS"     -- 'Has_Terminated' accepts this, as ended.
+      when POSIX.POSIX_Error =>
+         if POSIX.Get_Error_Code /= POSIX.No_Child_Process     -- 'Has_Terminated' accepts this, as ended.
          then
             raise;
          end if;

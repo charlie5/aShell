@@ -284,13 +284,16 @@ begin
                                     then
                                        Privy.Stop (The_Commands (i));
                                        Exited_Well := The_Commands (i).Normal_Exit;
-
-                                       Send_Results_Of (The_Commands (i), Action.Id);
                                     end if;
                                  exception
                                     when Stop_Failure : others =>     -- The client must still be told of every command.
                                        Log (Ada.Exceptions.Exception_Information (Stop_Failure));
                                  end;
+
+                                 if Started
+                                 then
+                                    Send_Results_Of (The_Commands (i), Action.Id);
+                                 end if;
 
                                  declare
                                     At_Fault : constant Boolean :=         not (Started and i /= The_Commands'Last)

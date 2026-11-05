@@ -1,5 +1,6 @@
 with
      Shell.Commands.Safe,
+     Ada.Command_Line,
      Ada.Exceptions,
      Ada.Strings.Fixed,
      Ada.Text_IO;
@@ -29,6 +30,12 @@ is
    end Check_Is_Told;
 
 begin
+   if Ada.Command_Line.Argument_Count /= 0     -- Only see that the program ends, promptly.
+   then
+      Ada.Text_IO.Put_Line ("End test.");
+      return;
+   end if;
+
    Check_Is_Told;
    Ada.Text_IO.Put_Line ("A caller is told of a server which doesn't match passed.");
 

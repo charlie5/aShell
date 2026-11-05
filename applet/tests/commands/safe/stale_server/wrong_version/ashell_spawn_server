@@ -1,8 +1,8 @@
 #!/bin/sh
 
-# Sends a protocol version which no client should accept. It keeps its output open, on another
-# descriptor, so that the client must act on the version rather than on the server having gone.
+# Sends a protocol version which no client should accept. It keeps its output open, on another descriptor, so that the
+# client must act on the version rather than on the server having gone, and doesn't notice its input closing.
 
 printf '\377\377\377\177'
 exec 3>&1
-exec cat > /dev/null
+exec sleep 31337
