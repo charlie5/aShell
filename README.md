@@ -16,6 +16,8 @@ export GPR_PROJECT_PATH=$ASHELL/library:$GPR_PROJECT_PATH
 
 Alire is supported.
 
+`Shell.Commands.Safe` also needs `ashell_spawn_server` on your `PATH`. Run `applet/spawn_server/install_spawn_server.sh` to build it and copy it to `/usr/bin`.
+
 
 ## Example
 
