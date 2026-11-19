@@ -1,5 +1,6 @@
 with
      "../../../../../library/ashell",
+     "../../../../../safe/library/ashell_safe",
      "../../../../../library/ashell_shared";
 
 project Test_Stale_Server

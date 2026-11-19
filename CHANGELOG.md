@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.0 (unreleased)
+
+`Shell.Commands.Safe` and the spawn server have moved to a second crate, `ashell_safe`, so programs which only use `Unsafe` no longer build the server. No Ada source needs to change.
+
+### Upgrading
+
+- **Programs which use `Safe` with Alire** must also depend on `ashell_safe`, with `alr with ashell_safe`.
+- **Programs which use `Safe` without Alire** must add `safe/library` to `GPR_PROJECT_PATH`, and `with "ashell_safe";` in their project file.
+- The spawn server is now built and installed with `safe/applet/spawn_server/install_spawn_server.sh`. The server itself is unchanged, so one installed from 2.0.x still works.
+
+### Changed
+
+- The `ashell` crate no longer contains `Shell.Commands.Safe` or `ashell_spawn_server`.
+- `ashell_safe` and `ashell` are released together, and `ashell_safe` needs the `ashell` of the same minor version.
+
 ## 2.0.1 (2026-11-06)
 
 ### Fixed

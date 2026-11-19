@@ -20,7 +20,7 @@
 
 Tests=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 Root=$(cd "$Tests/../.." && pwd)
-Server=$Root/applet/spawn_server
+Server=$Root/safe/applet/spawn_server
 
 Stress=false
 Pattern=
@@ -359,7 +359,7 @@ function check_unit_tests
 }
 
 
-# The library and server must build, or every result would be meaningless.
+# The libraries and server must build, or every result would be meaningless.
 #
 Log=$Output/library.log
 if ! build library ashell "$Log"
@@ -368,8 +368,15 @@ then
    exit 1
 fi
 
+Log=$Output/safe_library.log
+if ! build safe/library ashell_safe "$Log"
+then
+   fail "safe library" "does not build" "$Log"
+   exit 1
+fi
+
 Log=$Output/spawn_server.log
-if ! build applet/spawn_server spawn_server "$Log"
+if ! build safe/applet/spawn_server spawn_server "$Log"
 then
    fail "spawn server" "does not build" "$Log"
    exit 1

@@ -6,17 +6,21 @@ aShell is an Ada 2022 library for starting and interacting with OS processes, pi
 
 ## Build
 
-There is no top-level project or Makefile. Each `.gpr` is built from its own directory with `gprbuild`. `library/` must be on `GPR_PROJECT_PATH`. Dependencies are `lib_florist` (library) and `ahven` (unit tests only, and not declared in `alire.toml`).
+The repository holds two Alire crates. `ashell` (the root `alire.toml`, `library/`) has `Shell`, `Shell.Directories`, `Shell.Commands` and `Unsafe`. `ashell_safe` (`safe/alire.toml`, `safe/library/`, `safe/applet/spawn_server/`) depends on it and adds `Safe` and the spawn server. Each crate must stay within its own folder, so nothing under `library/` may need anything under `safe/`. The tests for both are in `applet/tests`, and belong to neither crate.
+
+There is no top-level project or Makefile. Each `.gpr` is built from its own directory with `gprbuild`. `library/` must be on `GPR_PROJECT_PATH`, as `ashell_safe.gpr` and `spawn_server.gpr` find `ashell` by name, which is what lets them work as an Alire crate. So every project which uses `Safe` needs it too. Dependencies are `lib_florist` (library) and `ahven` (unit tests only, and not declared in `alire.toml`).
 
 ```shell
 cd library && gprbuild -P ashell.gpr                       # Library, debug mode (objects in build/debug).
 cd library && gprbuild -P ashell.gpr -XaShell_Build_Mode=fast
-cd applet/spawn_server && ./install_spawn_server.sh        # Builds and copies ashell_spawn_server to /usr/bin (uses sudo).
+cd safe/library && gprbuild -P ashell_safe.gpr             # 'Safe' only.
+safe/applet/spawn_server/install_spawn_server.sh           # Builds and copies ashell_spawn_server to /usr/bin (uses sudo).
 ```
 
 - The build mode variable is `aShell_Build_Mode` (`debug`, `fast`, `profile`, `small`). Apart from that name, `library/ashell_shared.gpr` deliberately mirrors lace's `lace_shared.gpr`. Projects importing aShell must set it separately from `Lace_Build_Mode`.
 - All switches live in `ashell_shared.gpr`, and other projects rename its packages. There is no separate lint step: `-gnatwa` and the `-gnaty` style checks run on every compile. They only warn, so read the compiler output.
 - `config/` and `alire/` are Alire-generated and gitignored. `ashell.gpr` does not use `config/ashell_config.gpr`, so edit switches in `ashell_shared.gpr`.
+- The two crates are released together with the same version. `ashell_safe` depends on `ashell` with `~`, as it uses the private part of `Shell.Commands` and `Unsafe.Privy`. To build it with `alr` before `ashell` is in the index, run `alr pin ashell --use ..` in `safe/`, and don't commit the pin.
 
 ## Tests
 
@@ -60,14 +64,14 @@ Three layers, each a child of the one before (see the diagrams in `library/docum
 
 `Safe` works across two processes (`library/document/safe_commands_architecture.png`):
 
-1. The `Spawn_Client` task in `shell-commands-safe.adb` is the only part of the application that talks to the server. Its entries queue actions, in order, and each pass of its loop sends them all. A nested task blocks on the server's output and delivers each action through an entry, so the client sleeps in one `select`. It starts when `Safe` elaborates and launches `ashell_spawn_server`, found through `PATH`.
+1. The `Spawn_Client` task in `safe/library/source/shell-commands-safe.adb` is the only part of the application that talks to the server. Its entries queue actions, in order, and each pass of its loop sends them all. A nested task blocks on the server's output and delivers each action through an entry, so the client sleeps in one `select`. It starts when `Safe` elaborates and launches `ashell_spawn_server`, found through `PATH`.
 2. The client and server exchange `Server_Action` and `Client_Action` records over the server's stdin and stdout, using `'Output` and `'Input` on `Pipe_Stream`.
-3. The server (`applet/spawn_server/shell-commands-spawn_server.adb`) runs each request as an `Unsafe` command, using `Shell.Commands.Unsafe.Privy`, and keeps a map from `Command_Id` to command. Its loop sleeps until a command's pipe or its `Wake_Up` pipe is ready, or for up to 50 ms, then sends output as it arrives and then `Command_Done`. At startup it moves the client's stream off descriptor 0 and puts `/dev/null` there, so a command started without input can't read the client's actions.
+3. The server (`safe/applet/spawn_server/shell-commands-spawn_server.adb`) runs each request as an `Unsafe` command, using `Shell.Commands.Unsafe.Privy`, and keeps a map from `Command_Id` to command. Its loop sleeps until a command's pipe or its `Wake_Up` pipe is ready, or for up to 50 ms, then sends output as it arrives and then `Command_Done`. At startup it moves the client's stream off descriptor 0 and puts `/dev/null` there, so a command started without input can't read the client's actions.
 4. Results reach the calling task through the protected `Client_Outputs` object held by each `Safe.Command`.
 
 What this means when changing code:
 
-- **The server is a separate binary.** After changing `Unsafe`, `Shell`, or the action types in `shell-commands.ads`, rebuild the server. Otherwise tests keep running the old installed one. The server writes `Protocol_Version` first, and the client sends nothing until it has seen a match. A wrong version, or none within 10 seconds (when the client also kills the server), gives callers a `Command_Error` saying to reinstall, so increase `Protocol_Version` with any change to the action types. To avoid installing it, put `applet/spawn_server` first on `PATH`.
+- **The server is a separate binary.** After changing `Unsafe`, `Shell`, or the action types in `shell-commands.ads`, rebuild the server. Otherwise tests keep running the old installed one. The server writes `Protocol_Version` first, and the client sends nothing until it has seen a match. A wrong version, or none within 10 seconds (when the client also kills the server), gives callers a `Command_Error` saying to reinstall, so increase `Protocol_Version` with any change to the action types. To avoid installing it, put `safe/applet/spawn_server` first on `PATH`.
 - **Shutdown is automatic.** `Spawn_Client` polls `Is_Callable (Environment_Task)`, which the runtime clears when the main subprogram completes. It then asks the server to shut down, which kills paused commands and waits for running ones. The server keeps reading actions until it ends, so a late `Kill` still works, but it ignores a late `Pause`, and `Send` waits for the client to end and raises. Library-level finalization can't do this, as it runs only after the tasks have ended. Call `Safe.Stop_Spawn_Client` only to shut down earlier. Library-level tasks can't run commands after the main subprogram completes; they get `Command_Error` or `Tasking_Error`.
 - **`Safe` and `Unsafe` cannot be in the same program.** Whichever elaborates second raises `Program_Error`, so this fails at startup rather than at compile time. It is also why the safe and unsafe tests have separate aggregates. The server itself uses only `Unsafe`.
 - **Failures must not hang callers.** The server reports a command that can't start through `Command_Done`, and logs any other failed action. If the server itself fails it must exit, as its fetcher task would otherwise keep it alive. The client releases all callers with `Command_Error` when it sees any failure, so every call to a `Spawn_Client` entry must also turn `Tasking_Error` into `Command_Error`.

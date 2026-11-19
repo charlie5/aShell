@@ -1,7 +1,7 @@
 name = "ashell"
 description = "Allows running and interacting with OS programs."
 long-description = "Useful for writing shell-like applications or applications which start, stop and interact with spawned OS programs."
-version = "2.0.1"
+version = "3.0.0"
 
 authors = ["Rod Kay"]
 maintainers = ["Rod Kay <rodakay5@gmail.com>"]
@@ -11,8 +11,7 @@ licenses = "ISC"
 website = "https://github.com/charlie5/aShell"
 tags = ["spawn", "os", "command", "process", "directories"]
 
-project-files = ["library/ashell.gpr",
-                 "applet/spawn_server/spawn_server.gpr"]
+project-files = ["library/ashell.gpr"]
 
 
 [available.'case(distribution)']

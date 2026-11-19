@@ -11,12 +11,17 @@ Add the following lines to your ~/.bashrc or equivalent ...
 ```shell
 ASHELL=/path/to/ashell/root
 
-export GPR_PROJECT_PATH=$ASHELL/library:$GPR_PROJECT_PATH
+export GPR_PROJECT_PATH=$ASHELL/library:$ASHELL/safe/library:$GPR_PROJECT_PATH
 ```
 
-Alire is supported.
+Then `with "ashell";` in your project file, and also `with "ashell_safe";` for `Shell.Commands.Safe`.
 
-`Shell.Commands.Safe` also needs `ashell_spawn_server` on your `PATH`. Run `applet/spawn_server/install_spawn_server.sh` to build it and copy it to `/usr/bin`.
+Alire is supported, through two crates:
+
+- `ashell` holds `Shell`, `Shell.Directories`, `Shell.Commands` and `Shell.Commands.Unsafe`.
+- `ashell_safe` depends on `ashell`, and adds `Shell.Commands.Safe` and its spawn server.
+
+`Shell.Commands.Safe` also needs `ashell_spawn_server` on your `PATH`. Run `safe/applet/spawn_server/install_spawn_server.sh` to build it and copy it to `/usr/bin`.
 
 
 ## Example
