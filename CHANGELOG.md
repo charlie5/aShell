@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0 (unreleased)
+## 3.0.0 (2026-11-22)
 
 `Shell.Commands.Safe` and the spawn server have moved to a second crate, `ashell_safe`, so programs which only use `Unsafe` no longer build the server. No Ada source needs to change.
 
